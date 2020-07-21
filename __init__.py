@@ -1,8 +1,11 @@
 # Gaps / sGaps / ArtGaps | Language Python
-from krita import Krita
-from .     import PixelExtension
-
-# [!] Initialize The extension:
-kis    = Krita.instance()
-worker = PixelExtension( parent = kis )
-kis.addExtension( worker )
+try:
+    from krita import Krita
+    from .main import PixelExtension
+except:
+    pass
+else:
+    # [!] Initialize The extension:
+    kis = Krita.instance()
+    ext = PixelExtension( parent = kis )
+    kis.addExtension( ext )

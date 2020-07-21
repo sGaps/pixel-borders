@@ -4,11 +4,14 @@
 # ---------------------------------------------------
 
 from krita import Extension
-from .GUI  import PixelGUI
+# from .GUI  import PixelGUI
 
 EXTENSION_ID = 'pykrita_pixel_border'
 MENU_ENTRY   = 'Pixel Borders'
 
+from PyQt5.QtWidgets import QMessageBox , QWidget
+def hello():
+    QMessageBox.information( QWidget() , "Tester" , "Hello there!!" )
 class PixelExtension( Extension ):
     """
         Wrapper class for the PixelGUI class. This connects 
@@ -27,9 +30,11 @@ class PixelExtension( Extension ):
         # parameter 3 = location of menu entry.
 
         # Set up the actions to krita interface:
-        action.triggered.connect( self.wakeUp )
+        #action.triggered.connect( self.wakeUp )
+        action.triggered.connect( hello )
 
     def wakeUp(self):
-        self.gui = PixelGUI()
-        self.gui.wakeUp()
+        pass
+        #self.gui = PixelGUI()
+        #self.gui.wakeUp()
 
