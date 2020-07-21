@@ -14,7 +14,7 @@ METADATA = { "SYS_ID"    : "pykrita_pixel_border" ,
              "TOOL_PATH" : "tools/scripts"        }
 
 DEFAULTSIZE = { "test-body" : (300,100) ,
-                "extension" : (300,200) }
+                "extension" : (446,304) }   # layoutBody.sizeHint() = (446,382) with Advanced options -> (446,304) when selects a simple method again.
 
 # TODO: Need a way to kill this thread when the GUI finish its tasks.
 class PixelExtension( Extension ):

@@ -2,7 +2,7 @@
 from PyQt5.QtWidgets import ( QDialog , QLabel , QComboBox , QLineEdit , QSpinBox , QGroupBox , QPushButton , QDialogButtonBox )
 
 # Layout imports
-from PyQt5.QtWidgets import ( QVBoxLayout , QHBoxLayout , QFormLayout )
+from PyQt5.QtWidgets import ( QVBoxLayout , QHBoxLayout , QFormLayout , QBoxLayout , QLayout )
 
 # Constants imports
 from PyQt5.Qt        import Qt
@@ -19,8 +19,8 @@ class DialogBox( QDialog ):
 
 
 # CONSTANTS #
-METHODS = { 0 : "Classic" ,
-            1 : "Corners" ,
+METHODS = { 0 : "Classic"              ,
+            1 : "Corners"              ,
             2 : "Classic then Corners" ,
             3 : "Corners then Classic" ,
             4 : "Classic with Corners" ,
@@ -30,19 +30,21 @@ ADVDESC = { "sequential" : "Switch to second method application after" ,
             "combinated" : "Start to apply second method after"        ,
             "none"       : ""                                          }
 
+PROPORTION = { "settings" : (0.95,0.58) ,
+               "colors"   : (0.95,0.25) ,
+               "advanced" : (0.95,0.25) ,
+               "close"    : (0.95,0.08) }
 
-
-# TODO: Make everything like a Widget Composition.
 # TODO: Convert dict types into simple variables.
-# NOTE: Use QGroupBox for this. Create Classes for manage your boxes
-#       Like -> class Settings( QGroupBox ): ; def __init__(self): self.name , self.width , self.method ... ;
-# See more on: https://doc.qt.io/qt-5/qtwidgets-widgets-groupbox-example.html
+# TODO: Adjust all Widgets & Layouts to width & height attributes.
 class GUI( object ):
     def __init__( self , width , height , parent = None ):
         # Basic attributes:
         self.width  = width
         self.height = height
         self.window = DialogBox( parent )
+        # TODO: Fix The sizes
+        self.extraHeight = int( PROPORTION["advanced"][1] * height + 6 )
 
         self.build_data()
         self.build_basicSettings()
@@ -76,7 +78,6 @@ class GUI( object ):
 
         # Widget Config [Left]
         self.layoutSettings["L"].addWidget( self.methodPreview )
-        #self.methodPreview.setText( "Hello there" )
         self.methodPreview.setIconFromIndex( self.data["method"] )
 
         # Widget Config [Right]
@@ -104,6 +105,7 @@ class GUI( object ):
         self.widgetSettings["RBody"].setLayout( self.layoutSettings["R"] )
         self.widgetSettings["LBody"].setTitle( "Preview"  )
         self.widgetSettings["RBody"].setTitle( "Settings" )
+        # SIZES LBODY -> (156,177) ; RBODY -> (270,140)
 
         # WORKS!
         self.layoutSettings["main"].addWidget( self.widgetSettings["LBody"] )
@@ -119,7 +121,7 @@ class GUI( object ):
 
         self.layoutColor.addWidget( self.widgetColor["FG"] )
         self.layoutColor.addWidget( self.widgetColor["BG"] )
-        self.layoutColor.addStretch(1)
+        self.layoutColor.setSizeConstraint( QLayout.SetDefaultConstraint )
 
         self.widgetColor["FG"].setCheckable( True  )
         self.widgetColor["FG"].setChecked  ( True  )
@@ -129,10 +131,12 @@ class GUI( object ):
 
         self.widgetColor["main"].setLayout( self.layoutColor )
         self.widgetColor["main"].setTitle ( "Color Settings" )
+        # SIZE MAIN -> (196,77)
+        self.widgetColor["main"].setFixedHeight( 77 )
 
     def build_advncSettings( self ):
         # TODO Define this as QGridLayout() for avoid ["arg"] weird translation after ["desc"] update
-        self.layoutAdvnc = { "main" : QFormLayout() }
+        self.layoutAdvnc = { "main" : QHBoxLayout() }
         self.widgetAdvnc = { "arg"  : QSpinBox()    ,
                              "desc" : QLabel()      ,
                              "main" : QGroupBox()   }
@@ -144,17 +148,23 @@ class GUI( object ):
 
         self.widgetAdvnc["desc"].setText( self.getDesc() )
 
-        self.widgetAdvnc["main"].setLayout( self.layoutAdvnc["main"]                           )
-        self.layoutAdvnc["main"].addRow   ( self.widgetAdvnc["desc"] , self.widgetAdvnc["arg"] )
-        self.widgetAdvnc["main"].setTitle ( "Advanced Options" )
+        self.widgetAdvnc["main"].setLayout( self.layoutAdvnc["main"] )
+        self.layoutAdvnc["main"].setDirection( QBoxLayout.RightToLeft  )
 
-        self.__update_adv_visibility__()
+        self.layoutAdvnc["main"].addWidget( self.widgetAdvnc["arg"]  )
+        self.layoutAdvnc["main"].addWidget( self.widgetAdvnc["desc"] )
+        self.widgetAdvnc["main"].setTitle ( "Advanced Options" )
+        # SIZE MAIN -> (75,76)
+
+        for w in self.widgetAdvnc.values():
+            w.hide()
 
     def build_closeWButtons( self ):
         self.layoutClose = QHBoxLayout()
         self.widgetClose = { "buttons" : QDialogButtonBox( QDialogButtonBox.Ok 
                                                          | QDialogButtonBox.Cancel ) }
 
+        # SIZE BUTTONS -> (166,26)
         self.layoutClose.addStretch(1)
         self.layoutClose.addWidget( self.widgetClose["buttons"] )
 
@@ -171,7 +181,8 @@ class GUI( object ):
 
     # TODO: Add more configuration
     def __adjust_components__( self ):
-        self.window.resize( self.width , self.height )
+        self.window.setFixedWidth ( self.width  )
+        self.window.setFixedHeight( self.height )
 
     def getDesc( self ):
         m = self.data["method"]
@@ -188,8 +199,8 @@ class GUI( object ):
     def setup_connections( self ):
         self.settings_connect()
         self.colors_connect()
-        self.closing_connect()
         self.advanced_connect()
+        self.closing_connect()
 
 
     def __update__method_depends__( self ):
@@ -202,13 +213,18 @@ class GUI( object ):
         index = self.data["method"]
         extra = self.data["has-extra"]
         if   index < 2:
+            if extra:
+                for widget in self.widgetAdvnc.values():
+                    widget.hide()
+                self.resize( self.width , self.height - self.extraHeight )
+            # TODO: Fix resize problem. Only adjust the window size (for corners/classic) when you
+            #       pass from (corners/classic) to (corners/classic) after select (*combined or *sequential)
             self.data["has-extra"] = False
-            for widget in self.widgetAdvnc.values():
-                widget.hide()
         else:
-            if not self.data["has-extra"]:
+            if not extra:
                 for widget in self.widgetAdvnc.values():
                     widget.show()
+                self.resize( self.width , self.height + self.extraHeight )
             self.data["has-extra"] = True
             self.widgetAdvnc["desc"].setText( self.getDesc() )
 
@@ -239,9 +255,6 @@ class GUI( object ):
         self.widgetColor["FG"].released.connect( self.__update__fg_depends__ )
         self.widgetColor["BG"].released.connect( self.__update__bg_depends__ )
 
-    def closing_connect( self ):
-        self.widgetClose["buttons"].accepted.connect( self.call_borderizer )
-        self.widgetClose["buttons"].rejected.connect( self.window.close    )
 
     def __update__advArg_depends__( self ):
         self.data["extra-arg"] = self.widgetAdvnc["arg"].value()
@@ -255,11 +268,26 @@ class GUI( object ):
             print( k , ":" , v )
         print( "}" )
 
+    def closing_connect( self ):
+        self.widgetClose["buttons"].accepted.connect( self.call_borderizer )
+        self.widgetClose["buttons"].rejected.connect( self.window.close    )
+
     def call_borderizer( self ):
         self.report_data()
 
+    def setup_size_constraints( self ):
+        self.widgetSettings["LBody"].setFixedHeight( self.height * PROPORTION["settings"][1] )
+        self.widgetSettings["RBody"].setFixedHeight( self.height * PROPORTION["settings"][1] )
+
+        self.widgetColor["main"].setFixedHeight   ( self.height * PROPORTION["colors"][1]   )
+        self.widgetAdvnc["main"].setFixedHeight   ( self.height * PROPORTION["advanced"][1] )
+        self.widgetClose["buttons"].setFixedHeight( self.height * PROPORTION["close"][1]    )
+
+        self.window.setFixedWidth( self.width )
+
     def run( self ):
         self.setup_connections()
+        self.setup_size_constraints()
         self.__adjust_components__()
         self.window.show()
         self.window.activateWindow()
