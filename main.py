@@ -1,4 +1,6 @@
 # Run this script as a package.
+
+# TODO: Delete this block
 if __name__ == "__main__":
     import sys
     from os import path , getcwd
@@ -6,12 +8,18 @@ if __name__ == "__main__":
     SCRIPT_DIR = path.dirname( path.realpath(path.join( getcwd() , path.expanduser(__file__) )) )
     sys.path.append(path.normpath( path.join( SCRIPT_DIR , PACKAGE_PARENT ) ))
 
-from Context import CONTEXT , RUN , Extension
-from PxGUI   import GUI
+
+from .Context import CONTEXT , RUN , Extension
+from .PxGUI   import GUI
+
+if CONTEXT == "INSIDE_KRITA":
+    # Call modules here.
+    pass
 
 METADATA = { "SYS_ID"    : "pykrita_pixel_border" ,
-             "BAR_ID"    : "Pixel Borders"        ,
-             "TOOL_PATH" : "tools/scripts"        }
+             "NAM_ID"    : "Pixel Borders"        ,
+             "TOOL_PATH" : "tools/scripts"        ,
+             "TITLE"     : "Pixel Borders"        }
 
 DEFAULTSIZE = { "test-body" : (300,100) ,
                 "extension" : (446,304) }   # layoutBody.sizeHint() = (446,382) with Advanced options -> (446,304) when selects a simple method again.
@@ -29,21 +37,27 @@ class PixelExtension( Extension ):
         pass
 
     def createActions( self , window ):
-        action = window.createAction( METADATA["SYS_ID"] , METADATA["BAR_ID"] , METADATA["TOOL_PATH"] )
-        action.triggered.connect( hello )
+        action = window.createAction( METADATA["SYS_ID"]    , 
+                                      METADATA["NAM_ID"]    ,
+                                      METADATA["TOOL_PATH"] )
+        action.triggered.connect( self.run )
 
-    def run(self):
-        self.ext = GUI( *DEFAULTSIZE["extension"] , parent = self )
-        self.ext.run()
-
+    # TODO: Set as close event the GUI() closing event
+    def run(self , wparent = None ):
         if CONTEXT == "OUTSIDE_KRITA":
+            # TODO: I think parent must be equal to Krita.instance()
+            # TODO: Instead use itself or krita.instance(), I think it must be None
+            self.ext = GUI( *DEFAULTSIZE["extension"] , parent = wparent , title = METADATA["TITLE"] )
+            self.ext.run()
             self.setWindowTitle( "Pixel Border - GUI test" )
             self.resize( *DEFAULTSIZE["test-body"] )
             self.show()
-            # TODO Connect the close event here
-            #self.close.connect( self.ext.name_of_exit_method )
+            RUN()
+        else:
+            self.ext = GUI( *DEFAULTSIZE["extension"] , parent = wparent , title = METADATA["TITLE"] )
+            self.ext.run()
 
 if __name__ == "__main__":
     p = PixelExtension( None )
     p.run()
-    RUN()
+    # RUN()

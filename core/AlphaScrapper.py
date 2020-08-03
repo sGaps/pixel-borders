@@ -2,30 +2,39 @@
 # Created by: ( Gaps | sGaps | ArtGaps )
 # ---------------------------------------------------
 
-TRANSPARENT = b"\x00"
-OPAQUE      = b"\xff"
-
 class Scrapper( object ):
     """ Utility class for extract the alpha channel from a krita node. """
     def __init__( self ):
         pass
 
     # Uses the function for fast indexing PyQt5.QtCore.QByteArray::at( int index ) -> char
-    def isOpaqueAt( self , i , raw , sz ):
-        for byte in range(sz):
-            if raw.at(i + byte) == TRANSPARENT: return False
-        return True
+    # TODO: Fix problem here... what happens if the sz > 1?
+    def isOpaqueAt( self , i , rawdata , sz , transparent = 0x00  ):
+        """ Returns true if there isn't transparent bytes in rawdata. """
+        return rawdata.count( transparent , i , i+sz ) != sz
+
+    def isTransparentAt( self , i , rawdata , sz , transparent = 0x00 ):
+        """ Returns true if there is transparent bytes in rawdata. """
+        return rawdata.find( transparent , i, sz ) > -1
 
     # TODO: Change doc for bounds object
-    def extractAlpha( self , node , doc , opaque = 0xFF , transparent = 0x00 ):
-        if node is None or doc is None:
+    # TODO: See if I must have to rename this method and add an extra argument like: extractChannel( ... , channel = -1 , ... )
+    #       And then change offset = ... by: offset = (nmChn + channel) * szChn
+    def extractAlpha( self , node , bounds , opaque = 0xFF , transparent = 0x00 ):
+        """ Extract the alpha pixel data from the node, using bounds which is a QRect-like object. """
+        if node is None or bounds.width() == 0 or bounds.height() == 0:
             return bytearray()
+        
+        # Extract the channel information:
+        chans = node.channels()
+        if chans:
+            nmChn = len( chans )
+            szChn = chans[0].channelSize()
+        else:
+            nmChn = 1                       # 1 channel
+            szChn = 1                       # 1 byte
 
-        nmChn   = len( node.channels() )            # Number of Channels.
-        szChn   = node.channels()[0].channelSize()  # Channel size.
-
-        # Document bounds & Pixel data:
-        bounds  = doc.bounds()
+        # It uses the Pixel Projection Data for extract the information of the node even if its a group layer:
         rawdata = node.projectionPixelData( bounds.x()      , 
                                             bounds.y()      , 
                                             bounds.width()  , 
@@ -33,12 +42,21 @@ class Scrapper( object ):
         size    = rawdata.size()                    # size of pdata.
         step    = nmChn * szChn                     # steps of search.
 
-        if bounds.width() == 0 or bounds.height() == 0:
-            return bytearray()
         
+        # Run into alpha channel:
         offset  = (nmChn - 1) * szChn
-        return bytearray( opaque      if  self.isOpaqueAt(index,rawdata,szChn) else
+        return bytearray( opaque      if  self.isOpaqueAt(index,rawdata,szChn,transparent) else
                           transparent for index in range(offset,size,step) )
+
+    def channelSize( self , node ):
+        """ Returns the channel size of the channels inside the node. """
+        chans = node.channels()
+        return chans[0].channelSize() if chans else 1
+
+    def channelNumber( self , node ):
+        """ Returns the number of channels inside the node. """
+        chans = node.channels()
+        return len(chans) if chans else 1
 
 # -------------------------------------------------------------
 # TODO: REMOVE THIS

@@ -1,14 +1,19 @@
 # CONTEXT HANDLER:
+# TODO Move this file to a better location
+from sys   import stderr
 try:
     from krita import Extension
 except ImportError:
-    print( "Unable to find krita. Changing to PyQt5 GUI test." )
+    print( "[CONTEXT] Unable to find krita. Changing to PyQt5 GUI test." , file = stderr )
     try:
-        from PyQt5.QtWidgets import QWidget , QApplication
+        from PyQt5.QtWidgets import QWidget , QApplication ,a
     except ImportError:
-        print( "Unable to run PyQt packages." )
+        print( "[CONTEXT] Unable to run PyQt packages." , file = stderr , flush = True )
+        CONTEXT   = "NO-REQUIRED-PACKAGES"
+        # TODO: remove this and handle other errors outside
         exit(1)
     else:
+        krita     = ()
         CONTEXT   = "OUTSIDE_KRITA"
         qMain     = QApplication([])    # Initialize Qt System
         RUN       = qMain.exec_         # Make the script able to run the window.
@@ -16,5 +21,3 @@ except ImportError:
 else:
     CONTEXT = "INSIDE_KRITA"
     RUN     = lambda : ()
-    print( "Using Krita Interface." )
-

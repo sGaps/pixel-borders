@@ -8,14 +8,12 @@ from PyQt5.QtWidgets import ( QVBoxLayout , QHBoxLayout , QFormLayout , QBoxLayo
 from PyQt5.Qt        import Qt
 
 # Local import:
-from Image import Preview
+from .Image import Preview
 
 # Body class for the window ----------------------------------------
 class DialogBox( QDialog ):
     def __init__( self , parent = None ): super().__init__( parent )
     def closeEvent( self , event ):       event.accept()
-
-
 
 
 # CONSTANTS #
@@ -35,15 +33,21 @@ PROPORTION = { "settings" : (0.95,0.58) ,
                "advanced" : (0.95,0.25) ,
                "close"    : (0.95,0.08) }
 
+COLOR = { "FG" , "BG" , "CUSTOM" }
+
 # TODO: Convert dict types into simple variables.
+# TODO: Add a new Exclusive & Checkable QGroupBox with (QLabel,QSpinBox) inside to ask to the usr the start & finish time.
 # TODO: Adjust all Widgets & Layouts to width & height attributes.
+# TODO: Connect close event to extension close event.
 class GUI( object ):
-    def __init__( self , width , height , parent = None ):
+    # TODO: add a borderizer parameter here:
+    def __init__( self , width , height , parent = None , title = "PxGUI" ):
         # Basic attributes:
         self.width  = width
         self.height = height
         self.window = DialogBox( parent )
-        # TODO: Fix The sizes
+        self.window.setWindowTitle( title )
+        # TODO: Fix The sizes:
         self.extraHeight = int( PROPORTION["advanced"][1] * height + 6 )
 
         self.build_data()
@@ -54,6 +58,8 @@ class GUI( object ):
         self.build_body()
 
     def build_data( self ):
+        # TODO: Add "start" , "finish" , "custom-range" attributes.
+        # TODO: add "custom"
         self.data = { "method"    : 0        ,  # METHOD[0]                == Classic
                       "width"     : 1        ,  # Border Width / thickness == 1
                       "color"     : "FG"     ,  # Foreground Color
@@ -96,6 +102,7 @@ class GUI( object ):
         self.widgetSettings["width"].setAlignment( Qt.AlignRight )
         
         # Adding Widgets into layouts:
+        self.layoutSettings["R"].setLabelAlignment( Qt.AlignLeft | Qt.AlignVCenter )
         self.layoutSettings["R"].addRow( "Method"         , self.widgetSettings["method"] )
         self.layoutSettings["R"].addRow( "Layer Name"     , self.widgetSettings["name"]   )
         self.layoutSettings["R"].addRow( "Line thickness" , self.widgetSettings["width"]  )
@@ -123,6 +130,8 @@ class GUI( object ):
         self.layoutColor.addWidget( self.widgetColor["BG"] )
         self.layoutColor.setSizeConstraint( QLayout.SetDefaultConstraint )
 
+        # TODO: Search more info in: https://doc.qt.io/archives/qt-4.8///qabstractbutton.html#autoExclusive-prop
+        # There, is the function: autoExclusive button, it looks useful for this.
         self.widgetColor["FG"].setCheckable( True  )
         self.widgetColor["FG"].setChecked  ( True  )
 
@@ -284,6 +293,9 @@ class GUI( object ):
         self.widgetClose["buttons"].setFixedHeight( self.height * PROPORTION["close"][1]    )
 
         self.window.setFixedWidth( self.width )
+
+    def setup_borderizer_connection( self , borderizer ):
+        pass
 
     def run( self ):
         self.setup_connections()

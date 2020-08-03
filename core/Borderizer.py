@@ -1,177 +1,238 @@
-from krita         import Selection , Krita
+from krita       import Selection , Krita
+from collections import deque
+# append , appendLeft , pop , popLeft
 
 # TODO: DELETE THIS BLOCK [BEGIN]
 if __name__ == "__main__":
     import sys
     import os
     PACKAGE_PARENT = '..'
-    SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
+    SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser( __file__ ))))
     sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
+    from core.AlphaGrow     import Grow
+    from core.AlphaScrapper import Scrapper
+    from core.FrameHandler  import FrameHandler
 # TODO: DELETE THIS BLOCK [END]
+else:
+# TODO: De-Ident & delete else statement
+    from .AlphaGrow     import Grow
+    from .AlphaScrapper import Scrapper
+    from .FrameHandler  import FrameHandler
 
-# TODO: Move this to front:
-from core.AlphaGrow     import Grow
-from core.AlphaScrapper import Scrapper
+
+METHODS = { "classic"         : 0 ,
+            "corners"         : 1 ,
+            "classicTcorners" : 2 ,
+            "cornersTclassic" : 3 ,
+            "classic&corners" : 4 ,
+            "corners&classic" : 5 }
+KEYS = { "method"     ,
+          "width"     ,
+          "color"     ,
+          "name"      ,
+          "has-extra" ,
+          "extra-arg" }
 
 class Borderizer( object ):
-    def __init__( self , node , doc , view ):
-        self.node = node
-        self.doc  = doc
-        self.view = view
-        # Initializer
-        s         = Scrapper()
-        self.data = s.extract_alpha( node , doc )
-        self.g    = Grow( node , width , True )
+    def __init__( self , krita_instance , info = None ):
+        self.kis   = krita_instance
+        seff.win   = self.kis.activeWindow()
+        self.doc   = self.kis.activeDocument()
+        self.node  = self.doc.activeNode()
+        self.view  = self.win.activeView()
+        self.canvas = self.view.canvas()
 
-        # Convenience:
-        b           = doc.bounds()
-        self.bounds = b
+    @classmethod
+    def applyXORBetween( cls , data1 , data2 , size ):
+        """ apply XOR bitwise operator between two data.
+            NOTE: They must have the same length. """
+        return bytearray( self.data1[i] ^ data2[i] for i in range(size) )
 
-        # Non Python-Pure:
-        self.Opaque = Selection()
-        self.Opaque.setPixelData( self.data , b.x() , b.y() , b.width() , b.height() )
+    def run( self , data_from_gui ):
+        """ data_from_gui -> dict(...)
+                | datafrom_gui = { 'method' : ... , 'width' : ... , 'color' : ... , 'name' : ... , 'has-extra' : ... ,
+                                   'extra-arg: ... } """
+        if set(data_from_gui.keys()) != KEYS:
+            return False
+    
+        # Here, we have manage everything related to the worker method input:
+        info = dict()
 
-    def __abstract_grow__( self , thickness , grow_method ):
-        for i in range(thickness):
-            grow_method()
+        # Color
+        if   data_from_gui["color"] == "FG":
+            info["color"] = self.view.foregroundColor()
+        elif data_from_gui["color"] == "BG":
+            info["color"] = self.view.backgroundColor()
+        else:
+            info["color"] = None
 
-    def classic( self , thickness ):
-        self.__abstract_grow__( thickness , self.g.classic_grow )
+        
+        info["bounds"] = self.doc.bounds()
+        info["node"]   = self.node
+        info["doc"]    = self.doc
+        info["kis"]    = self.kis
 
-    def corners( self , thickness ):
-        self.__abstract_grow__( thickness , self.g.corners_grow )
+        # TODO: Connect with data
+        info["start"]  = self.doc.fullClipRangeStartTime()
+        info["finish"] = self.doc.fullClipRangeEndTime()
 
-    def classic_then_corners( self , thickness , splitIndex ):
+        return self.makeBorders( info , general_info , )
+        # Else, perform actions
+
+    @classmethod
+    def liftToChannel( cls , data , bounds , channel ):
+        channel.setPixelData( data , bounds )
+
+    @classmethod
+    def colorize( cls , node , color , size , bounds ):
+        channels = node
+        parts    = color.components()
+        for c in range( len(chans) - 1 ):
+            # See how I can colorize this.
+            channels[c].setPixelData( bytes(parts[c])*size , bounds  )
+
+    @classmethod
+    def classic( cls , alpha , grow , config ):
+        return grow.repeated_classic_grow( alpha , repeat = config["thickness"] )
+
+    @classmethod
+    def corners( cls , alpha , grow_object , config ):
+        return grow.repeated_corners_grow( alpha , repeat = config["thickness"] )
+
+    @classmethod
+    def classic_then_corners( cls , alpha , grow , config ):
         """ apply classic into [0..splitIndex-1] then
             apply corners into [splitIndex..length] """
-        if splitIndex < 0 or thickness < 0:
-            return
-        self.classic(splitIndex)
-        self.corners(thickness-splitIndex+1)
-        
-    def corners_then_classic( self , thickness , splitIndex ):
+        rem     = config["thickness"] - config["split-index"] + 1
+        partial = grow.repeated_classic_grow( alpha   , repeat = config["split-index"] )
+        total   = grow.repeated_corners_grow( partial , repeat = rem )
+        return total
+
+    @classmethod
+    def corners_then_classic( cls , alpha , grow , config ):
         """ apply corners into [0..splitIndex-1] then
             apply classic into [splitIndex..length] """
-        if splitIndex < 0 or thickness < 0:
-            return
-        self.corners(splitIndex)
-        self.classic(thickness-splitIndex+1)
+        rem     = config["thickness"] - config["split-index"] + 1
+        partial = grow.repeated_corners_grow( alpha   , repeat = config["split-index"] )
+        total   = grow.repeated_classic_grow( partial , repeat = rem )
+        return total
 
-    # TODO: Add a max depth of recursion global parameter
-    def nodeOrChildrenAreAnimated( self , node ):
-        if node.animated():
-            return True
-        for n in node.childNodes():
-            if self.nodeOrChildrenAreAnimated( self , node ):
-                return True
-        return False
+    @classmethod
+    def corners_and_classic( cls , alpha , grow , config ):
+        partial = alpha
+        rem     = config["thickness"] - config["split-index"] + 1
+        for i in range(config["split-index"]):
+            partial = grow.corners_grow( partial )
+        for i in range(rem):
+            total   = grow.classic_grow( total   )
+        return total
 
-    def bordersIntoFrames( self , name , start , finish , color ,thickness , splitIndex = -1 , mode = "classic" ):
-        if   mode == "classic":
-            border_method = self.classic()
-            method_args   = [thickness]
-        elif mode == "corners":
-            border_method = self.corners()
-            method_args   = [thickness]
-        elif mode == "classic_then_corners":
-            border_method = self.classic_then_corners()
-            method_args   = [thickness,splitIndex]
-        elif mode == "corners_then_classic":
-            border_method = self.corners_then_classic()
-            method_args   = [thickness,splitIndex]
+    @classmethod
+    def classic_and_corners( cls , alpha , grow , config ):
+        partial = alpha
+        rem     = config["thickness"] - config["split-index"] + 1
+        for i in range(config["split-index"]):
+            partial = grow.classic_grow( partial )
+        for i in range(rem):
+            total   = grow.corners_grow( total   )
+        return total
 
-        if not self.nodeOrChildrenAreAnimated( self.node ):
-            finish = start + 1
-        # TODO: Manage color before things in fill method and after fill method.
-        flatten_method = self.kis.action( "convert_group_to_animated" )
-        fill_method    = self.kis.action( "fill_selection_foreground_color")
-        self.__abstract_borders_into_frames__( name , self.node , self.doc , self.view  , start , finish ,
-                                               color , flatten_method , fill_method , border_method , method_args )
+    @classmethod
+    def makeBorders( cls , general_info , method , config ):
+        """
+            method :: bytearray -> Grow -> IO (bytearray) 
+            config :: dict
+                | config = {'thickness' -> int , 'split-index' -> int }
+            info   :: dict
+                | same as data_from_gui in .run() method. """
+        if set(data_from_gui.keys() != KEYS:
+            return False
 
+        # NOTE: This means we have to handle manually the data consistency
+        safety = False                              # This means we have to handle manually the data consistency
+        bounds = general_info["bounds"]
+        source = info["node"]
+        width  = bounds.width()
+        color  = general_info["color"]
+        start  = info["start"]
+        finish = info["finish"]
+        doc    = info["doc"]
+        kis    = info["kis"]
 
-    # TODO: MANAGE the case of animated/non-animated node in a concrete method.
-    # NOTE: If node isn't animated or if it hasn't animated subnodes, then: finish = start+1
-    # NOTE: method_args = [thickness,splitIndex] | [thickness]
-    # TODO: Change the fill method <fill_foreground = self.kis.action( "fill_selection_foreground_color")> by other clearer.
-    def __abstract_borders_into_frames__( self , name , node , doc , view , start , finish , color ,
-                                                 flatten_method , fill_method , border_method , *method_args ):
-        timeline = range( start , finish + 1 )
-        before   = range( 0 , start )
+        scrap = Scrapper()                          # No more info needed
+        size  = scrap.sizeChannel(source) * bounds.width() * bounds.height()
 
-        # TODO: Manage
-        # Backup data:
-        prevTime  = doc.current_time()
-        prevSelec = doc.selection()
-        prevColor = view.foregroundColor()
+        grow   = Grow( size , width , safety )       # Needs: size , width , mode
+        framIO = FrameHandler( source , doc , kis )  # Needs: node , doc , kis , name , xRes , yRes , infoObject
 
-        # Empty Frames:
-        frames = self.doc.createGroupLayer( name )
-        node.parentNode().addChildNode( frames , self.node )
+        bounds = doc.bounds()
+        target = doc.createNode( ".target" , "paintlayer" )
+        self.colorize( target , color , size  , bounds )
 
-        # Fill the first steps with empty "frames"
-        current  = None
-        previous = None
-        for t in before:
-            previous = current
-            current  = self.doc.createNode( str(t) , "paintlayer" )
-            frames.addChildNode( current , previous )
+        # TODO: Verify if everything works with this:
+        chans  = source.channels()
+        TALPHA = chans[-1]                  # Target's alpha
 
-        # Puts the color:
-        view.setForeGroundColor( color )
-        # Generate the actual borders:
-        current  = None
-        previous = None
-        for t in timeline:
-            # Update frame projection (Using Krita-Actions):
-            doc.setCurrentTime(t)
-            doc.refreshProjection()
-            doc.waitForDone()           # TODO: Search if this is totally required
+        timeline    = framIO.get_animation_range( node , start , finish )
+        # TODO: Finish
+        if not timeline:
+            # -- Extract Alpha --
+            alpha = scrap.extractAlpha( node , bounds , opaque = 0xFF , transparent = 0x00 )
 
-            # Build a new node (frame for frame group)
-            previous = current
-            current  = doc.createNode( str(t) , "paintlayer" )
-            doc.setActiveNode( current )
+            # -- Grow Data --
+            extra = alpha.copy()
+            extra = method( extra , grow , config )
 
-            # Add the node to the group:
-            frames.addChildNode( current , previous )
-            
-            # Selects the border of the origin node:
-            border = border_method( method_args ) # Need to use Python * and ** for support various kinds of parameters
-            doc.setSelection( border )
+            # -- Difference & Lift to Context --
+            TALPHA.setPixelData( self.applyXORBetween(extra,alpha) , bounds )
 
-            # Fill with the fg-color, then waits until complete that action:
-            fill_method()
-            doc.refreshProjection()
-            doc.waitForDone()           # TODO: Search if this is totally required
-        
-        # Group Layer flat (Using Krita-Actions):
-        doc.setActiveNode( frames )
-        flatten_method()
-        doc.refreshProjection()
-        doc.waitForDone()           # TODO: Search if this is totally required
+            # -- End phase --
+            border = target
+            border.setName( "border" )
+            done = True
 
-        # Closing actions:
-        # TODO: Change view.setForeGroundColor( with fill_method )
-        view.setForeGroundColor( prevColor )
-        doc.setActiveNode( node )
-        doc.setCurrentTime( prevTime )
-        doc.setSelection( prevSelec )
-        doc.refreshProjection()
+        else:
+            base_name = "frame"
+            for t in timeline:
+                # -- Update time --
+                doc.setCurrentTime(t)
+                # TODO: Verify if this is totally required.
+                doc.refreshProjection()
 
-    # Lookup:
-    def getBorderSelection( self ):
-        border = Selection()
-        b      = self.bounds
-        border.setPixelData( self.data , b.x() , b.y() , b.width() , b.height() )
-        border.subtract( self.Opaque )
-        return border
+                # -- Extract Alpha --
+                alpha = scrap.extractAlpha( node , bounds , opaque = 0xFF , transparent = 0x00 )
+
+                # -- Grow Data --
+                extra = alpha.copy()
+                extra = method( extra , grow , config )
+                # -- Difference & Lift to Context --
+                TALPHA.setPixelData( self.applyXORBetween(extra,alpha) , bounds )
+
+                # -- Export --
+                # TODO: Make this genereal form:
+                framIO.exportFrame( f"{base_name}_{t:5}" , target )
+
+            # -- Import --
+            done = framIO.importFrames( start )
+
+            # -- New Node handle --
+            border = doc.topLevelNodes()[0] # TODO: Verify if this is right.
+            border.setName( name )
+
+            # -- Clean up --
+            target.remove()
+            del target
+        return done
 
 # ---------------------------
 # TODO: DELETE THIS
 if __name__ == "__main__":
     kis = Krita.instance()
     d = kis.activeDocument()
+    w = kis.activeWindow()
+    v = w.activeView()
     n = d.activeNode()
-    for child in n.childNodes():
-        print( child )
+    print( n.channels() )
+    b = Borderizer(n,d,v)
+    print( b.nodeOrChildrenAreAnimated(n) )
 # ----------------------------
