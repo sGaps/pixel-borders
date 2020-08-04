@@ -3,7 +3,7 @@ from PyQt5.QtGui     import QPixmap
 from os              import path
 
 this_module_dir = path.dirname( path.abspath(__file__) )
-IMGDIRNAME      = "pictures/"
+IMGDIRNAME      = "images/"
 img_dir         = path.join( this_module_dir , IMGDIRNAME )
 
 def pixmapFrom( relative_path ):

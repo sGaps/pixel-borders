@@ -1,12 +1,11 @@
 # CONTEXT HANDLER:
-# TODO Move this file to a better location
 from sys   import stderr
 try:
     from krita import Extension
 except ImportError:
     print( "[CONTEXT] Unable to find krita. Changing to PyQt5 GUI test." , file = stderr )
     try:
-        from PyQt5.QtWidgets import QWidget , QApplication ,a
+        from PyQt5.QtWidgets import QWidget , QApplication
     except ImportError:
         print( "[CONTEXT] Unable to run PyQt packages." , file = stderr , flush = True )
         CONTEXT   = "NO-REQUIRED-PACKAGES"

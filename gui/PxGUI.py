@@ -1,14 +1,11 @@
-# Widget imports
-from PyQt5.QtWidgets import ( QDialog , QLabel , QComboBox , QLineEdit , QSpinBox , QGroupBox , QPushButton , QDialogButtonBox )
-
-# Layout imports
-from PyQt5.QtWidgets import ( QVBoxLayout , QHBoxLayout , QFormLayout , QBoxLayout , QLayout )
-
-# Constants imports
-from PyQt5.Qt        import Qt
-
-# Local import:
-from .Image import Preview
+# Widget imports , Layouts and Constants
+from PyQt5.QtWidgets import (   # Widgets -------------------------------------------------------------
+                                QDialog     , QLabel      , QComboBox         , QLineEdit , QSpinBox  ,
+                                QGroupBox   , QPushButton , QDialogButtonBox  ,
+                                # Layouts ------------------------------------------------------
+                                QVBoxLayout , QHBoxLayout , QFormLayout , QBoxLayout , QLayout )
+from PyQt5.Qt import Qt         # Constants
+from .Image   import Preview    # Image manager
 
 # Body class for the window ----------------------------------------
 class DialogBox( QDialog ):
@@ -16,7 +13,7 @@ class DialogBox( QDialog ):
     def closeEvent( self , event ):       event.accept()
 
 
-# CONSTANTS #
+# CONSTANTS ----------------------------
 METHODS = { 0 : "Classic"              ,
             1 : "Corners"              ,
             2 : "Classic then Corners" ,
@@ -65,7 +62,9 @@ class GUI( object ):
                       "color"     : "FG"     ,  # Foreground Color
                       "name"      : "border" ,  # Layer name
                       "has-extra" : False    ,  # No more arguments
-                      "extra-arg" : 0        }  # value (For this case is dummy a value)
+                      "extra-arg" : 0        ,  # value (For this case is dummy a value)
+                      "start"     : -1       ,  # Start application frame on the timeline
+                      "finish"    : -1       }  # Finish application frame on the timeline
 
 
     def build_basicSettings( self ):
@@ -120,7 +119,6 @@ class GUI( object ):
         self.layoutSettings["main"].addStretch(1)
 
     def build_colorSettings( self ):
-        # TODO: Put QButtonGroup here for manage FG & BG buttons (make them exclusives)
         self.layoutColor = QHBoxLayout()
         self.widgetColor = { "FG"   : QPushButton( "Foreground" ) ,
                              "BG"   : QPushButton( "Background" ) ,
@@ -144,7 +142,6 @@ class GUI( object ):
         self.widgetColor["main"].setFixedHeight( 77 )
 
     def build_advncSettings( self ):
-        # TODO Define this as QGridLayout() for avoid ["arg"] weird translation after ["desc"] update
         self.layoutAdvnc = { "main" : QHBoxLayout() }
         self.widgetAdvnc = { "arg"  : QSpinBox()    ,
                              "desc" : QLabel()      ,
@@ -186,6 +183,7 @@ class GUI( object ):
         self.layoutBody.addLayout( self.layoutClose            )
 
         # Final Building up:
+        # NOTE: This layout have a default spacing of 6px
         self.window.setLayout( self.layoutBody )
 
     # TODO: Add more configuration
