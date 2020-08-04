@@ -1,6 +1,9 @@
-# Module:      AlphaGrow.py | [ Language Python ]
+# Module:      core.AlphaGrow.py | [ Language Python ]
 # Created by: ( Gaps | sGaps | ArtGaps )
-# ---------------------------------------------------
+# ----------------------------------------------------
+""" Defines a Grow object. This is a service that can
+    be used to make grow opaque values in a bytearray
+    corresponding to the pixel data of a node. """
 class Grow( object ):
     """ Service class to make grow values using few criterias.
         NOTE: this modifies the data passed to the methods if

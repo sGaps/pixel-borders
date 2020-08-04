@@ -45,8 +45,6 @@ class PixelExtension( Extension ):
     # TODO: Set as close event the GUI() closing event
     def run(self , wparent = None ):
         if CONTEXT == "OUTSIDE_KRITA":
-            # TODO: I think parent must be equal to Krita.instance()
-            # TODO: Instead use itself or krita.instance(), I think it must be None
             self.ext = GUI( *DEFAULTSIZE["extension"] , parent = wparent , title = METADATA["TITLE"] )
             self.ext.run()
             self.setWindowTitle( "Pixel Border - GUI test" )
@@ -60,4 +58,3 @@ class PixelExtension( Extension ):
 if __name__ == "__main__":
     p = PixelExtension( None )
     p.run()
-    # RUN()

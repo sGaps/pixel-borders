@@ -1,6 +1,9 @@
+# Module:      core.Borderizer.py | [ Language Python ]
+# Created by: ( Gaps | sGaps | ArtGaps )
+# -----------------------------------------------------
+""" Defines a Borderizer object to add pixel borders to a krita node. """
 from krita       import Selection , Krita
 from collections import deque
-# append , appendLeft , pop , popLeft
 
 # TODO: DELETE THIS BLOCK [BEGIN]
 if __name__ == "__main__":
@@ -10,13 +13,13 @@ if __name__ == "__main__":
     SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser( __file__ ))))
     sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
     from core.AlphaGrow     import Grow
-    from core.AlphaScrapper import Scrapper
+    from .AlphaScrapper import Scrapper
     from core.FrameHandler  import FrameHandler
 # TODO: DELETE THIS BLOCK [END]
 else:
 # TODO: De-Ident & delete else statement
     from .AlphaGrow     import Grow
-    from .AlphaScrapper import Scrapper
+    from core.AlphaScrapperSafe import Scrapper
     from .FrameHandler  import FrameHandler
 
 
@@ -26,6 +29,7 @@ METHODS = { "classic"         : 0 ,
             "cornersTclassic" : 3 ,
             "classic&corners" : 4 ,
             "corners&classic" : 5 }
+
 KEYS = { "method"     ,
           "width"     ,
           "color"     ,
@@ -137,6 +141,8 @@ class Borderizer( object ):
             total   = grow.corners_grow( total   )
         return total
 
+    # TODO: Change this by:
+    # makeBorders( cls , **kwargs )
     @classmethod
     def makeBorders( cls , general_info , method , config ):
         """

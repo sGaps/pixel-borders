@@ -1,3 +1,8 @@
+# Module:      core.FrameHandler.py | [ Language Python ]
+# Created by: ( Gaps | sGaps | ArtGaps )
+# -----------------------------------------------------
+""" Defines a FrameHandler object to manage few special operations like
+    import animations and export krita nodes as files. """
 from collections import deque
 import os
 import krita

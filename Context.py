@@ -1,17 +1,17 @@
-# CONTEXT HANDLER:
-# TODO Move this file to a better location
+# Module:      Context.py | [ Language Python ]
+# Created by: ( Gaps | sGaps | ArtGaps )
+# ---------------------------------------------
+""" Utility module for manage and test the GUI inside and outside krita."""
 from sys   import stderr
 try:
     from krita import Extension
 except ImportError:
     print( "[CONTEXT] Unable to find krita. Changing to PyQt5 GUI test." , file = stderr )
     try:
-        from PyQt5.QtWidgets import QWidget , QApplication ,a
+        from PyQt5.QtWidgets import QWidget , QApplication
     except ImportError:
         print( "[CONTEXT] Unable to run PyQt packages." , file = stderr , flush = True )
         CONTEXT   = "NO-REQUIRED-PACKAGES"
-        # TODO: remove this and handle other errors outside
-        exit(1)
     else:
         krita     = ()
         CONTEXT   = "OUTSIDE_KRITA"

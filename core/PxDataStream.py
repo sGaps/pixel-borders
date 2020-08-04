@@ -1,3 +1,8 @@
+# Module:      core.PxDataStream.py | [ Language Python ]
+# Created by: ( Gaps | sGaps | ArtGaps )
+# ------------------------------------------------------------
+""" Extends the a QDataStream for get a better pixel data handle for
+    krita nodes. This manages the type using a depth and a endianess. """
 from PyQt5.QtCore import QDataStream , QByteArray , QBuffer
 import struct
 
@@ -18,6 +23,7 @@ class ColorDepthException( Exception ):
 class PxDataStream( QDataStream ):
     Big    = ">"
     Little = "<"
+    empty  = b"\x00"
     def __init__( self , qbytearray , depth , streamMode = ReadMode , endian = LittleEndian , floatPrec = Float32 ):
         """ QDataStream Wrapper for read/write krita pixel data.
             NOTE #1:    this only supports sequential read/write.
@@ -31,42 +37,103 @@ class PxDataStream( QDataStream ):
         else:
             self.__endian_pattern__ = PxDataStream.Little
         self.__half_pattern__ = self.__endian_pattern__ + "e"
+        self.__half_force__   = self.__endian_pattern__ + "f"
 
         self.setByteOrder( endian )
         self.setFloatingPointPrecision( Float32 )
         self.__set_handle_methods__( depth )
         self.__last_info_readed__ = None
 
-        self.__cast_method__ = lambda x: ()
+        # Dummy cast_method:
+        self.__cast_method__  = lambda x: x
+        self.__fill_pattern__ = b""
 
-    def cast_and_write( self , value ):
+    # TODO: Verify if this method family is deprecated:
+    #       { force_write , set_force_write_policy__ , local_force_write , __dummy_promote_little__ ,
+    #         __dummy_promote_big__ , __select_force_write_method__ , ... }
+    # TODO: VERIFY [BEGIN] {#1}
+    def force_write( self , value ):
+        """ Force to write the literal bytes of a value into the object as a
+            value.
+            This uses the valueDepth setted using .set_cast_write_config(...) """
+        self.__force_write__( value )
+
+    def set_force_write_policy__( self , valueDepth ):
+        """ This sets the valueDepth of incoming external data used by .cast_and_write(...)
+            It's useful when you're trying to cast & write multiple values. """
+        self.__force_write__ = self.__select_force_write_method__( valueDepth )
+
+    def local_force_write( self , value , valueDepth ):
         """ Cast/Promote a value of the type of the data contained in the buffer.
-            Then write the value if writting is enabled. """
-        pass
+            Then write the value if writting is enabled.
+            this uses valueDepth to specify the format of the origin value.
+            value       :: Number
+            valueDepth  :: String
+                where valueDepth = (Fd)|(Ud) and d :: Int """
+        write = self.__select_force_write_method__( valueDepth )
+        write( value )
 
-    def set_cast_write_config( self , valueDepth ):
-        pass
+    # TODO: Verify if this works:
+    def __dummy_promote_little__( self , value ):
+        self.__writeM__( value )
+        self.writeRawData( self.__fill_pattern__ )
 
-    def local_cast_and_write( self , value , valueDepth ):
-        pass
+    def __dummy_promote_big__( self , value ):
+        self.writeRawData( self.__fill_pattern__ )
+        self.__writeM__( value )
+
+    def __select_force_write_method__( self , valueDepth ):
+        try:
+            valType  = valueDepth[0]
+            valSizeB = int( valueDepth[1:] ) // 8
+        except:
+            return lambda x: ()             # if something goes wrong, returns Bottom _|_
+
+        if valSizeB <= self.__sizeVB__:
+            # Promote actions
+            self.__fill_pattern__ = (self.__sizeVB__ - valSizeB)*PxDataStream.empty
+            if self.__endian_pattern__ == PxDataStream.Little:
+                return self.__dummy_promote_little__
+            else:
+                return self.__dummy_promote_big__
+        else:
+            # Cast actions:
+            if self.__depthV__ == UInt:
+                return __write_as__int__
+            elif self.__depthV__ == Float:
+                if valType == UInt:
+                    return self.__write_as__float__
+                elif self.__sizeVB__*8 == 16:
+                    if self.__endian_pattern__ == PxDataStream.Little:
+                        return self.__write_float32_as_float16_little__
+                    else:
+                        return self.__write_float32_as_float16_big__
+                else:
+                    return self.__write_float32_as_float16__
+
+    def __write_as__int__( self , value ):
+        self.writeValue( int( value ) % 2**self.__sizeVB__ )
+
+    # TODO: Verify if this works fine.
+    def __write_float32_as_float16_little__( self , value ):
+        components = struct.pack( self.__half_force__ , float(value) )
+        self.writeValue( struct.unpack( self.__half_pattern__ , components[0] ) )
+        self.writeValue( struct.unpack( self.__half_pattern__ , components[1] ) )
+
+    # TODO: Verify if this works fine.
+    def __write_float32_as_float16__big__( self , value ):
+        components = struct.pack( self.__half_force__ , float(value) )
+        self.writeValue( struct.unpack( self.__half_pattern__ , components[0] ) )
+        self.writeValue( struct.unpack( self.__half_pattern__ , components[1] ) )
+
+    # NOTE: This will fail for F32 -> F16
+    def __write_as__float__( self , value ):
+        self.writeValue( float( value ) )
+    # TODO: VERIFY [END] {#1}
 
     def ignoreValue( self ):
         """ Skips the read/write function of a value """
         self.skipRawData( self.__sizeVB__ )
-
-    def __ignore__half__( self ):
-        """ Manual way to ignore data """
-        if self.__current_half_index__ % 2 == 0:
-            # BLOCK LOAD:
-            block                        = self.readRawData( self.__sizeFloat32__ )
-            self.__last_info_readed__    = struct.unpack( self.__half_read_pattern__ , block )
-            value                        = self.__last_info_readed__[self.__current_half_index__]
-            self.__current_half_index__ += 1
-            return value
-        else:
-            value                        = self.__last_info_readed__[self.__current_half_index__]
-            self.__current_half_index__ += 1
-            return value
 
     def writeValue( self , value ):
         """ Write and a managed value from buffer. """
@@ -92,8 +159,8 @@ class PxDataStream( QDataStream ):
             sizeDepth = int( depth[1:] )
         except:
             sizeDepth = 8
-        typeDepth      = depth[0]
-        self.__depth__ = typeDepth
+        typeDepth       = depth[0]
+        self.__depthV__ = typeDepth
         if typeDepth == UInt:
             if sizeDepth == 8:
                 # Read-Write:
@@ -107,7 +174,7 @@ class PxDataStream( QDataStream ):
                 # Cast:
             else:
                 raise ColorDepthException( f"Unknow depth passed as argument: {depth}" )
-            self.__sizeVB__ = sizeDepth // 8    # byte conversion
+            self.__sizeVB__ = sizeDepth // 8    # size of value in bytes
         elif typeDepth == Float:
             if sizeDepth == 16:
                 # NOTE: This needs a special treats:
@@ -119,7 +186,7 @@ class PxDataStream( QDataStream ):
                 self.__writeM__ = self.writeFloat
             else:
                 raise ColorDepthException( f"Unknow depth passed as argument: {depth}" )
-            self.__sizeVB__ = sizeDepth // 8    # byte conversion
+            self.__sizeVB__ = sizeDepth // 8    # size of value in bytes
 
 
 
