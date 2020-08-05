@@ -49,7 +49,6 @@ class AdvancedSettings( QGroupBox ):
         self.__allw__     = self.__optional__ + []
 
         self.WOval.valueChanged.connect( self.__update_optional_resquest__ )
-        self.optionalChanged.connect( self.setOptionalDescription )
 
     @pyqtSlot( int )
     def setMaxOptionalValue( self , value ):
@@ -73,13 +72,13 @@ class AdvancedSettings( QGroupBox ):
     @pyqtSlot()
     def show_all( self ):
         for w in self.__allw__:
-            self.show()
+            w.show()
         self.show()
 
     @pyqtSlot()
     def show_optional( self ):
         for w in self.__optional__:
-            self.show()
+            w.show()
 
     def optionalValue( self ):
         return self.WOval.value()

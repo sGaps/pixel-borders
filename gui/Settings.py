@@ -217,7 +217,7 @@ class SettingsDisplay( QWidget ):
             self.methodChanged.emit( index )
 
     def method( self ):
-        return self.WRight.method( index )
+        return self.WRight.method()
 
     @pyqtSlot( int )
     def setThickness( self , thickness ):
