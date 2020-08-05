@@ -1,14 +1,24 @@
 # Module:      gui.Colors.py | [ Language Python ]
 # Created by: ( Gaps | sGaps | ArtGaps )
 # ------------------------------------------------
-from PyQt5.QtWidgets import (   # Widgets ---------------
+from PyQt5.QtWidgets import (   # Widgets :::::::::::::::
                                 QPushButton , QGroupBox , 
-                                # Layouts ---
+                                # Layouts :::
                                 QHBoxLayout , QLayout )
+from PyQt5.QtCore import pyqtSlot , pyqtSignal
 
 # TODO: Add a third button: "Custom" and a third option ==> press_cs( self ) -> "CS"
 class ColorButtons( QGroupBox ):
-    """ Contains and show a image """
+    """ Holds some buttons to select a color
+        SIGNALS:
+            void fg_released
+            void bg_released
+        SLOTS:
+            void press_fg   => emits fg_released
+            void press_bg   => emits bg_released
+    """
+    fg_released    = pyqtSignal()
+    bg_released    = pyqtSignal()
     def __init__( self , width , height , parent = None ):
         super().__init__( parent )
         self.Lmain = QHBoxLayout()
@@ -24,39 +34,27 @@ class ColorButtons( QGroupBox ):
         self.FGbut.setChecked( True  )
         self.BGbut.setChecked( False )
 
-        self.setLayout( Lmain )
+        self.setLayout( self.Lmain )
         self.setTitle( "Color Settings" )
 
         self.__setup_size__( width , height )
-        self.__setup_exclusive_buttons__()
+        self.FGbut.released.connect( self.press_fg )
+        self.BGbut.released.connect( self.press_bg )
 
     def __setup_size__( self , width , height ):
         pass
 
+    @pyqtSlot()
     def press_fg( self ):
         """ Ensures exclusive buttons. Returns 'FG' as result """
         self.FGbut.setChecked( True  )
         self.BGbut.setChecked( False )
-        return "FG"
+        self.fg_released.emit()
 
+    @pyqtSlot()
     def press_bg( self ):
         """ Ensures exclusive buttons. Returns 'BG' as result """
         self.BGbut.setChecked( True  )
         self.FGbut.setChecked( False )
-        return "BG"
-
-    def __action_press_fg__( self ):
-        self.data["color"] = press_fg()
-    
-    def __action_press_bg__( self , data ):
-        self.data["color"] = press_bg()
-
-    def auto_connect_with_data( self , data ):
-        self.data = data
-        self.connect_to_updates( self.__action_press_fg__ , self.__action_press_bg__ )
-
-    def connect_to_updates( self , on_fg_press , on_bg_press ):
-        """ Connect the actions that will to perform after press the buttons. """
-        self.FGbut.released.connect( on_fg_press )
-        self.BGbut.released.connect( on_bg_press )
+        self.bg_released.emit()
 

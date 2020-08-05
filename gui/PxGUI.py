@@ -1,13 +1,20 @@
-# Widget imports , Layouts and Constants
-from PyQt5.QtWidgets import (   # Widgets -------------------------------------------------------------
+# Module:      gui.PxGUI.py | [ Language Python ]
+# Created by: ( Gaps | sGaps | ArtGaps )
+# -----------------------------------------------
+from PyQt5.QtWidgets import (   # Widgets :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
                                 QDialog     , QLabel      , QComboBox         , QLineEdit , QSpinBox  ,
                                 QGroupBox   , QPushButton , QDialogButtonBox  ,
-                                # Layouts ------------------------------------------------------
+                                # Layouts ::::::::::::::::::::::::::::::::::::::::::::::::::::::
                                 QVBoxLayout , QHBoxLayout , QFormLayout , QBoxLayout , QLayout )
 from PyQt5.Qt import Qt         # Constants
 from .Image   import Preview    # Image manager
+# Elements of the GUI:
+from .Colors  import ColorButtons
+from .Advanced import AdvancedSettings
+from .Settings import SettingsDisplay
+from .CloseButtons import CloseButtons
 
-# Body class for the window ----------------------------------------
+# Body class for the window ::::::::::::::::::::::::::::::::::::::::
 class DialogBox( QDialog ):
     def __init__( self , parent = None ): super().__init__( parent )
     def closeEvent( self , event ):       event.accept()

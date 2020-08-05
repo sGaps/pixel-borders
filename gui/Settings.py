@@ -1,12 +1,13 @@
 # Module:      gui.Settings.py | [ Language Python ]
 # Created by: ( Gaps | sGaps | ArtGaps )
 # --------------------------------------------------
-from PyQt5.QtWidgets import (   # Widgets ------------------------------------
-                                QComboBox , QLineEdit , QSpinBox , QGroupBox , 
-                                # Layouts --------------------------------
+from PyQt5.QtWidgets import (   # Widgets ::::::::::::::::::::::::::::::::::::
+                                QComboBox , QLineEdit , QSpinBox , QGroupBox , QWidget ,
+                                # Layouts ::::::::::::::::::::::::::::::::
                                 QVBoxLayout , QHBoxLayout , QFormLayout  )
 from PyQt5.Qt import Qt         # Constants
 from .Image   import Preview    # Image manager
+from PyQt5.QtCore import pyqtSlot , pyqtSignal
 
 # CONSTANTS ----------------------------
 METHODS = { 0 : "Classic"              ,
@@ -16,31 +17,61 @@ METHODS = { 0 : "Classic"              ,
             4 : "Classic with Corners" ,
             5 : "Corners with Classic" }
 
+# TODO: Implement some methods with signals:like
+#       @pyqtSlot("name-slot")
+#       def method( self , value ): pass
 class ImageDisplay( QGroupBox ):
-    """ Contains and show a image """
+    """ Contains and show a image
+        SIGNALS:
+            void imageChanged( int )
+        SLOTS:
+            void select_image( int )
+            void load_image_from( str )
+    """
+    imageChanged = pyqtSignal( int )
+
     def __init__( self , width , height , parent = None ):
         super().__init__( parent )
         self.Lmain = QVBoxLayout()
         self.image = Preview()
         self.Lmain.addWidget( self.image )
 
-        self.setTittle( "Preview" )
+        self.setTitle( "Preview" )
         self.setLayout( self.Lmain )
         self.__setup_size__( width , height )
 
     def __setup_size__( self , width , height ):
         pass
 
+    @pyqtSlot( int )
     def select_image( self , index ):
         self.image.setIconFromIndex( index )
+        self.imageChanged.emit( index )
 
+    @pyqtSlot( str )
     def load_image_from( self , relative_path ):
         self.image.loadImg( relative_path )
+        self.imageChanged.emit( -1 )
 
 MAXNAMELENGTH = 64 
 EDITNAMEMODE  = QLineEdit.Normal
+
+# TODO: Add Signals and slots
 class BasicInfo( QGroupBox ):
-    """ Retrieve basic information about the method. """
+    """ Retrieve basic information about the method.
+        SIGNALS:
+            void methodChanged( int )
+            void nameChanged( str )
+            void thicknessChanged( int )
+        SLOTS:
+            void setMethod( int )       => emits a methodChanged signal
+            void setName( str )         => emits a nameChanged signal
+            void setThickness( int )    => emits a thicknessChanged signal
+    """
+    methodChanged    = pyqtSignal( int )
+    nameChanged      = pyqtSignal( str )
+    thicknessChanged = pyqtSignal( int )
+
     def __init__( self , width , height , values = METHODS , parent = None ):
         super().__init__( parent )
         self.Lmain   = QFormLayout()
@@ -66,102 +97,134 @@ class BasicInfo( QGroupBox ):
         self.Lmain.addRow( "Method"         , self.Wmethod )
         self.Lmain.addRow( "Layer Name"     , self.Wname   )
         self.Lmain.addRow( "Line thickness" , self.Wthickn )
-        self.Lmain.addStretch( 1 )
 
-        self.setTittle( "Settings" )
+        self.setTitle( "Settings" )
         self.setLayout( self.Lmain )
         self.__setup_size__( width , height )
+
+        self.Wname.textChanged.connect( self.__update_name_request__ )
+        self.Wthickn.valueChanged.connect( self.__update_thickness_request__ )
+        self.Wmethod.currentIndexChanged.connect( self.__update_method_request__ )
+
+    @pyqtSlot( str )
+    def __update_name_request__( self , name ):
+        self.nameChanged.emit( name )
+
+    @pyqtSlot( int )
+    def __update_thickness_request__( self , thickness ):
+        self.thicknessChanged.emit( thickness )
+
+    @pyqtSlot( int )
+    def __update_method_request__( self , index ):
+        self.methodChanged.emit( index )
 
     def __setup_size__( self , width , height ):
         pass
 
+    @pyqtSlot( str )
     def setName( self , name ):
-        self.Wname.setText( name )
+        if self.name() != name:
+            self.Wname.setText( name )
+            self.nameChanged.emit( name )
 
     def name( self ):
         return self.Wname.text()
 
+    @pyqtSlot( int )
     def setMethod( self , index ):
-        self.Wmethod.setCurrentIndex( index )
+        if self.method() != index:
+            self.Wmethod.setCurrentIndex( index )
+            self.methodChanged.emit( index )
+
 
     def method( self ):
         return self.Wmethod.currentIndex()
 
+    @pyqtSlot( int )
     def setThickness( self , thickness ):
-        self.Wmethod.setValue( thickness )
+        if self.thickness() != thickness:
+            self.Wmethod.setValue( thickness )
+            self.thicknessChanged.emit( index )
 
-    def thickness( self )
+    def thickness( self ):
         return self.Wmethod.value()
     
-class SettingsDisplay( QGroupBox ):
-    """ Retrieve information about the method and display an image. """
+# TODO: Add slots for signals.
+class SettingsDisplay( QWidget ):
+    """ Retrieve information about the method and display an image.
+        SIGNALS:
+            void methodChanged( int )
+            void nameChanged( str )
+            void thicknessChanged( int )
+        SLOTS:
+            void setMethod( int )       => emits a methodChanged signal
+            void setName( str )         => emits a nameChanged signal
+            void setThickness( int )    => emits a thicknessChanged signal
+    """
+    methodChanged    = pyqtSignal( int )
+    nameChanged      = pyqtSignal( str )
+    thicknessChanged = pyqtSignal( int )
     def __init__( self , width , height , mvalues = METHODS , parent = None ):
         super().__init__( parent )
         proportions = { "left" : ( width * 1 , height * 1 ) , "right" : ( width * 1 , height * 1 ) }
         self.Lmain  = QHBoxLayout()
-        self.WLeft  = ImageDisplay( proportions["left"] )
-        self.WRight = BasicInfo   ( proportions["right"] , values = mvalues )
+        self.WLeft  = ImageDisplay( proportions["left"][0] , proportions["left"][1] )
+        self.WRight = BasicInfo   ( proportions["right"][0]   , proportions["right"][1] , values = mvalues )
 
         self.Lmain.addWidget( self.WLeft  )
         self.Lmain.addWidget( self.WRight )
+        self.Lmain.addStretch(1)
+        self.WLeft.select_image( self.WRight.method() )
 
         self.setLayout( self.Lmain )
         self.__setup_size__( width , height )
 
+        self.WRight.nameChanged.connect( self.__update_name_request__ )
+        self.WRight.thicknessChanged.connect( self.__update_thickness_request__ )
+        self.WRight.methodChanged.connect( self.__update_method_request__ )
+
+        self.WRight.methodChanged.connect( self.WLeft.select_image )
+
+
+    @pyqtSlot( str )
+    def __update_name_request__( self , name ):
+        self.nameChanged.emit( name )
+
+    @pyqtSlot( int )
+    def __update_thickness_request__( self , thickness ):
+        self.thicknessChanged.emit( thickness )
+
+    @pyqtSlot( int )
+    def __update_method_request__( self , index ):
+        self.methodChanged.emit( index )
+
     def __setup_size__( self , width , height ):
         pass
 
-    def connect_to_updates( self , on_method_change , on_name_change , on_thickness_change ):
-        """ This connects the actions will to perform after
-            the update of any widget. """
-        self.connect_to_method( on_method_change )
-        self.connect_to_name  ( on_name_change   )
-        self.connect_to_thickness( on_thickness_change )
-
-    def connect_to_method( self , on_method_change ):
-        self.WRight.Wmethod.currentIndexChanged.connect( on_method_change )
-
-    def connect_to_name( self, on_name_change ):
-        self.WRight.Wname.textChanged.connect( on_name_change )
-
-    def connect_to_thickness( self , on_thickness_change ):
-        self.WRight.Wthickn.valueChanged.connect( on_thickness_change )
-
-    def __method_update__( self ):
-        index = self.method()
-        self.data["method"] = index
-        self.WLeft.select_image( index )
-
-    def __name_updata__( self ):
-        self.data["name"] = self.name()
-
-    def __thickness_update__( self ):
-        self.data["thickness"] = self.thickness()
-
-    # TODO: Handle the advanced settings display later.
-    # TODO: Handle the max value of advanced settings (application) later.
-    # TODO: Handle the advanced description display later
-    def auto_connect_with_data( self , data ):
-        self.data = data
-        self.connect_to_method( self.__method_update__ )
-        self.connect_to_name  ( self.__name_update__   )
-        self.connect_to_thickness( self.__thickness_update__ )
-
+    @pyqtSlot( int )
     def setName( self , name ):
-        self.WRight.setName( name )
+        if self.name() == name:
+            self.WRight.setName( name )
+            self.nameChanged.emit( name )
 
     def name( self ):
         return self.WRight.name()
 
+    @pyqtSlot( int )
     def setMethod( self , index ):
-        return self.WRight.setMethod( index )
+        if self.method() == index:
+            self.WRight.setMethod( index )
+            self.methodChanged.emit( index )
 
     def method( self ):
-        return self.WRight.setMethod( index )
+        return self.WRight.method( index )
 
+    @pyqtSlot( int )
     def setThickness( self , thickness ):
-        self.WRight.setThickness( thickness )
+        if self.thickness() == thickness:
+            self.WRight.setThickness( thickness )
+            self.thicknessChanged.emit( thickness )
 
-    def thickness( self )
+    def thickness( self ):
         self.WRight.thickness()
 
