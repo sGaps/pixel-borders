@@ -1,12 +1,10 @@
 # Module:      gui.Advanced.py | [ Language Python ]
 # Created by: ( Gaps | sGaps | ArtGaps )
 # --------------------------------------------------
-from PyQt5.QtWidgets import (   # Widgets :::::::::::::::::::::
-                                QSpinBox , QGroupBox , QLabel ,
-                                # Layouts ::::::::::::::::
-                                QHBoxLayout , QBoxLayout )
-from PyQt5.Qt import Qt
-from PyQt5.QtCore import pyqtSlot , pyqtSignal
+from PyQt5.QtWidgets import ( QSpinBox    , QGroupBox  , QLabel ,   # Widgets
+                              QHBoxLayout , QBoxLayout )            # Layouts
+from PyQt5.Qt        import Qt
+from PyQt5.QtCore    import pyqtSlot , pyqtSignal
 
 ADVDESC = { "sequential" : "Switch to second method application after" ,
             "combinated" : "Start to apply second method after"        ,
@@ -52,7 +50,11 @@ class AdvancedSettings( QGroupBox ):
 
     @pyqtSlot( int )
     def setMaxOptionalValue( self , value ):
-        self.WOval.setMaximum( value )
+        if self.optionalValue() > value:
+            self.WOval.setMaximum( value )
+            self.optionalChanged.emit( value )
+        else:
+            self.WOval.setMaximum( value )
 
     @pyqtSlot( int )
     def __update_optional_resquest__( self , value ):
@@ -89,8 +91,6 @@ class AdvancedSettings( QGroupBox ):
             self.WOval.setValue( value )
             self.optionalChanged.emit( value )
 
-    # TODO: Handle the description update.
-    # TODO: Handle the maxValue update.
     def getOptionalDescription( self , index ):
         if   index < 2: return ADVDESC["none"]
         elif index < 4: return ADVDESC["sequential"]

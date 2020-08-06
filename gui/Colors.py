@@ -1,11 +1,9 @@
 # Module:      gui.Colors.py | [ Language Python ]
 # Created by: ( Gaps | sGaps | ArtGaps )
 # ------------------------------------------------
-from PyQt5.QtWidgets import (   # Widgets :::::::::::::::
-                                QPushButton , QGroupBox , 
-                                # Layouts :::
-                                QHBoxLayout , QLayout )
-from PyQt5.QtCore import pyqtSlot , pyqtSignal
+from PyQt5.QtWidgets import ( QPushButton , QGroupBox ,     # Widgets
+                              QHBoxLayout , QLayout )       # Layouts
+from PyQt5.QtCore    import pyqtSlot , pyqtSignal
 
 # TODO: Add a third button: "Custom" and a third option ==> press_cs( self ) -> "CS"
 class ColorButtons( QGroupBox ):

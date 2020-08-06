@@ -1,13 +1,11 @@
 # Module:      gui.Settings.py | [ Language Python ]
 # Created by: ( Gaps | sGaps | ArtGaps )
 # --------------------------------------------------
-from PyQt5.QtWidgets import (   # Widgets ::::::::::::::::::::::::::::::::::::
-                                QComboBox , QLineEdit , QSpinBox , QGroupBox , QWidget ,
-                                # Layouts ::::::::::::::::::::::::::::::::
-                                QVBoxLayout , QHBoxLayout , QFormLayout  )
-from PyQt5.Qt import Qt         # Constants
-from .Image   import Preview    # Image manager
-from PyQt5.QtCore import pyqtSlot , pyqtSignal
+from PyQt5.QtWidgets import ( QComboBox   , QLineEdit   , QSpinBox     , QGroupBox , QWidget ,  # Widgets 
+                              QVBoxLayout , QHBoxLayout , QFormLayout  )                        # Layouts
+from PyQt5.Qt        import Qt         # Constants
+from .Image          import Preview    # Image manager
+from PyQt5.QtCore    import pyqtSlot , pyqtSignal
 
 # CONSTANTS ----------------------------
 METHODS = { 0 : "Classic"              ,
@@ -40,6 +38,7 @@ class ImageDisplay( QGroupBox ):
         self.setLayout( self.Lmain )
         self.__setup_size__( width , height )
 
+    # TODO: Write this
     def __setup_size__( self , width , height ):
         pass
 
@@ -175,6 +174,7 @@ class SettingsDisplay( QWidget ):
         self.Lmain.addWidget( self.WRight )
         self.Lmain.addStretch(1)
         self.WLeft.select_image( self.WRight.method() )
+        self.WRight.setName( "border" )
 
         self.setLayout( self.Lmain )
         self.__setup_size__( width , height )

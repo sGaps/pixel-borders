@@ -1,14 +1,15 @@
 # Module:      gui.CloseButtons.py | [ Language Python ]
 # Created by: ( Gaps | sGaps | ArtGaps )
 # ------------------------------------------------------
-from PyQt5.QtWidgets import (   # Widgets ::::::::::::::::::
-                                QGroupBox , QDialogButtonBox ,
-                                # Layouts :::
-                                QHBoxLayout )
-from PyQt5.QtCore import pyqtSlot , pyqtSignal
+from PyQt5.QtWidgets import ( QGroupBox   , QDialogButtonBox ,  # Widgets
+                              QHBoxLayout )                     # Layouts
+from PyQt5.QtCore    import pyqtSlot , pyqtSignal
 
 class CloseButtons( QGroupBox ):
-    """ Contains and show a image """
+    """ Contains and show a image 
+        SIGNALS:
+            void cancel()
+            void accept() """
 
     cancel = pyqtSignal()
     accept = pyqtSignal()
