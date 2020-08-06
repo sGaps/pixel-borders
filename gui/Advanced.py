@@ -23,7 +23,7 @@ class AdvancedSettings( QGroupBox ):
             void setOptionalValue( int )        => emits optionalChanged signal
             void setOptionalDescription( int ) """
     optionalChanged = pyqtSignal( int )
-    def __init__( self , width , height , parent = None ):
+    def __init__( self , parent = None ):
         super().__init__( parent )
         self.Lmain = QHBoxLayout()  # Main layout
         self.WOval = QSpinBox()     # Optional Value

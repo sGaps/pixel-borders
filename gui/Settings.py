@@ -28,7 +28,7 @@ class ImageDisplay( QGroupBox ):
     """
     imageChanged = pyqtSignal( int )
 
-    def __init__( self , width , height , parent = None ):
+    def __init__( self , parent = None ):
         super().__init__( parent )
         self.Lmain = QVBoxLayout()
         self.image = Preview()
@@ -36,11 +36,6 @@ class ImageDisplay( QGroupBox ):
 
         self.setTitle( "Preview" )
         self.setLayout( self.Lmain )
-        self.__setup_size__( width , height )
-
-    # TODO: Write this
-    def __setup_size__( self , width , height ):
-        pass
 
     @pyqtSlot( int )
     def select_image( self , index ):
@@ -71,7 +66,7 @@ class BasicInfo( QGroupBox ):
     nameChanged      = pyqtSignal( str )
     thicknessChanged = pyqtSignal( int )
 
-    def __init__( self , width , height , values = METHODS , parent = None ):
+    def __init__( self , values = METHODS , parent = None ):
         super().__init__( parent )
         self.Lmain   = QFormLayout()
         self.Wname   = QLineEdit()
@@ -99,7 +94,6 @@ class BasicInfo( QGroupBox ):
 
         self.setTitle( "Settings" )
         self.setLayout( self.Lmain )
-        self.__setup_size__( width , height )
 
         self.Wname.textChanged.connect( self.__update_name_request__ )
         self.Wthickn.valueChanged.connect( self.__update_thickness_request__ )
@@ -116,9 +110,6 @@ class BasicInfo( QGroupBox ):
     @pyqtSlot( int )
     def __update_method_request__( self , index ):
         self.methodChanged.emit( index )
-
-    def __setup_size__( self , width , height ):
-        pass
 
     @pyqtSlot( str )
     def setName( self , name ):
@@ -163,12 +154,11 @@ class SettingsDisplay( QWidget ):
     methodChanged    = pyqtSignal( int )
     nameChanged      = pyqtSignal( str )
     thicknessChanged = pyqtSignal( int )
-    def __init__( self , width , height , mvalues = METHODS , parent = None ):
+    def __init__( self , mvalues = METHODS , parent = None ):
         super().__init__( parent )
-        proportions = { "left" : ( width * 1 , height * 1 ) , "right" : ( width * 1 , height * 1 ) }
         self.Lmain  = QHBoxLayout()
-        self.WLeft  = ImageDisplay( proportions["left"][0] , proportions["left"][1] )
-        self.WRight = BasicInfo   ( proportions["right"][0]   , proportions["right"][1] , values = mvalues )
+        self.WLeft  = ImageDisplay()
+        self.WRight = BasicInfo   ()
 
         self.Lmain.addWidget( self.WLeft  )
         self.Lmain.addWidget( self.WRight )
@@ -177,14 +167,12 @@ class SettingsDisplay( QWidget ):
         self.WRight.setName( "border" )
 
         self.setLayout( self.Lmain )
-        self.__setup_size__( width , height )
 
         self.WRight.nameChanged.connect( self.__update_name_request__ )
         self.WRight.thicknessChanged.connect( self.__update_thickness_request__ )
         self.WRight.methodChanged.connect( self.__update_method_request__ )
 
         self.WRight.methodChanged.connect( self.WLeft.select_image )
-
 
     @pyqtSlot( str )
     def __update_name_request__( self , name ):
@@ -197,9 +185,6 @@ class SettingsDisplay( QWidget ):
     @pyqtSlot( int )
     def __update_method_request__( self , index ):
         self.methodChanged.emit( index )
-
-    def __setup_size__( self , width , height ):
-        pass
 
     @pyqtSlot( int )
     def setName( self , name ):

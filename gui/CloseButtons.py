@@ -13,7 +13,7 @@ class CloseButtons( QGroupBox ):
 
     cancel = pyqtSignal()
     accept = pyqtSignal()
-    def __init__( self , width , height , parent = None ):
+    def __init__( self , parent = None ):
         super().__init__( parent )
         self.Lmain   = QHBoxLayout()  # Main layout
         self.buttons = QDialogButtonBox( QDialogButtonBox.Ok

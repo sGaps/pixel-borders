@@ -25,10 +25,8 @@ METADATA = { "SYS_ID"    : "pykrita_pixel_border" ,
              "TOOL_PATH" : "tools/scripts"        ,
              "TITLE"     : "Pixel Borders"        }
 
-DEFAULTSIZE = { "test-body" : (300,100) ,
-                "extension" : (446,304) }   # layoutBody.sizeHint() = (446,382) with Advanced options -> (446,304) when selects a simple method again.
-
-# TODO: Need a way to kill this thread when the GUI finish its tasks.
+DEFAULTSIZE = { "test-body" : (300,100) }
+                
 class PixelExtension( Extension ):
     """
         Wrapper class for the GUI class.
@@ -46,17 +44,16 @@ class PixelExtension( Extension ):
                                       METADATA["TOOL_PATH"] )
         action.triggered.connect( self.run )
 
-    # TODO: Set as close event the GUI() closing event
     def run(self , wparent = None ):
         if CONTEXT == "OUTSIDE_KRITA":
-            self.ext = GUI( *DEFAULTSIZE["extension"] , parent = wparent , title = METADATA["TITLE"] )
+            self.ext = GUI( parent = wparent , title = METADATA["TITLE"] )
             self.ext.run()
             self.setWindowTitle( "Pixel Border - GUI test" )
             self.resize( *DEFAULTSIZE["test-body"] )
             self.show()
             RUN()
         else:
-            self.ext = GUI( *DEFAULTSIZE["extension"] , parent = wparent , title = METADATA["TITLE"] )
+            self.ext = GUI( parent = wparent , title = METADATA["TITLE"] )
             self.ext.run()
 
 if __name__ == "__main__":

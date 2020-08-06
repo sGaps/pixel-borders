@@ -2,7 +2,7 @@
 # Created by: ( Gaps | sGaps | ArtGaps )
 # -----------------------------------------------
 # PyQt5 Modules:
-from PyQt5.QtWidgets import QDialog  , QVBoxLayout 
+from PyQt5.QtWidgets import QDialog  , QVBoxLayout , QLayout
 
 # Elements of the GUI:
 from .Colors         import ColorButtons
@@ -10,34 +10,29 @@ from .Advanced       import AdvancedSettings
 from .Settings       import SettingsDisplay
 from .CloseButtons   import CloseButtons
 
-# Body class for the window ::::::::::::::::::::::::::::::::::::::::
+# Defines a base class for the window ::::::::::::::::::::::::::::::
 class DialogBox( QDialog ):
     def __init__( self , parent = None ): super().__init__( parent )
     def closeEvent( self , event ):       event.accept()
 
 
-# TODO: See if is actually necessary change the parent class by a QObject/QWidget class
 # Gui itself :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 class GUI( object ):
     # TODO: add a borderizer parameter here:
-    def __init__( self , width , height , parent = None , title = "PxGUI" ):
+    def __init__( self , parent = None , title = "PxGUI" ):
         self.window = DialogBox( parent )
         self.window.setWindowTitle( title )
         self.Lbody  = QVBoxLayout()
+        # This is used for know when is displayed the optional data
         self.displayingExtra = True
 
-        PROPORTIONS = { "settings" : (width,height) ,
-                        "color"    : (width,height) ,
-                        "advanced" : (width,height) ,
-                        "close"    : (width,height) }
 
-        self.settings = SettingsDisplay ( *PROPORTIONS["settings"] )
-        self.color    = ColorButtons    ( *PROPORTIONS["color"]    )
-        self.advanced = AdvancedSettings( *PROPORTIONS["advanced"] )
-        self.close    = CloseButtons    ( *PROPORTIONS["close"]    )
+        self.settings = SettingsDisplay ()
+        self.color    = ColorButtons    ()
+        self.advanced = AdvancedSettings()
+        self.close    = CloseButtons    ()
 
         self.build_data()
-        self.__setup_size__( width , height )
 
         # Main body building:
         self.Lbody.addWidget( self.settings )
@@ -46,6 +41,8 @@ class GUI( object ):
         self.Lbody.addWidget( self.close    )
 
         self.window.setLayout( self.Lbody )
+        # This solves the resize problem It had before
+        self.Lbody.setSizeConstraint( QLayout.SetFixedSize )
 
         # Aditional config:
         self.advanced.setMaxOptionalValue(0)
@@ -91,12 +88,10 @@ class GUI( object ):
     def on_name_update( self , name ):
         self.data["name"] = name
 
-    # TODO: Observe this method
     # Used as pyqtSlot( int )
     def on_thickness_update( self , thickness ):
         if self.data["thickness"] != thickness:
             self.data["thickness"] = thickness
-            # This only sets a new limit but doesn't bind the method itself
             self.advanced.setMaxOptionalValue( thickness - 1 )
 
     # Used as pyqtSlot()
@@ -123,9 +118,6 @@ class GUI( object ):
         pass
 
 
-    def __setup_size__( self , width , height ):
-        pass
-
     # TODO: Add "start" , "finish" , "custom-range" attributes.
     # TODO: add a new color "CS" -> Custom. Also add a new attribute "color-comp"
     def build_data( self ):
@@ -144,13 +136,11 @@ class GUI( object ):
             print( f"{' ':4}{k}: {v}" )
         print( "}" )
 
+    # TODO: Complete this after finish borders branch tasks
     def setup_borderizer_connection( self , borderizer ):
         pass
 
     def run( self ):
-        #self.setup_connections()
-        #self.setup_size_constraints()
-        #self.__adjust_components__()
         self.window.show()
         self.window.activateWindow()
 

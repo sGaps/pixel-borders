@@ -17,7 +17,7 @@ class ColorButtons( QGroupBox ):
     """
     fg_released    = pyqtSignal()
     bg_released    = pyqtSignal()
-    def __init__( self , width , height , parent = None ):
+    def __init__( self , parent = None ):
         super().__init__( parent )
         self.Lmain = QHBoxLayout()
         self.FGbut = QPushButton( "Foreground" )
@@ -35,12 +35,8 @@ class ColorButtons( QGroupBox ):
         self.setLayout( self.Lmain )
         self.setTitle( "Color Settings" )
 
-        self.__setup_size__( width , height )
         self.FGbut.released.connect( self.press_fg )
         self.BGbut.released.connect( self.press_bg )
-
-    def __setup_size__( self , width , height ):
-        pass
 
     @pyqtSlot()
     def press_fg( self ):
