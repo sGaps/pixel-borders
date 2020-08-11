@@ -3,21 +3,21 @@
 # -----------------------------------------------------
 """ Defines a FrameHandler object to manage few special operations like
     import animations and export krita nodes as files. """
-from collections import deque
-import os
+from   collections import deque
+from   sys         import stderr
 import krita
-
-kis                = krita.Krita.instance()
+import os
 DEFAULT_OUTPUT_DIR = ".output"
 # ALWAYS EXPORT AS PNG, so default info is always for png and its updates to the node contents.
+# TODO: OPTIMIZE!
 class FrameHandler( object ):
-    def __init__( self , node , doc , krita_instance , subfolder = DEFAULT_OUTPUT_DIR , xRes = None , yRes = None ,  , info = None ):
+    def __init__( self , node , doc , krita_instance , subfolder = DEFAULT_OUTPUT_DIR , xRes = None , yRes = None , info = None ):
         self.kis    = krita_instance
         self.doc    = doc
         self.bounds = doc.bounds()
         self.sub    = subfolder.strip()
         self.node   = node
-        self.docdirpath    = f"{ os.path.dirname(doc.filename()) }"
+        self.docdirpath    = f"{ os.path.dirname(doc.fileName()) }"
         self.exportdirpath = f"{ self.docdirpath }/{ subfolder }"
         self.exported      = []
         self.exportReady   = False
@@ -38,7 +38,7 @@ class FrameHandler( object ):
             "indexed"               : False ,   # Ensures few things
             "interlaced"            : False ,   #
             "saveSRGBProfile"       : False ,   #
-            "transparencyFillColor" : []        # No color for this because we save the alpha channel
+            "transparencyFillColor" : []        # No color for this because it stores the alpha channel
                     })
         return info
     def setInfo( self , info ):
@@ -81,63 +81,88 @@ class FrameHandler( object ):
             t -= 1
         return t
 
+    # TODO: Optimize
+    def __get_frame_limits_( self , node , start , length ):
+        """ returns the first and last frame-indexes inside the range of start-index
+            with a given length of the search.
+            returns None if there isn't any frame or animation."""
+        if not node.animated():
+            return None
+
+        frames = [ f for f in range(start,start+length) if node.hasKeyframeAtTime(f) ]
+        if frames:
+            return [frames[0],frames[-1]]
+        else:
+            return None
+
     # Returns all the animated subnodes and the minimum first frame-index
-    def __exhaustive_take_animated_nodes__( self , node , start , finish ):
+    def __exhaustive_take_animated_nodes__( self , node , start , length ):
         """ Returns the list of animated nodes and the index
             of the first key frame on the timeline.
             
             method (...) => (animated_nodes,first_frame) """
         animated_nodes = []
         queue          = deque([node])
-        first_frame    = None
+        #first_frame    = None
+        anim_limits    = []
         while queue:
             n       = queue.pop()
-            current = self.__get_first_frame_index__(n,start,finish)
-            if current is not None:
+            limits  = self.__get_frame_limits_(n,start,length+1)  # Note
+            #current = self.__get_first_frame_index__(n,start,finish)
+            if limits is not None:
                 # Add the node to the result:
                 animated_nodes.append(n)
                 # Update the first frame:
-                if first_frame is None: first_frame = current
-                else:                   first_frame = min(first_frame,current)
+                if anim_limits:
+                    anim_limits[0] = min(anim_limits[0],limits[0])
+                    anim_limits[1] = max(anim_limits[1],limits[1])
+                else:
+                    anim_limits = limits
 
             # Search in the child nodes:
             for c in n.childNodes():
                 queue.append(c)
-        return (animated_nodes,first_frame)
+        if anim_limits:
+            return ( animated_nodes , range(*anim_limits) )
+        else:
+            return ( animated_nodes , None )
 
-    def get_animation_range( self , start , finish ):
+    def get_animation_of( self , node , start , finish ):
+        return __exhaustive_take_animated_nodes__( node , start , finish+1 )
+
+    def get_animation_range( self , node , start , finish ):
         """ Returns a range for the animation if there's animation. Else
             returns None. """
-        _ , first = self.__exhaustive_take_animated_nodes__( self.node , start , finish )
-        if first is None:   return None
-        else:               return range( first ,
-                                          self.__get_last_frame_index__(self.node , first+1 , finish+1) )
+        return self.__exhaustive_take_animated_nodes__( self.node , start , finish+1 )[1]
 
     def get_animated_subnodes( self , start , finish ):
         """ Returns all the nodes in the node-hierarchy for the animation if there's animation. Else
-            returns None. """
-        nodes , *_ = self.__exhaustive_take_animated_nodes__( self.node , start , finish )
-        return nodes
+            returns []. """
+        return self.__exhaustive_take_animated_nodes__( self.node , start , finish+1 )[0]
 
     def get_exported_files( self ):
         return self.exported
 
-    def __build__directory__( self ):
+    def build_directory( self ):
         while not self.exportReady:
             try:
                 os.mkdir( self.exportdirpath )
             except FileNotFoundError:
+                print( f"[FrameHandler]: couldn't make {self.exportdirpath} trying again. " , file = stderr )
                 self.exportdirpath = os.path.dirname( self.doc.fileName() ) + "/" + DEFAULT_OUTPUT_DIR
                 self.exportReady = False
             except FileExistsError:
                 self.exportReady = True
             else:
                 self.exportReady = True
+        return True
 
     def exportFrame( self , filename , node ):
         """ Export the node data of the current time to a file and records the file path into
             the object. """
-        self.__build__directory__()
+        if not self.exportReady:
+            print( f"[FrameHandler]: {self.exportdirpath} doesn't exist. Export failed" , file = stderr )
+            return False
 
         batchmode  = self.kis.batchmode()
         self.kis.setBatchmode( True )
@@ -147,7 +172,7 @@ class FrameHandler( object ):
             # Record the path of the all files exported.
             self.exported.append(filepath)
         except:
-            result = None
+            result = False
         self.kis.setBatchmode( batchmode )
         return result
 
@@ -168,13 +193,13 @@ class FrameHandler( object ):
                 raise ImportError( f"Unable to export animation frames from {self.exportdirpath}" )
             done = True
         except ImportError as error:
-            # TODO: Print into stderr
-            print( error.args )
+            print( error )
             done = False
         self.kis.setBatchmode( batchmode )
         return done
 
 if __name__ == "__main__":
+    import krita
     kis = krita.Krita.instance()
     doc  = kis.activeDocument()
     node = doc.activeNode()

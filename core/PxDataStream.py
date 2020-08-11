@@ -26,7 +26,8 @@ class PxDataStream( QDataStream ):
     empty  = b"\x00"
     def __init__( self , qbytearray , depth , streamMode = ReadMode , endian = LittleEndian , floatPrec = Float32 ):
         """ QDataStream Wrapper for read/write krita pixel data.
-            NOTE #1:    this only supports sequential read/write.
+            NOTE #1:    The methods of this class only supports sequential read/write.
+                        but you can use random access operation using the .device() object
             NOTE #2:    If you want to write information, then you must use
                         <>.startTransaction() for start to writing and
                         <>.commitTransaction() to finish. """
@@ -45,6 +46,7 @@ class PxDataStream( QDataStream ):
         self.__last_info_readed__ = None
 
         # Dummy cast_method:
+        # TODO: Verify if this really need this attributes
         self.__cast_method__  = lambda x: x
         self.__fill_pattern__ = b""
 
@@ -130,10 +132,18 @@ class PxDataStream( QDataStream ):
     def __write_as__float__( self , value ):
         self.writeValue( float( value ) )
     # TODO: VERIFY [END] {#1}
+    # ----------------------------
 
     def ignoreValue( self ):
         """ Skips the read/write function of a value """
-        self.skipRawData( self.__sizeVB__ )
+        d = self.device()
+        d.seek( d.pos() + self.__sizeVB__ )
+        # self.skipRawData( self.__sizeVB__ )
+
+    def ignoreValues( self , numvals ):
+        """ Skips the read/write function of a value """
+        d = self.device()
+        d.seek( d.pos() + self.__sizeVB__ *numvals  )
 
     def writeValue( self , value ):
         """ Write and a managed value from buffer. """

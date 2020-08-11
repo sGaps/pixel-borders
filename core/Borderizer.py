@@ -2,25 +2,13 @@
 # Created by: ( Gaps | sGaps | ArtGaps )
 # -----------------------------------------------------
 """ Defines a Borderizer object to add pixel borders to a krita node. """
-from krita       import Selection , Krita
-from collections import deque
+from krita              import Selection , Krita
+from collections        import deque
 
-# TODO: DELETE THIS BLOCK [BEGIN]
-if __name__ == "__main__":
-    import sys
-    import os
-    PACKAGE_PARENT = '..'
-    SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser( __file__ ))))
-    sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
-    from core.AlphaGrow     import Grow
-    from .AlphaScrapper import Scrapper
-    from core.FrameHandler  import FrameHandler
-# TODO: DELETE THIS BLOCK [END]
-else:
-# TODO: De-Ident & delete else statement
-    from .AlphaGrow     import Grow
-    from core.AlphaScrapperSafe import Scrapper
-    from .FrameHandler  import FrameHandler
+from .AlphaGrow         import Grow
+from .AlphaScrapperSafe import Scrapper
+from .FrameHandler      import FrameHandler
+from .AlphaWriter       import Writer
 
 
 METHODS = { "classic"         : 0 ,
@@ -30,19 +18,22 @@ METHODS = { "classic"         : 0 ,
             "classic&corners" : 4 ,
             "corners&classic" : 5 }
 
-KEYS = { "method"     ,
-          "width"     ,
-          "color"     ,
-          "name"      ,
-          "has-extra" ,
-          "extra-arg" }
+# ADD "threshold" attribute to this set
+KEYS = { "method"     , # Int in [0..5]
+          "thickness" , # Int in [1..]
+          "color"     , # Str in {"FG","BG","CS"}
+          "name"      , # Str
+          "has-extra" , # Bool
+          "extra-arg" , # Int in [0..thickness]
+          "start"     , # Int in [-1..0]
+          "finish"    } # Int in [-1..0]
 
 class Borderizer( object ):
     def __init__( self , krita_instance , info = None ):
         self.kis   = krita_instance
-        seff.win   = self.kis.activeWindow()
+        self.win   = self.kis.activeWindow()
         self.doc   = self.kis.activeDocument()
-        self.node  = self.doc.activeNode()
+        #self.node  = self.doc.activeNode()
         self.view  = self.win.activeView()
         self.canvas = self.view.canvas()
 
@@ -50,50 +41,52 @@ class Borderizer( object ):
     def applyXORBetween( cls , data1 , data2 , size ):
         """ apply XOR bitwise operator between two data.
             NOTE: They must have the same length. """
-        return bytearray( self.data1[i] ^ data2[i] for i in range(size) )
+        return bytearray( data1[i] ^ data2[i] for i in range(size) )
 
-    def run( self , data_from_gui ):
+    def run( self , **data_from_gui ):
         """ data_from_gui -> dict(...)
                 | datafrom_gui = { 'method' : ... , 'width' : ... , 'color' : ... , 'name' : ... , 'has-extra' : ... ,
                                    'extra-arg: ... } """
+
         if set(data_from_gui.keys()) != KEYS:
             return False
+        passed_info = dict(data_from_gui)
     
-        # Here, we have manage everything related to the worker method input:
-        info = dict()
-
-        # Color
+        # Color selection:
         if   data_from_gui["color"] == "FG":
-            info["color"] = self.view.foregroundColor()
+            passed_info["color"] = self.view.foregroundColor()
         elif data_from_gui["color"] == "BG":
-            info["color"] = self.view.backgroundColor()
+            passed_info["color"] = self.view.backgroundColor()
         else:
-            info["color"] = None
+            # This must build a Custom Managed Color
+            passed_info["color"] = None
+        m = data_from_gui["method"]
+        if   m == 0: passed_info["method"] = Borderizer.classic
+        elif m == 1: passed_info["method"] = Borderizer.corners
+        elif m == 2: passed_info["method"] = Borderizer.classic_then_corners
+        elif m == 3: passed_info["method"] = Borderizer.corners_then_classic
+        elif m == 4: passed_info["method"] = Borderizer.classic_and_corners
+        elif m == 5: passed_info["method"] = Borderizer.corners_and_classic
 
-        
-        info["bounds"] = self.doc.bounds()
-        info["node"]   = self.node
-        info["doc"]    = self.doc
-        info["kis"]    = self.kis
+        passed_info["doc"]    = self.doc
+        passed_info["kis"]    = self.kis
+        passed_info["node"]   = self.doc.activeNode()
+        passed_info["bounds"] = self.doc.bounds()
 
-        # TODO: Connect with data
-        info["start"]  = self.doc.fullClipRangeStartTime()
-        info["finish"] = self.doc.fullClipRangeEndTime()
-
-        return self.makeBorders( info , general_info , )
-        # Else, perform actions
+        return Borderizer.makeBorders( **passed_info )
 
     @classmethod
     def liftToChannel( cls , data , bounds , channel ):
         channel.setPixelData( data , bounds )
 
+    # TODO: Finish this using Writer() and Writer.colorize()
     @classmethod
     def colorize( cls , node , color , size , bounds ):
-        channels = node
-        parts    = color.components()
-        for c in range( len(chans) - 1 ):
-            # See how I can colorize this.
-            channels[c].setPixelData( bytes(parts[c])*size , bounds  )
+        node.setPixelData( b"\x00" * size  ,
+                           bounds.x()      , 
+                           bounds.y()      , 
+                           bounds.width()  , 
+                           bounds.height() )
 
     @classmethod
     def classic( cls , alpha , grow , config ):
@@ -137,68 +130,82 @@ class Borderizer( object ):
         rem     = config["thickness"] - config["split-index"] + 1
         for i in range(config["split-index"]):
             partial = grow.classic_grow( partial )
-        for i in range(rem):
+        for i in range(rem):                              # This means we have to handle manually the data consistency
             total   = grow.corners_grow( total   )
         return total
 
     # TODO: Change this by:
     # makeBorders( cls , **kwargs )
     @classmethod
-    def makeBorders( cls , general_info , method , config ):
-        """
-            method :: bytearray -> Grow -> IO (bytearray) 
-            config :: dict
-                | config = {'thickness' -> int , 'split-index' -> int }
-            info   :: dict
-                | same as data_from_gui in .run() method. """
-        if set(data_from_gui.keys() != KEYS:
-            return False
-
-        # NOTE: This means we have to handle manually the data consistency
-        safety = False                              # This means we have to handle manually the data consistency
-        bounds = general_info["bounds"]
-        source = info["node"]
+    def makeBorders( cls , **task_info ):
+        # Be careful with data consistency
+        safety = False
+        # TODO: Remove some redundant information in task_info as task_info["doc"]
+        kis    = task_info["kis"]
+        doc    = kis.activeDocument()
+        win    = kis.activeWindow()
+        view   = win.activeView()
+        canvas = view.canvas()
+        source = doc.activeNode()
+        bounds = doc.bounds()
         width  = bounds.width()
-        color  = general_info["color"]
-        start  = info["start"]
-        finish = info["finish"]
-        doc    = info["doc"]
-        kis    = info["kis"]
+        color  = task_info["color"]
+        start  = task_info["start"]
+        finish = task_info["finish"]
+        method = task_info["method"]
+        name   = task_info["name"]
+        config = { "thickness"  : task_info["thickness"]  ,
+                   "split-index" : task_info["extra-arg"] }
 
         scrap = Scrapper()                          # No more info needed
-        size  = scrap.sizeChannel(source) * bounds.width() * bounds.height()
+        write = Writer()
+        # This must be only width() and height()
+        # size  = scrap.channelSize(source) * bounds.width() * bounds.height()
+        size  = bounds.width() * bounds.height()
+        full_size = size * scrap.channelNumber(source) * scrap.channelSize(source)
 
         grow   = Grow( size , width , safety )       # Needs: size , width , mode
         framIO = FrameHandler( source , doc , kis )  # Needs: node , doc , kis , name , xRes , yRes , infoObject
 
-        bounds = doc.bounds()
+        # Insert color in the border auxiliar layer
         target = doc.createNode( ".target" , "paintlayer" )
-        self.colorize( target , color , size  , bounds )
+        Borderizer.colorize( target , color , full_size , bounds )
 
-        # TODO: Verify if everything works with this:
         chans  = source.channels()
-        TALPHA = chans[-1]                  # Target's alpha
+        TALPHA = target.channels()[-1]      # Target's alpha
 
-        timeline    = framIO.get_animation_range( node , start , finish )
+        timeline    = framIO.get_animation_range( source , start , finish + 1 )
         # TODO: Finish
         if not timeline:
             # -- Extract Alpha --
-            alpha = scrap.extractAlpha( node , bounds , opaque = 0xFF , transparent = 0x00 )
+            alpha = scrap.extractAlpha( source , bounds , transparent = 0x00 , threshold = 0 )
 
             # -- Grow Data --
             extra = alpha.copy()
             extra = method( extra , grow , config )
 
             # -- Difference & Lift to Context --
-            TALPHA.setPixelData( self.applyXORBetween(extra,alpha) , bounds )
+            # TODO: Change this for a better method
+            #TALPHA.setPixelData( Borderizer.applyXORBetween(extra,alpha,size) , bounds )
+            write.writeAlpha( target , Borderizer.applyXORBetween(extra,alpha,size) , full_size , bounds )
 
             # -- End phase --
             border = target
-            border.setName( "border" )
+            source.parentNode().addChildNode( border , source )
+            border.setName( name )
+            border.setColorLabel( source.colorLabel() )
+            doc.refreshProjection()
             done = True
 
         else:
+            # TODO: Fix problems with framehandler
             base_name = "frame"
+            nframes   = len(timeline.stop-1)
+
+            source.parentNode().addChildNode( target , source )
+            if not framIO.build_directory():
+                raise Exception( "Unable to write Output dir" )
+
             for t in timeline:
                 # -- Update time --
                 doc.setCurrentTime(t)
@@ -206,27 +213,32 @@ class Borderizer( object ):
                 doc.refreshProjection()
 
                 # -- Extract Alpha --
-                alpha = scrap.extractAlpha( node , bounds , opaque = 0xFF , transparent = 0x00 )
+                alpha = scrap.extractAlpha( source , bounds , transparent = 0x00 , threshold = 0 )
 
                 # -- Grow Data --
                 extra = alpha.copy()
                 extra = method( extra , grow , config )
+
                 # -- Difference & Lift to Context --
-                TALPHA.setPixelData( self.applyXORBetween(extra,alpha) , bounds )
+                # TODO: Change this for a better method
+                TALPHA.setPixelData( Borderizer.applyXORBetween(extra,alpha,size) , bounds )
 
                 # -- Export --
                 # TODO: Make this genereal form:
-                framIO.exportFrame( f"{base_name}_{t:5}" , target )
+                framIO.exportFrame( f"{base_name}_{t:0{nframes}}" , target )
 
             # -- Import --
             done = framIO.importFrames( start )
+            if not done:
+                print( "[BORDERIZER] Unable to import files." , file = stderr )
 
             # -- New Node handle --
             border = doc.topLevelNodes()[0] # TODO: Verify if this is right.
             border.setName( name )
+            doc.refreshProjection()
 
             # -- Clean up --
-            target.remove()
+            target.remove() # Be careful with this
             del target
         return done
 

@@ -1,4 +1,5 @@
 # Gaps / sGaps / ArtGaps | Language Python
+from sys import stderr
 try:
     pass
     #from krita import Krita
@@ -8,6 +9,7 @@ except ImportError as error:
     for e in error.args:
         print( "[PACKAGE] Warning:" , e , file = stderr )
 else:
+    print( "[INFO] Loaded Package" , file = stderr )
     pass
     # [!] Initialize The extension:
     #kis = Krita.instance()
