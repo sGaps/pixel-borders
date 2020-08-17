@@ -9,6 +9,8 @@ class Grow( object ):
     """ Utility object that takes a raw data where each element has the value of 0x00 or 0xFF, and transform each
         to a bit field [$Grow-Data]. This is used to model how the opaque can grow using different methods.
 
+        @DEPRECATED
+        $Old-Mode
         The bits of a [$Grow-Data] bit field can be readed as:
             bit 7:  West                [W]
             bit 6:  North               [N]
@@ -20,13 +22,55 @@ class Grow( object ):
             bit 0:  Is Opaque           [O]
         Or in horizontal representation
             ==>     76543210    bits
-                    WNSE*--0    value
+                    WNSE*--O    value
 
+        @DEPRECATED
+        $UPDATE:
+        The bits of a [$Grow-Data] bit field can be readed as:
+            bit 7:  Can grow to West    [W]
+            bit 6:  Can grow to North   [N]
+            bit 5:  Can grow to South   [S]
+            bit 4:  Can grow to East    [E]
+        -   bit 3:  Has been Written    [*] <- Deprecated
+            bit 2:  Pixel is in Search  [?]
+            bit 1:  Has been Explored   [!]
+            bit 0:  Is Opaque           [O]
+        Or in horizontal representation
+            ==>     76543210    bits
+                    WNSE*!?O    value
+                        -
+        $UPDATE:
+        The bits of a [$Pixel-Enviroment] bit field can be readed as:
+            bit 7:  Has a neighbor at West  [W]
+            bit 6:  Has a neighbor at North [N]
+            bit 5:  Has a neighbor at South [S]
+            bit 4:  Has a neighbor at East  [E]
+            bit 3:  Not used                [-]
+            bit 2:  Not used                [-]
+            bit 1:  Not used                [-]
+            bit 0:  Not used                [-]
+        Or in horizontal representation
+            ==>     76543210    bits            $Pixel-Enviroment
+                    WNSE----    value
+
+        The bits of a [$Grow-State] bit field can be readed as:
+            bit 7:  Can grow to West    [W]
+            bit 6:  Can grow to North   [N]
+            bit 5:  Can grow to South   [S]
+            bit 4:  Can grow to East    [E]
+        -   bit 3:  Has been Explored   [!] <- Deprecated
+            bit 2:  Search Request      [$]
+            bit 1:  Not used            [-]
+            bit 0:  Is Opaque           [O]
+        Or in horizontal representation
+            ==>     76543210    bits
+                    WNSE*!?O    value
         Use unlift_data to get a sequence that can be used in the external world.
     """
     # TODO: Optimize!!
     # Pass the size of the [GRect]
-    def __init__( self , data , width , size , safe_mode = True ):
+    # TODO: Delete old_mode         -------------------------------\
+    def __init__( self , data , width , size , safe_mode = True , old_mode = False ):
         """ Save shared information for futher method applications. """
         # TODO: Finish
 
@@ -34,13 +78,15 @@ class Grow( object ):
         self.size         = None
         self.width        = None
         # TODO: See if is really required use __searchBody in this object.
-        self.__searchBody = None
+        self.__states     = None
         self.__searchView = None
         self.__nextView   = None    # TODO: Watch this.
         self.__indexSize  = None    # TODO: Consider remove it. I think you can use __searchView.itemsize instead.
         self.__count      = None
         self.safemode     = None
-        self.setData( data , width , size , safe_mode )
+
+        # TODO: Delete old_mode --------------------------\
+        self.setData( data , width , size , safe_mode , old_mode )
 
     # __get_required_bytes_for__ :: (Bounded a , Integral a) => a -> Int
     @classmethod
@@ -52,7 +98,8 @@ class Grow( object ):
             else:            limit <<= 8
         raise TypeError( f"Size uses too many bytes. Available bytes sizes: {set(TYPES.keys())}" )
 
-    def setData( self , data , width , size , safe_mode = True ):
+    # TODO: Delete old_mode --------------------------------------\
+    def setData( self , data , width , size , safe_mode = True , old_mode = False ):
         """ Smart constructor/Setter. If safe_mode is False, then data will be mutated after every operation
             of the object. """
         # Data selection:
@@ -64,20 +111,26 @@ class Grow( object ):
         # Always is updated
         self.width    = width
         self.safemode = safe_mode
-        self.size = size
+        self.size     = size
 
+        self.__indexSize   = Grow.__get_required_bytes_for__( size )
+        required_size      = size * self.__indexSize
+        self.__environment = bytearray( required_size )   # TODO: Look if this is right
         # Verify if is totally required create a new __searchBody array
-        if not self.__searchBody or len( self.__searchBody ) != size:
-            self.__indexSize  = Grow.__get_required_bytes_for__( size )
-            self.__searchBody = bytearray( size * self.__indexSize )
-            # TODO: remove __searchBody and make the bytearray build into the memoryview as I did in the __nextView
+        if not self.__searchView or len( previous ) != size:
             # Cast the search body into a integer of the required sizes to represent the size value.
-            self.__searchView = memoryview( self.__searchBody ).cast( TYPES[self.__indexSize] )
-            self.__nextView   = memoryview( bytearray(size * self.__indexSize ) ).cast( TYPES[self.__indexSize] )
+            self.__searchView = memoryview( bytearray(required_size) ).cast( TYPES[self.__indexSize] )
+            self.__nextView   = memoryview( bytearray(required_size) ).cast( TYPES[self.__indexSize] )
         # Always resets the count of indexes.
         self.__count = 0
         # Lift the information to the [$Grow-Data] context.
-        self.__lift_to_context__()
+
+        # TODO: Delete old_mode -\
+        if old_mode:
+            self.__lift_to_context__()
+        else:
+            self.__lift_to_search_context__()
+
 
     def __lift_to_context__( self ):
         """ It takes a raw data in self.data to transform it into a [$Grow-Data] sequence.
@@ -142,8 +195,190 @@ class Grow( object ):
                     search[count] = pos
                     count        += 1
         # Update the number of elements:
-        self.count = count
+        # BEWARE
+        self.__count = count
         # Update the search variable:
+
+    def __lift_to_search_context__( self ):
+        """ Add elements to search context. Doesn't modify any bits.
+            NOTE: It's O(n**2). This doesn't modify any bit in the contained data.
+                  It only adds the indices which are part of the singleton border
+                  of the layer. 
+
+            NOTE: This method ensures that only transparent pixels are added into the search list. """
+        search = self.__searchView
+        count  = 0
+
+        rawlength = self.size
+        rows      = self.width
+        first_row = rows
+        last_row  = rawlength - rows
+        last_col  = rows - 1
+
+        data      = self.data
+        for pos in range(rawlength):
+            pixel = data[pos]
+            # Hard coded "Any neighbor" addition policy:
+            if not pixel and (  (pos > first_row       and data[pos - rows]) or     # Has a opaque neighbor at north.
+                                (pos < last_row        and data[pos + rows]) or     # ::     ::      ::     at south.
+                                (pos % rows            and data[pos - 1])    or     # ::     ::      ::     at west.
+                                (pos % rows < last_col and data[pos + 1])    ):     # ::     ::      ::     at east.
+                search[count] = pos
+                count        += 1
+        # Count update.
+        self.__count = count
+
+    def __any_neighbor_policy__( self , environment ):
+        """ __any_neighbor_policy__ :: [$Grow-Data] -> e | e = 0 , 1
+            State must be a [$Grow-Data] bit field.
+            It has a neighbor if the high nibble has a enabled bit. """
+        # Returns true if has any of them
+        return environment & 0xF0
+        #return True if (state & 0xF0) ^ 0xF0 else False
+
+    # TODO: Fix it, Works bad
+    # NOTE: This has a little bug. if it reach the bounds of the images, then it can grow (when is not required)
+    def __is_corner_policy__( self , environment ):
+        """ One of these bits enabled means there's free space at the respectively direction.
+            WEST  = 1 << 7  = 0x80
+            NORTH = 1 << 6  = 0x40
+            SOUTH = 1 << 5  = 0x20
+            EAST  = 1 << 4  = 0x10 """
+        h  = 1 if environment & 0x80 else 0
+        h += 1 if environment & 0x10 else 0
+        if h != 1: return 0x00
+        v  = 1 if environment & 0x40 else 0
+        v += 1 if environment & 0x20 else 0
+        return 0x01 if h == v else 0x00
+    def __always_grow_policy__( self , _ ):
+        return 0x01
+
+    def __run_automata__( self , grow_policy ):
+        """ This approach "yields" the context lift until is totally required.
+        """
+        # TODO: Context must be for the state, and not for the pixels.
+        #       So, we can return directly copies of the data itself without perform other heavy operations.
+        newcount    = 0
+        count       = self.__count
+        search      = self.__searchView
+        newsearch   = self.__nextView
+        
+        states      = self.data          # Data + context results into states.
+        environment = self.__environment # Enviroment = Data + lookup
+
+        rawlength = self.size   # TODO: Delete. It isn't used.
+        rows      = self.width
+        first_row = rows
+        last_row  = rawlength - rows
+        last_col  = rows - 1
+
+        # Common
+        WEST     = 1 << 7   # [W]
+        NORTH    = 1 << 6   # [N]
+        SOUTH    = 1 << 5   # [S]
+        EAST     = 1 << 4   # [E]
+
+        # For states:
+        EXPLORED = 1 << 3   # [!]
+        SEARCHRQ = 1 << 2   # [$]
+        OPAQUE   = 1        # [O]
+
+        # For grow info:
+        IGNORED  = OPAQUE | SEARCHRQ
+        for record in range(count):
+            pos     = search[record]
+            env     = environment[pos]
+            state   = states[pos]
+            if not state & EXPLORED:
+                # Lift to context: register if it can grow to a specific direction
+                # TODO: Fix > Corners. cannnot register the true neighbors
+                if pos > first_row:
+                    lookup = states[pos - rows]
+                    if lookup & OPAQUE:
+                        env |= NORTH                        # Has a opaque n. at north.
+                    elif not lookup & SEARCHRQ: 
+                        state              |= NORTH         # free space at north.
+                        states[pos - rows] |= SEARCHRQ      # Search request to north.
+
+                if pos < last_row:
+                    lookup = states[pos + rows]
+                    if lookup & OPAQUE:
+                        env |= SOUTH                        # Has a opaque n. at south.
+                    elif not lookup & SEARCHRQ:
+                        state              |= SOUTH         # free space at south.
+                        states[pos + rows] |= SEARCHRQ      # That block is reserved now
+
+                if pos % rows:
+                    lookup = states[pos - 1]
+                    if lookup & OPAQUE:
+                        env |= WEST                         # Has a opaque n. at west.
+                    elif not lookup & SEARCHRQ:
+                        state           |= WEST             # free space at west.
+                        states[pos - 1] |= SEARCHRQ         # That block is reserved now
+
+                if pos % rows < last_col:
+                    lookup = states[pos + 1]
+                    if lookup & OPAQUE:
+                        env |= EAST                         # Has a opaque n. at east.
+                    elif not lookup & SEARCHRQ:
+                        state           |= EAST             # free space at east.
+                        states[pos + 1] |= SEARCHRQ         # That block is reserved now
+                # Force write:
+                state           |= EXPLORED
+                states[pos]      = state
+                environment[pos] = env
+                """
+                if pos > first_row and not data[pos - rows] & IGNORED:       # Free space at north.
+                    data[pos - rows] |= SEARCHRQ
+                    state |= NORTH
+                if pos < last_row  and not data[pos + rows] & IGNORED:       # Free space at south.
+                    data[pos + rows] |= SEARCHRQ
+                    state |= SOUTH
+                if pos % rows      and not data[pos - 1] & IGNORED:          # Free space at west.
+                    data[pos - 1] |= SEARCHRQ
+                    state |= WEST
+                if pos % rows < last_col and not data[pos + 1] & IGNORED:    # Free space at east.
+                    data[pos + 1] |= SEARCHRQ
+                    state |= EAST
+                state |= EXPLORED
+                """
+            # We have explored the current position, so we only have to know if with
+            # the given current state, we can consider this pixel as opaque.
+            if grow_policy( env ):
+                states[pos] |= OPAQUE
+                # search list)
+                if state & NORTH:
+                    newsearch[newcount] = pos - rows
+                    newcount           += 1
+
+                if state & SOUTH:
+                    newsearch[newcount] = pos + rows
+                    newcount           += 1
+
+                if state & WEST:
+                    newsearch[newcount] = pos - 1
+                    newcount           += 1
+
+                if state & EAST:
+                    newsearch[newcount] = pos + 1
+                    newcount           += 1
+            else:
+                # If it has not been written, then we must wait until it can grow.
+                # that means: we add it to the next search.
+                newsearch[newcount] = pos
+                newcount           += 1
+        # Update search:
+        self.__count = newcount 
+        self.__searchView , self.__nextView = self.__nextView , self.__searchView
+
+    def force_grow( self ):
+        self.__run_automata__( self.__always_grow_policy__ )
+
+    def any_neighbor_grow( self ):
+        self.__run_automata__( self.__any_neighbor_policy__ )
+
+    def corners_grow( self ):
+        self.__run_automata__( self.__is_corner_policy__ )
 
     def __any_neighbor__( self , pixel ):
         """ pixel must be an int8. where its bits have the folowing meaning:
@@ -218,7 +453,7 @@ class Grow( object ):
         width  = self.width
         currsearch = self.__searchView
         nextsearch = self.__nextView
-        count     = self.count
+        count     = self.__count
         nextcount = 0
 
         # Only do lookup into the currsearch 'array'
@@ -270,7 +505,7 @@ class Grow( object ):
                     data[east] &= NOTEAST
                 
         # Update the number of elements:
-        self.count = nextcount
+        self.__count = nextcount
         # SWAP()
         self.__searchView , self.__nextView = self.__nextView , self.__searchView
 
@@ -286,109 +521,6 @@ class Grow( object ):
         d = self.data
         return bytearray( external[i] ^ 0xFF if d[i] & 0x01 else external[i] ^ 0x00 for i in range(size) )
 
-    # @DEPRECATED:
-    def classic_cross( self , i , data , width , size , opaque = 0xFF , transparent = 0x0 ):
-        """ [ GROW METHOD ]
-                                Criteria:
-            (.) = ignored box       |       . x .
-            (x) = lookup box        |       x * x
-            (*) = current box       |       . x .
-            if some x != alpha, then return opaque value, else return transparent.
-        """
-        # Ensures the opaque aren't totally modified
-        if data[i] != transparent:
-            return opaque
-
-        north  = i - width
-        south  = i + width
-        east   = i + 1
-        west   = i - 1
-
-        if(  ( north     >  0         and data[north] != transparent ) or       # Has north and is it opaque?
-             ( south     <  size      and data[south] != transparent ) or       # Has south and is it opaque?
-             ( i % width != width - 1 and data[east]  != transparent ) or       # Has east  and is it opaque?
-             ( i % width != 0         and data[west]  != transparent )  ):      # Has west  and is it opaque?
-            return opaque
-        else:
-            return transparent
-
-    # @DEPRECATED:
-    def corner_lookup( self , i , data , width , size , opaque = 0xFF , transparent = 0x0 ):
-        """ [ GROW METHOD ]
-                                Criteria:
-            (.) = ignored box                       |       . v .
-            (h) = horizontal box                    |       h * h
-            (v) = vertical box                      |       . v .
-            (*) = current box (it's seen too)
-            if the number of vertical and horizontal boxes are equal and the * isn't alpha,
-            return opaque. Else return transparent.
-        """
-        # Ensures the opaque aren't totally modified
-        if data[i] != transparent:
-            return opaque
-
-        north = i - width
-        south = i + width
-        east  = i + 1
-        west  = i - 1
-        # Vertical constraint:
-        v     = 1 if north > 0    and data[north] != transparent else 0           # Count north
-        v    += 1 if south < size and data[south] != transparent else 0           # Count south
-
-        # Horizontal constraint:
-        h    = 1 if i % width != width - 1 and data[east] != transparent else 0   # Count east
-        h   += 1 if i % width != 0         and data[west] != transparent else 0   # Count west
-        if v == 1 and v == h:
-            return opaque
-        else:
-            return transparent
-
-    # @DEPRECATED:
-    # Pre: { len(mutable) == len(auxiliar) and size == len(mutable) }
-    def __abstract_grow__( self , mutable , auxiliar , size  , width , criteria , opaque = 0xFF , transparent = 0x00 ):
-        """ Make a safe copy in-place of the mutable object into auxiliar object
-            and applies a criteria to every object of the mutable object. """
-        auxiliar[:] = mutable
-        for i in range( size ):
-            mutable[i] = criteria( i , auxiliar , width , size , opaque , transparent )
-
-    # @DEPRECATED:
-    # Pre: { len(cloned) == len(source) }
-    def __clone_into__( self , source , cloned , size ):
-        """ Make a safe copy in-place of the source object into cloned object. """
-        cloned[:] = source
-
-    # @DEPRECATED:
-    def classic_grow( self , data , opaque = 0xFF , transparent = 0x00 ):
-        """ Apply classic_cross method to data and returns it as result. """
-        return self.repeated_classic_grow( data , 1 , opaque , transparent )
-
-    # @DEPRECATED:
-    def corners_grow( self , data , opaque = 0xFF , transparent = 0x00 ):
-        """ Apply corner_lookup method to data and returns it as result. """
-        return self.repeated_corners_grow( data , 1 , opaque , transparent )
-
-    # @DEPRECATED:
-    def repeated_classic_grow( self , data , repeat = 1 , opaque = 0xFF , transparent = 0x00 ):
-        """ Apply classic_cross method 'repeat' times to data and returns it as result. """
-        if self.safe: target = data.copy()
-        else:         target = data
-        for steps in range(repeat):
-            self.__abstract_grow__( target      , self.aux           , self.size , 
-                                    self.w      , self.classic_cross , opaque    ,
-                                    transparent )
-        return target
-
-    # @DEPRECATED:
-    def repeated_corners_grow( self , data , repeat = 1 , opaque = 0xFF , transparent = 0x00 ):
-        """ Apply corner_lookup method 'repeat' times to data and returns it as result. """
-        if self.safe: target = data.copy()
-        else:         target = data
-        for steps in range(repeat):
-            self.__abstract_grow__( target      , self.aux           , self.size , 
-                                    self.w      , self.corner_lookup , opaque    ,
-                                    transparent )
-        return target
 
 # -------------------------------------------------------------
 if __name__ == "__main__":

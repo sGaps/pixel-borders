@@ -26,22 +26,31 @@ class Scrapper( object ):
 
     # TODO: Optimize. How?, pass the node bounds [NRect] + grow bounds [GRect] to
     #       extract exactly you need for this.
+    # TODO: return the size of the byte size of the structure.
     def extractRelevantAlpha( self , node , extra_pixels = 0 , transparent = 0 , threshold = 0 ):
         """ returns the a simplified version of the alpha channel of the node (only marks if the pixel
             is or not transparent) with a lightly modification on its dimensions given by
             extra_pixels, and also returns the node bounds. """
         if node is None:
-            return bytearray()
+            return ( bytearray() , QRect() )
         bounds  = node.bounds()
-        nbounds = QRect( bounds.x()     - extra_pixels , bounds.y()      - extra_pixels ,
-                         bounds.width() + extra_pixels , bounds.height() + extra_pixels )
-        return (Scrapper.__extract_alpha__( node                           , 
-                                            bounds.x() - extra_pixels      ,
-                                            bounds.y() - extra_pixels      ,
-                                            bounds.width() + extra_pixels  ,
-                                            bounds.height() + extra_pixels ,
-                                            transparent , threshold        ) , nbounds )
+        if bounds.width() == 0 or bounds.height() == 0:
+            return ( bytearray() , QRect() )
 
+        nbounds = QRect( bounds.x()      -   extra_pixels ,
+                         bounds.y()      -   extra_pixels ,
+                         bounds.width()  + 2*extra_pixels ,
+                         bounds.height() + 2*extra_pixels )
+        print( f"rect = ({nbounds.x()},{nbounds.y()},{nbounds.width()},{nbounds.height()})" )
+        return (Scrapper.__extract_alpha__( node            , 
+                                            nbounds.x()     ,
+                                            nbounds.y()     ,
+                                            nbounds.width() ,
+                                            nbounds.height(),
+                                            transparent     , 
+                                            threshold       ) , nbounds )
+
+    # TODO: return the size of the byte size of the structure.
     def extractAlpha( self , node , bounds , transparent = 0 , threshold = 0 ):
         if node is None or bounds.width() == 0 or bounds.height() == 0:
             return bytearray()
