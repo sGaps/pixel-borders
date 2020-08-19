@@ -10,13 +10,14 @@ import os
 DEFAULT_OUTPUT_DIR = ".output"
 # ALWAYS EXPORT AS PNG, so default info is always for png and its updates to the node contents.
 # TODO: OPTIMIZE!
+# TODO: Change some @classmethod(s) by @staticmethod(s)
 class FrameHandler( object ):
-    def __init__( self , node , doc , krita_instance , subfolder = DEFAULT_OUTPUT_DIR , xRes = None , yRes = None , info = None ):
+    # TODO: add an attribute called: force_write to verify when if the file must be written at any cost.
+    def __init__( self , doc , krita_instance , subfolder = DEFAULT_OUTPUT_DIR , xRes = None , yRes = None , info = None ):
         self.kis    = krita_instance
         self.doc    = doc
         self.bounds = doc.bounds()
         self.sub    = subfolder.strip()
-        self.node   = node
         self.docdirpath    = f"{ os.path.dirname(doc.fileName()) }"
         self.exportdirpath = f"{ self.docdirpath }/{ subfolder }"
         self.exported      = []
@@ -26,10 +27,12 @@ class FrameHandler( object ):
         else:            self.xRes = xRes
         if yRes is None: self.yRes = doc.yRes()
         else:            self.yRes = yRes
-        if info is None: self.info = self.__default_info__( node )
+
+        if info is None: self.info = self.__default_info__()
         else:            self.info = info
 
-    def __default_info__( self , node ):
+    # TODO: This must be an static method or a value.
+    def __default_info__( self ):
         info = krita.InfoObject()
         info.setProperties({
             "alpha"                 : True  ,   # Always must be true
@@ -38,7 +41,7 @@ class FrameHandler( object ):
             "indexed"               : False ,   # Ensures few things
             "interlaced"            : False ,   #
             "saveSRGBProfile"       : False ,   #
-            "transparencyFillColor" : []        # No color for this because it stores the alpha channel
+            "transparencyFillcolor" : [255,255,255]
                     })
         return info
     def setInfo( self , info ):
@@ -133,12 +136,12 @@ class FrameHandler( object ):
     def get_animation_range( self , node , start , finish ):
         """ Returns a range for the animation if there's animation. Else
             returns None. """
-        return self.__exhaustive_take_animated_nodes__( self.node , start , finish+1 )[1]
+        return self.__exhaustive_take_animated_nodes__( node , start , finish+1 )[1]
 
-    def get_animated_subnodes( self , start , finish ):
+    def get_animated_subnodes( self , node , start , finish ):
         """ Returns all the nodes in the node-hierarchy for the animation if there's animation. Else
             returns []. """
-        return self.__exhaustive_take_animated_nodes__( self.node , start , finish+1 )[0]
+        return self.__exhaustive_take_animated_nodes__( node , start , finish+1 )[0]
 
     def get_exported_files( self ):
         return self.exported
@@ -146,34 +149,50 @@ class FrameHandler( object ):
     def build_directory( self ):
         while not self.exportReady:
             try:
-                os.mkdir( self.exportdirpath )
+                # TODO: Consider use os.mkdirs(...)
+                print( f"[FrameHandler]: Attempt to make {self.exportdirpath}" , file = stderr )
+                os.makedirs( self.exportdirpath )
             except FileNotFoundError:
-                print( f"[FrameHandler]: couldn't make {self.exportdirpath} trying again. " , file = stderr )
+                print( f"[FrameHandler]: couldn't create: {self.exportdirpath} trying again " , file = stderr )
                 self.exportdirpath = os.path.dirname( self.doc.fileName() ) + "/" + DEFAULT_OUTPUT_DIR
+                print( f"                with a new name {self.exportdirpath}." , file = stderr )
                 self.exportReady = False
             except FileExistsError:
+                print( f"[FrameHandler]: {self.exportdirpath} already exists." , file = stderr )
                 self.exportReady = True
             else:
+                print( f"[FrameHandler]: {self.exportdirpath} ready." , file = stderr )
                 self.exportReady = True
-        return True
 
+    # TODO:
     def exportFrame( self , filename , node ):
-        """ Export the node data of the current time to a file and records the file path into
-            the object. """
-        if not self.exportReady:
+        """ Export the node data of the current time to a file and records the file path into )
+            the object. 
+            if info object wasn't defined. then filename must have the suffix of png files."""
+        if self.exportReady:
+            filepath = f"{self.exportdirpath}/{filename}"
+            print( f"[FrameHandler]: Trying to export > {filepath}" , file = stderr )
+        else:
             print( f"[FrameHandler]: {self.exportdirpath} doesn't exist. Export failed" , file = stderr )
             return False
 
-        batchmode  = self.kis.batchmode()
+        batchmodeK = self.kis.batchmode()
+        batchmodeD = self.doc.batchmode()
         self.kis.setBatchmode( True )
+        self.doc.setBatchmode( True )
         try:
-            filepath = f"{self.exportdirpath}/{filename}"
-            result = node.save( filepath , self.xRes , self.yRes , self.info , self.bounds )
+            # Node must return True if everything is right. But it doesn't so...
+            node.save( filepath , self.xRes , self.yRes , self.info , self.bounds )
+            # I handle this in a different way...
+            # TODO: Add if this really
+            result = os.path.exists( filepath )
+            print( "[FrameHandler]: Done? " , result , file = stderr )
             # Record the path of the all files exported.
             self.exported.append(filepath)
         except:
             result = False
-        self.kis.setBatchmode( batchmode )
+        self.kis.setBatchmode( batchmodeK )
+        self.doc.setBatchmode( batchmodeD )
         return result
 
     def importFrames( self , startframe , files = [] ):

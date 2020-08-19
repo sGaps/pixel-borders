@@ -24,9 +24,6 @@ class Scrapper( object ):
     def __init__( self ):
         pass
 
-    # TODO: Optimize. How?, pass the node bounds [NRect] + grow bounds [GRect] to
-    #       extract exactly you need for this.
-    # TODO: return the size of the byte size of the structure.
     def extractRelevantAlpha( self , node , extra_pixels = 0 , transparent = 0 , threshold = 0 ):
         """ returns the a simplified version of the alpha channel of the node (only marks if the pixel
             is or not transparent) with a lightly modification on its dimensions given by
@@ -41,7 +38,6 @@ class Scrapper( object ):
                          bounds.y()      -   extra_pixels ,
                          bounds.width()  + 2*extra_pixels ,
                          bounds.height() + 2*extra_pixels )
-        print( f"rect = ({nbounds.x()},{nbounds.y()},{nbounds.width()},{nbounds.height()})" )
         return (Scrapper.__extract_alpha__( node            , 
                                             nbounds.x()     ,
                                             nbounds.y()     ,
@@ -81,7 +77,7 @@ class Scrapper( object ):
 
         pxldata = bytes( node.projectionPixelData( x , y , w , h ) )
         pattern = DEPTHS[node.colorDepth()]
-
+        print( transparent , threshold )
         low    = transparent - threshold
         high   = transparent + threshold
 
@@ -101,7 +97,6 @@ class Scrapper( object ):
             step   = nmChn
             reader = memoryview( pxldata ).cast( pattern )
             length = len( reader )
-            # TODO: I think this must be wtransparent if low <= ...
             return bytearray( wtransparent if low <= reader[i] <= high else
                               wopaque      for i in range(offset,length,step) )
 

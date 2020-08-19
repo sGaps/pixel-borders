@@ -6,40 +6,11 @@ TYPES = { 1 : "B" ,
           4 : "I" ,
           8 : "L" }
 class Grow( object ):
+    # TODO: Add a better description
+    # TODO: Write about both indices arrays.
     """ Utility object that takes a raw data where each element has the value of 0x00 or 0xFF, and transform each
         to a bit field [$Grow-Data]. This is used to model how the opaque can grow using different methods.
 
-        @DEPRECATED
-        $Old-Mode
-        The bits of a [$Grow-Data] bit field can be readed as:
-            bit 7:  West                [W]
-            bit 6:  North               [N]
-            bit 5:  South               [S]
-            bit 4:  East                [E]
-            bit 3:  Has been Written    [*]
-            bit 2:  Not used            [-]
-            bit 1:  Not used            [-]
-            bit 0:  Is Opaque           [O]
-        Or in horizontal representation
-            ==>     76543210    bits
-                    WNSE*--O    value
-
-        @DEPRECATED
-        $UPDATE:
-        The bits of a [$Grow-Data] bit field can be readed as:
-            bit 7:  Can grow to West    [W]
-            bit 6:  Can grow to North   [N]
-            bit 5:  Can grow to South   [S]
-            bit 4:  Can grow to East    [E]
-        -   bit 3:  Has been Written    [*] <- Deprecated
-            bit 2:  Pixel is in Search  [?]
-            bit 1:  Has been Explored   [!]
-            bit 0:  Is Opaque           [O]
-        Or in horizontal representation
-            ==>     76543210    bits
-                    WNSE*!?O    value
-                        -
-        $UPDATE:
         The bits of a [$Pixel-Enviroment] bit field can be readed as:
             bit 7:  Has a neighbor at West  [W]
             bit 6:  Has a neighbor at North [N]
@@ -64,7 +35,7 @@ class Grow( object ):
             bit 0:  Is Opaque           [O]
         Or in horizontal representation
             ==>     76543210    bits
-                    WNSE*!?O    value
+                    WNSE!$-O    value
         Use unlift_data to get a sequence that can be used in the external world.
     """
     # TODO: Optimize!!
@@ -87,6 +58,9 @@ class Grow( object ):
 
         # TODO: Delete old_mode --------------------------\
         self.setData( data , width , size , safe_mode , old_mode )
+    @classmethod
+    def singleton( cls ):
+        return cls( None , 0 , 0 , False )
 
     # __get_required_bytes_for__ :: (Bounded a , Integral a) => a -> Int
     @classmethod
@@ -132,6 +106,7 @@ class Grow( object ):
             self.__lift_to_search_context__()
 
 
+    #DEPRECATED:
     def __lift_to_context__( self ):
         """ It takes a raw data in self.data to transform it into a [$Grow-Data] sequence.
             Also adds to a seach list these transparent pixels that have some opaque neighbors.
@@ -229,15 +204,11 @@ class Grow( object ):
         self.__count = count
 
     def __any_neighbor_policy__( self , environment ):
-        """ __any_neighbor_policy__ :: [$Grow-Data] -> e | e = 0 , 1
-            State must be a [$Grow-Data] bit field.
+        """ __any_neighbor_policy__ :: [$Pixel-Enviroment] -> e | e = 0 , 1
+            State must be a [$Pixel-Enviroment] bit field.
             It has a neighbor if the high nibble has a enabled bit. """
-        # Returns true if has any of them
         return environment & 0xF0
-        #return True if (state & 0xF0) ^ 0xF0 else False
 
-    # TODO: Fix it, Works bad
-    # NOTE: This has a little bug. if it reach the bounds of the images, then it can grow (when is not required)
     def __is_corner_policy__( self , environment ):
         """ One of these bits enabled means there's free space at the respectively direction.
             WEST  = 1 << 7  = 0x80
@@ -250,26 +221,29 @@ class Grow( object ):
         v  = 1 if environment & 0x40 else 0
         v += 1 if environment & 0x20 else 0
         return 0x01 if h == v else 0x00
+
+    def __not_corner_policy__( self , environment ):
+        return not self.__is_corner_policy__( environment )
+
     def __always_grow_policy__( self , _ ):
         return 0x01
 
+    # TODO: Add a better description.
     def __run_automata__( self , grow_policy ):
-        """ This approach "yields" the context lift until is totally required.
-        """
-        # TODO: Context must be for the state, and not for the pixels.
-        #       So, we can return directly copies of the data itself without perform other heavy operations.
+        """ Runs a grow policy inside the object. It must be an function that takes
+            an [$Pixel-Enviroment] and returns a Bool object (or something that could
+            apply cast into bool). """
         newcount    = 0
         count       = self.__count
         search      = self.__searchView
         newsearch   = self.__nextView
         
-        states      = self.data          # Data + context results into states.
+        states      = self.data          # Data + context = states.
         environment = self.__environment # Enviroment = Data + lookup
 
-        rawlength = self.size   # TODO: Delete. It isn't used.
         rows      = self.width
         first_row = rows
-        last_row  = rawlength - rows
+        last_row  = self.size - rows
         last_col  = rows - 1
 
         # Common
@@ -283,15 +257,13 @@ class Grow( object ):
         SEARCHRQ = 1 << 2   # [$]
         OPAQUE   = 1        # [O]
 
-        # For grow info:
-        IGNORED  = OPAQUE | SEARCHRQ
+        # TODO: Optimize!
         for record in range(count):
             pos     = search[record]
             env     = environment[pos]
             state   = states[pos]
             if not state & EXPLORED:
-                # Lift to context: register if it can grow to a specific direction
-                # TODO: Fix > Corners. cannnot register the true neighbors
+                # Lift to context: register if it can grow to a specific direction.
                 if pos > first_row:
                     lookup = states[pos - rows]
                     if lookup & OPAQUE:
@@ -327,21 +299,7 @@ class Grow( object ):
                 state           |= EXPLORED
                 states[pos]      = state
                 environment[pos] = env
-                """
-                if pos > first_row and not data[pos - rows] & IGNORED:       # Free space at north.
-                    data[pos - rows] |= SEARCHRQ
-                    state |= NORTH
-                if pos < last_row  and not data[pos + rows] & IGNORED:       # Free space at south.
-                    data[pos + rows] |= SEARCHRQ
-                    state |= SOUTH
-                if pos % rows      and not data[pos - 1] & IGNORED:          # Free space at west.
-                    data[pos - 1] |= SEARCHRQ
-                    state |= WEST
-                if pos % rows < last_col and not data[pos + 1] & IGNORED:    # Free space at east.
-                    data[pos + 1] |= SEARCHRQ
-                    state |= EAST
-                state |= EXPLORED
-                """
+
             # We have explored the current position, so we only have to know if with
             # the given current state, we can consider this pixel as opaque.
             if grow_policy( env ):
@@ -380,6 +338,14 @@ class Grow( object ):
     def corners_grow( self ):
         self.__run_automata__( self.__is_corner_policy__ )
 
+    def not_corners_grow( self ):
+        self.__run_automata__( self.__not_corner_policy__ )
+
+    def grow_with_custom_policy( self , grow_policy ):
+        """ grow_policy :: ($Pixel-Environment -> Bool) -> None """
+        self.__run_automata__( grow_policy )
+
+    #DEPRECATED:
     def __any_neighbor__( self , pixel ):
         """ pixel must be an int8. where its bits have the folowing meaning:
                 7864    3                   21          0
@@ -389,6 +355,7 @@ class Grow( object ):
         """
         return pixel & 0xF0 # If any dir is enabled
 
+    #DEPRECATED:
     def __always_grow__( self , pixel ):
         """ pixel must be an int8. where its bits have the folowing meaning:
                 7864    3                   21          0
@@ -398,6 +365,7 @@ class Grow( object ):
         """
         return True
 
+    #DEPRECATED:
     # TODO: Fix, It grows to <- and ->
     def __is_corner__( self , pixel ):
         """ pixel must be an int8. where its bits have the folowing meaning:
@@ -416,17 +384,21 @@ class Grow( object ):
         v += 1 if pixel & 0x20 else 0   # South
         return h == v
 
+    #DEPRECATED:
     def grow_if_any_neighbor( self ):
         self.__grow__( self.__any_neighbor__ )
 
+    #DEPRECATED:
     # TODO: Rename to grow_in_diagonal
     def grow_if_is_corner( self ):
         self.__grow__( self.__is_corner__ )
 
+    #DEPRECATED:
     # TODO: Rename to if grow_to_all_directions
     def grow_always( self ):
         self.__grow__( self.__always_grow__ )
 
+    #DEPRECATED:
     # TODO: add selection
     def __grow__( self , grow_condition ):
         """ I think pattern must be a function
@@ -509,17 +481,23 @@ class Grow( object ):
         # SWAP()
         self.__searchView , self.__nextView = self.__nextView , self.__searchView
 
+    # TODO: Optimize!
     def unlift_data( self ):
         """ Returns a new data without the [$Grow-Data] bit field context. The returned data can be used
             in the RealWorld. """
         return bytearray( 0xFF if p & 0x01 else 0x00 for p in self.data )
 
+    # TODO: Optimize!
     def difference_with( self , external ):
+        d = self.data
+        return bytearray( 0xFF & ~external[i] if d[i] & 0x01 else 0x00 & ~external[i] for i in range(self.size) )
+
+    def xor_with( self , external ):
         """ Returns a new data without the [$Grow-Data] bit field context, then apply XOR operation with a give 'external'
             data. It's used for make easier a bit more efficient this difference operation. """
         # Unlift the Grow context and apply XOR
         d = self.data
-        return bytearray( external[i] ^ 0xFF if d[i] & 0x01 else external[i] ^ 0x00 for i in range(size) )
+        return bytearray( external[i] ^ 0xFF if d[i] & 0x01 else external[i] ^ 0x00 for i in range(self.size) )
 
 
 # -------------------------------------------------------------
