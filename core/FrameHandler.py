@@ -8,11 +8,9 @@ from   sys         import stderr
 import krita
 import os
 DEFAULT_OUTPUT_DIR = ".output"
-# ALWAYS EXPORT AS PNG, so default info is always for png and its updates to the node contents.
 # TODO: OPTIMIZE!
-# TODO: Change some @classmethod(s) by @staticmethod(s)
 class FrameHandler( object ):
-    # TODO: add an attribute called: force_write to verify when if the file must be written at any cost.
+    # TODO: add an attribute called: force_write to verify when the file must be written at any cost.
     def __init__( self , doc , krita_instance , subfolder = DEFAULT_OUTPUT_DIR , xRes = None , yRes = None , info = None ):
         self.kis    = krita_instance
         self.doc    = doc
@@ -28,11 +26,11 @@ class FrameHandler( object ):
         if yRes is None: self.yRes = doc.yRes()
         else:            self.yRes = yRes
 
-        if info is None: self.info = self.__default_info__()
+        if info is None: self.info = FrameHandler.__default_info__()
         else:            self.info = info
 
-    # TODO: This must be an static method or a value.
-    def __default_info__( self ):
+    @staticmethod
+    def __default_info__():
         info = krita.InfoObject()
         info.setProperties({
             "alpha"                 : True  ,   # Always must be true
@@ -149,8 +147,6 @@ class FrameHandler( object ):
     def build_directory( self ):
         while not self.exportReady:
             try:
-                # TODO: Consider use os.mkdirs(...)
-                print( f"[FrameHandler]: Attempt to make {self.exportdirpath}" , file = stderr )
                 os.makedirs( self.exportdirpath )
             except FileNotFoundError:
                 print( f"[FrameHandler]: couldn't create: {self.exportdirpath} trying again " , file = stderr )
@@ -158,13 +154,10 @@ class FrameHandler( object ):
                 print( f"                with a new name {self.exportdirpath}." , file = stderr )
                 self.exportReady = False
             except FileExistsError:
-                print( f"[FrameHandler]: {self.exportdirpath} already exists." , file = stderr )
                 self.exportReady = True
             else:
-                print( f"[FrameHandler]: {self.exportdirpath} ready." , file = stderr )
                 self.exportReady = True
 
-    # TODO:
     def exportFrame( self , filename , node ):
         """ Export the node data of the current time to a file and records the file path into )
             the object. 
@@ -184,9 +177,8 @@ class FrameHandler( object ):
             # Node must return True if everything is right. But it doesn't so...
             node.save( filepath , self.xRes , self.yRes , self.info , self.bounds )
             # I handle this in a different way...
-            # TODO: Add if this really
             result = os.path.exists( filepath )
-            print( "[FrameHandler]: Done? " , result , file = stderr )
+
             # Record the path of the all files exported.
             self.exported.append(filepath)
         except:
@@ -212,7 +204,7 @@ class FrameHandler( object ):
                 raise ImportError( f"Unable to export animation frames from {self.exportdirpath}" )
             done = True
         except ImportError as error:
-            print( error )
+            print( error , file = stderr )
             done = False
         self.kis.setBatchmode( batchmode )
         return done

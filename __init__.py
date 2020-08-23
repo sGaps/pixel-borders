@@ -7,9 +7,9 @@ try:
 except ImportError as error:
     from .main import PixelExtension
     for e in error.args:
-        print( "[PACKAGE] Warning:" , e , file = stderr )
+        print( "[Pixel Border] Warning:" , e , file = stderr )
 else:
-    print( "[INFO] Loaded Package" , file = stderr )
+    print( "[Pixel Border] Loaded Package" , file = stderr )
     pass
     # [!] Initialize The extension:
     #kis = Krita.instance()

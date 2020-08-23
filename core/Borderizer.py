@@ -3,22 +3,15 @@
 # -----------------------------------------------------
 """ Defines a Borderizer object to add pixel borders to a krita node. """
 from krita              import Selection , Krita , ManagedColor
-from collections        import deque
 from struct             import pack , unpack
 from PyQt5.QtCore       import QRect
+from sys                import stderr
 
 from .AlphaGrow         import Grow
 from .AlphaScrapperSafe import Scrapper
 from .FrameHandler      import FrameHandler
-from .AlphaWriter       import Writer
 
-# TODO: Do more flexible the gui:
-# Support-multi config:
-# main border config , secondary border config :: Integral a => (LineConfig ,SplitIndex a)
-# where data LineConfig      = { thickness :: Integral a => a , method :: Integral a => a , color :: String }
-#       newtype SplitIndex a = SplitIndex a
-
-# TODO: Change available methods. Square, Round, Square and Round since
+# TODO: Remove old method structure. It requires a lots of changes in the GUI.
 """
 METHODS = { "classic"         : 0 ,
             "corners"         : 1 ,
@@ -28,8 +21,7 @@ METHODS = { "classic"         : 0 ,
             "corners&classic" : 5 }
             """
 
-# TODO: ADD "threshold" attribute.
-# TODO: ADD "animated" attribute.
+# TODO: Remove old method structure. It requires a lots of changes in the GUI.
 """
 KEYS = {  "method"    , # Int in [0..5]
           "thickness" , # Int in [1..]
@@ -41,6 +33,7 @@ KEYS = {  "method"    , # Int in [0..5]
           "finish"    } # Int in [-1..0]
           """
 
+###
 INDEX_METHODS = ["force","any-neighbor","corners","not-corners"]
 
 METHODS = { "force"        : Grow.force_grow        ,
@@ -48,6 +41,7 @@ METHODS = { "force"        : Grow.force_grow        ,
             "corners"      : Grow.corners_grow      ,
             "not-corners"  : Grow.not_corners_grow  }
 
+# Keys used in the data structure passed by the GUI
 KEYS = {  "methoddsc" , # [(method,thickness)] where method is
           "colordsc"  , # ( color_type , components )
                         # where color_type = "FG" | "BG" , "CS"
@@ -60,28 +54,28 @@ KEYS = {  "methoddsc" , # [(method,thickness)] where method is
           "name"      , # String
           }
 
+# Support for krita color depths. Key -> ( Read_Write_Pattern , Max_Value )
 DEPTHS = { "U8"  : ("B" , 2**8  - 1 ) ,
            "U16" : ("H" , 2**16 - 1 ) ,
            "F16" : ("e" , 1.0       ) ,
            "F32" : ("f" , 1.0       ) }
 
+# TODO: Use this inside the Borderizer method later.
 class BorderException( Exception ):
     def __init__( self , args ): super().__init__( args )
 
+# TODO: When I use this before do any layer change, The krita eraser starts to fail. Idk why
 class Borderizer( object ):
-    # TODO: Remove kis explicit dependence.
+    # info :: krita.InfoObject
+    # TODO: Use info inside the Borderizer methods.
     def __init__( self , info = None ):
         self.info = info
 
-    #@DEPRECATED. this method has been moved to Grow.difference_with( self , external )
-    @ classmethod
-    def applyXORBetween( cls , data1 , data2 , size ):
-        """ apply XOR bitwise operator between two data.
-            NOTE: They must have the same length. """
-        return bytearray( data1[i] ^ data2[i] for i in range(size) )
-
     @staticmethod
     def __get_true_color__( managedcolor ):
+        """ __get_true_color__ :: krita.ManagedColor -> bytearray 
+
+            Takes a krita.ManagedColor and returns a physical representation of the color (as bytearray structure) """
         depth = managedcolor.colorDepth()
         cmps  = managedcolor.components()
         
@@ -91,7 +85,7 @@ class Borderizer( object ):
         dtype , dmax = DEPTHS[depth]
 
         if depth[0] == "U":
-            # TODO: Use a better representation
+            # TODO: Use a better cast method
             cast = int
         else:
             cast = float
@@ -99,22 +93,6 @@ class Borderizer( object ):
         for i in range(ncmps - 1):
             color += pack( dtype , cast(cmps[i] * dmax) )
         color += pack( dtype , 0 )
-        """
-        if dtype == DEPTHS["F16"][0]:
-            view   = memoryview( color ).cast( 'B' )
-            writer = lambda value : pack( dtype , value )
-            for i in range(ncmps - 1):
-                # Component = normalized_value * max_value
-                writer[i*bsize] = cmps[i] * dmax
-            writer.release()
-
-        else:
-            writer = memoryview( color ).cast( dtype )
-            for i in range(ncmps - 1):
-                # Component = normalized_value * max_value
-                writer[i] = cmps[i] * dmax
-            writer.release()
-        """
         return color
 
     #DEPRECATED:
@@ -132,17 +110,18 @@ class Borderizer( object ):
 
     @staticmethod
     def fillWith( target , pxdata , bounds ):
+        """ fillWith :: krita.Node -> bytearray -> PyQt5.QtCore.QRect -> IO () 
+            Updates the node pixelData using a bytearray and a QRect """
         target.setPixelData( pxdata , bounds.x() , bounds.y() , bounds.width() , bounds.height() )
 
     @staticmethod
     def getMinMaxValuesFrom( node ):
+        """ getMinMaxValuesFrom :: Node -> (Number,Number) """
         pattern , maxv = DEPTHS[ node.colorDepth() ]
         return ( pack( pattern , 0 ) , pack( pattern , maxv ) )
 
     @staticmethod
     def updateAlphaOf( pxdata , length , nchans , minval , maxval , newalpha ):
-        # TODO: Delete this
-        #print( f"px: {pxdata}, len {length}, skip: {nchans}, max: {maxval}, minval{minval} , new{newalpha}" , end = "" )
         chSize = len(maxval)
         skip   = nchans - 1
         offset = skip * chSize
@@ -150,19 +129,20 @@ class Borderizer( object ):
         for i in range( length ):
             index = step * i + offset
             pxdata[ index : index + chSize ] = maxval if newalpha[i] else minval
-        # TODO: Delete this
-        # print( f", NEW: {pxdata}" )
         return pxdata
     @staticmethod
     def makePxDataWithColor( colorbytes , repeat_times ):
+        """ makePxDataWithColor :: bytearray -> UInt -> bytearray """
         return colorbytes * repeat_times
 
+    # TODO: There's a problem with corners. It takes one extra step to be recognized. See what happens and fix it.
+    # This is growing every odd element, why??
     @staticmethod
     def applyMethodRecipe( grow , recipe ):
         """ Apply the grow recipe to the grow object. 
-            grow :: Grow ; recipe :: [(String,Int)] """
+            grow :: Grow ; recipe :: [(Grow -> Grow Action,Int)] """
         for task , times in recipe:
-            for _ in range(times):
+            for i in range(times):
                 task( grow )
         return grow
 
@@ -173,7 +153,7 @@ class Borderizer( object ):
                                    'extra-arg: ... } """
 
         if set(data_from_gui.keys()) != KEYS:
-            print( f"[Borderizer] Couldn't match the input dict():\n{data_from_gui}, with the required keys: {KEYS}" )
+            print( f"[Borderizer] Couldn't match the input dict():\n{data_from_gui}, with the required keys: {KEYS}" , file = stderr )
             return False
 
         # [@] Initialization
@@ -190,23 +170,31 @@ class Borderizer( object ):
             thickness += mdesc[1]
 
         # Color selection:
+        # TODO: Search a way to update the foregroundColor & backgroundColor from the view.
+        #       When I change the color depth in the node, the view doesn't update the foregrond and background color to the current depth
+        #       It causes weird erros in the color. For example, It can give us a weird colors and in other cases it will build uncomplete
+        #       colors. (with components of 1 byte instead 2 bytes).
+
+        # TODO: Make explicit conversion of the values here. ManagedColor support color conversions with setColorSpace(colorModel,colorDepth,colorProfile)
         colorType , components = data_from_gui["colordsc"]
         if   colorType == "FG":
             mcolor = view.foregroundColor()
         elif colorType == "BG":
             mcolor = view.backgroundColor()
         else:
-            # TODO: extract
+            # TODO: extract components from gui
             mcolor = ManagedColor( node.colorModel() , node.colorDepth() , node.colorProfile() )
             mcolor.setComponents( components )
+        # This explicit conversion is totally required because the krita.View objects sometimes doesn't update
+        # the color space of the foreground and background colors.
+        mcolor.setColorSpace( node.colorModel() , node.colorDepth() , node.colorProfile() )
         color  = Borderizer.__get_true_color__( mcolor )
 
         # Bounds selection:
         nbounds     = node.bounds()
         if nbounds.isEmpty():
-            print( f"[Borderizer] The layer is empty." )
+            print( f"[Borderizer] The layer is empty." , file = stderr )
             return False
-
 
         dbounds     = doc.bounds()
         # Try to get natural bounds:
@@ -248,6 +236,7 @@ class Borderizer( object ):
         scrap  = Scrapper()
         frameH = FrameHandler( doc , kis )
         # Builds the color data
+
         colordata = Borderizer.makePxDataWithColor( color , length )
 
         # Time Selection:
@@ -258,7 +247,6 @@ class Borderizer( object ):
         else:
             timeline       = None
         
-        # Decide if apply a single step or multiple steps (for animated nodes)
         if timeline:
             grow = Grow.singleton()
             frameH.build_directory()
@@ -490,7 +478,6 @@ class Borderizer( object ):
                 TALPHA.setPixelData( Borderizer.applyXORBetween(extra,alpha,size) , bounds )
 
                 # -- Export --
-                # TODO: Make this genereal form:
                 framIO.exportFrame( f"{base_name}_{t:0{nframes}}" , target )
 
             # -- Import --

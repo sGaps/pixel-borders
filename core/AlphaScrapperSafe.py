@@ -5,12 +5,8 @@
     It accepts a transparent value and a threshold.
     This transparent & threshold value types corresponds to node.colorDepth()
     It means, they can be floats or ints. """
-# @DEPRECATED:
-from .PxDataStream import PxDataStream , LittleEndian , ReadMode , Float32 , UInt , Float
 from PyQt5.QtCore  import QRect
 from struct        import pack , unpack
-# @DEPRECATED:
-from array         import array
 
 DEPTHS = { "U8"  : "B" ,
            "U16" : "H" ,
@@ -77,7 +73,6 @@ class Scrapper( object ):
 
         pxldata = bytes( node.projectionPixelData( x , y , w , h ) )
         pattern = DEPTHS[node.colorDepth()]
-        print( transparent , threshold )
         low    = transparent - threshold
         high   = transparent + threshold
 
