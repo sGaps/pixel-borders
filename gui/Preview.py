@@ -12,19 +12,19 @@ img_dir         = path.join( this_module_dir , IMGDIRNAME )
 def pixmapFrom( relative_path ):
     return QPixmap( path.join(img_dir , relative_path) )
 # Too big: 256x256 px
-ICONS = { 0 : pixmapFrom( "classic.png" )            ,
-          1 : pixmapFrom( "corners.png" )            ,
-          2 : pixmapFrom( "classicThenCorners.png" ) ,
-          3 : pixmapFrom( "cornersThenClassic.png" ) ,
-          4 : pixmapFrom( "classicAndCorners.png"  ) ,
-          5 : pixmapFrom( "classicAndCorners.png"  ) }
 
-TABLE = { "classic"         : 0 ,
+ICONS = [ pixmapFrom( "any-neighbor.png" ) ,
+          pixmapFrom( "corners.png"      ) ,
+          pixmapFrom( "not-corners.png"  ) ,
+          pixmapFrom( "custom.png"       ) ]
+ICON_NUMBER  = len(ICONS)
+CUSTOM_INDEX = ICON_NUMBER - 1
+
+TABLE = { "any-neighbor"    : 0 ,
           "corners"         : 1 ,
-          "classicTcorners" : 2 ,
-          "cornersTclassic" : 3 ,
-          "classic&corners" : 4 ,
-          "corners&classic" : 5 }
+          "not-corners"     : 2 ,
+          "customs"         : 3 }
+
 # Use __file__ for get the path
 class Preview( QLabel ):
     def __init__( self , parent = None ):
@@ -38,7 +38,7 @@ class Preview( QLabel ):
         return QPixmap( absolute_path )
 
     def setIconFromIndex( self , index ):
-        if index in ICONS:
+        if 0 <= index <= ICON_NUMBER:
             self.setPixmap( ICONS[index] )
 
     def setIcon( self , name ):

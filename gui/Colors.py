@@ -3,9 +3,15 @@
 # ------------------------------------------------
 from PyQt5.QtWidgets import ( QPushButton , QGroupBox ,     # Widgets
                               QHBoxLayout , QLayout )       # Layouts
-from PyQt5.QtCore    import pyqtSlot , pyqtSignal
+from PyQt5.QtCore     import pyqtSlot , pyqtSignal
+from .KritaConnection import KRITA_AVAILABLE
+
+if KRITA_AVAILABLE:
+    from krita import Krita , Node , Document
 
 # TODO: Add a third button: "Custom" and a third option ==> press_cs( self ) -> "CS"
+# TODO: It requires to hold the data of the custom colors
+# TODO: It requires a krita connection.
 class ColorButtons( QGroupBox ):
     """ Holds some buttons to select a color
         SIGNALS:
@@ -22,6 +28,8 @@ class ColorButtons( QGroupBox ):
         self.Lmain = QHBoxLayout()
         self.FGbut = QPushButton( "Foreground" )
         self.BGbut = QPushButton( "Background" )
+        # TODO: Add a krita connection here
+        # self.CSbut = QPushButton( "Custom" )
 
         self.Lmain.addWidget( self.FGbut )
         self.Lmain.addWidget( self.BGbut )
@@ -37,6 +45,11 @@ class ColorButtons( QGroupBox ):
 
         self.FGbut.released.connect( self.press_fg )
         self.BGbut.released.connect( self.press_bg )
+
+    def tryCustomBuild( self ):
+        if KRITA_AVAILABLE:
+            self.CSbut = QPushButton( "Custom" )
+            self.Clist = []
 
     @pyqtSlot()
     def press_fg( self ):
