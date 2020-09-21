@@ -5,10 +5,10 @@
 from PyQt5.QtWidgets import QDialog  , QVBoxLayout , QLayout
 
 # Elements of the GUI:
-from .Colors         import ColorButtons
-from .Advanced       import AdvancedSettings
-from .Settings       import SettingsDisplay
-from .CloseButtons   import CloseButtons
+from .Colors            import ColorButtons
+from .AdvancedSettings  import AdvancedSettings
+from .BasicSettings     import BasicSettings , INDEX_TYPES , TYPES
+from .CloseButtons      import CloseButtons
 
 # Defines a base class for the window ::::::::::::::::::::::::::::::
 class DialogBox( QDialog ):
@@ -27,7 +27,7 @@ class GUI( object ):
         self.displayingExtra = True
 
 
-        self.settings = SettingsDisplay ()
+        self.settings = BasicSettings   ()
         self.color    = ColorButtons    ()
         self.advanced = AdvancedSettings()
         self.close    = CloseButtons    ()
@@ -45,23 +45,40 @@ class GUI( object ):
         self.Lbody.setSizeConstraint( QLayout.SetFixedSize )
 
         # Aditional config:
-        self.advanced.setMaxOptionalValue(0)
-        self.toggle_optional_visibility()
+        #self.advanced.setMaxOptionalValue(0)
+        #self.toggle_optional_visibility()
 
-        # Signal conections:
-        self.settings.methodChanged.connect   ( self.on_method_update    )
-        self.settings.nameChanged.connect     ( self.on_name_update      )
-        self.settings.thicknessChanged.connect( self.on_thickness_update )
+        # Settings setup:
+        self.settings.typeChanged.connect( self.on_type_update )
+        self.settings.nameChanged.connect( self.on_name_update )
 
-        self.settings.methodChanged.connect( self.advanced.setOptionalDescription )
-
+        # Color setup
         self.color.fg_released.connect( self.on_fg_release )
         self.color.bg_released.connect( self.on_bg_release )
 
         self.close.accept.connect( self.on_accept )
         self.close.cancel.connect( self.on_cancel )
 
-        self.advanced.optionalChanged.connect( self.on_optional_update )
+        # TODO: REFACTOR
+        # Signal conections:
+        # self.settings..connect   ( self.on_method_update    )
+        # self.settings.thicknessChanged.connect( self.on_thickness_update )
+
+        # self.settings.methodChanged.connect( self.advanced.setOptionalDescription )
+
+        # self.color.fg_released.connect( self.on_fg_release )
+        # self.color.bg_released.connect( self.on_bg_release )
+
+
+        # self.advanced.optionalChanged.connect( self.on_optional_update )
+
+    def on_type_update( self ):
+        stype = self.settings.type()
+        if stype == TYPES["simple"]:
+            self.advanced.discardAllExceptFirst()
+            self.advanced.hide_butons()
+        elif stype == TYPES["custom"]:
+            self.advanced.show_butons()
 
     def hasExtra( self ):
         return self.data["method"] > 1
@@ -102,7 +119,6 @@ class GUI( object ):
     def on_bg_release( self ):
         self.data["color"] = "BG"
 
-
     # Used as pyqtSlot( int )
     def on_optional_update( self , value ):
         if self.data["extra-arg"] != value:
@@ -110,17 +126,23 @@ class GUI( object ):
 
     # Used as pyqtSlot()
     def on_accept( self ):
+        # Light update:
+        self.data["methoddsc"] = self.advanced.getData()
+
         self.report_data()
-        pass
+        # This closes the window
+        self.window.accept()
 
     # Used as pyqtSlot()
     def on_cancel( self ):
-        pass
+        # This closes the window
+        self.window.reject()
 
 
     # TODO: Add "start" , "finish" , "custom-range" attributes.
     # TODO: add a new color "CS" -> Custom. Also add a new attribute "color-comp"
     def build_data( self ):
+        """
         self.data = { "method"    : 0        ,  # METHOD[0]                == Classic
                       "thickness" : 1        ,  # Border Width / thickness == 1
                       "color"     : "FG"     ,  # Foreground Color
@@ -129,6 +151,18 @@ class GUI( object ):
                       "extra-arg" : 0        ,  # value (For this case is dummy a value)
                       "start"     : -1       ,  # Start application frame on the timeline
                       "finish"    : -1       }  # Finish application frame on the timeline
+                      """
+        self.data = {
+                "methoddsc" : []          , # [(method,thickness)]
+                "colordsc"  : ("FG",None) , # ( color_type , components )
+                "trdesc"    : None        , # Transparency descriptor = ( transparency_value , threshold )
+                "name"      : "Border"    , # String
+                # Attributes that requires a connection with krita:
+                "node"      : None        , # Krita Node
+                "doc"       : None        , # Krita Document
+                "kis"       : None        , # Krita Instance
+                "animation" : None          # None if it hasn't animation. Else ( start , finish ) -> start , finish are Ints in [UInt]
+              }
 
     def report_data( self ):
         print( "Data Sent: {" )

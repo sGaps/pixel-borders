@@ -4,14 +4,8 @@
 from PyQt5.QtWidgets import ( QPushButton , QGroupBox ,     # Widgets
                               QHBoxLayout , QLayout )       # Layouts
 from PyQt5.QtCore     import pyqtSlot , pyqtSignal
-from .KritaConnection import KRITA_AVAILABLE
-
-if KRITA_AVAILABLE:
-    from krita import Krita , Node , Document
 
 # TODO: Add a third button: "Custom" and a third option ==> press_cs( self ) -> "CS"
-# TODO: It requires to hold the data of the custom colors
-# TODO: It requires a krita connection.
 class ColorButtons( QGroupBox ):
     """ Holds some buttons to select a color
         SIGNALS:

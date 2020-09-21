@@ -208,6 +208,7 @@ class BasicSettings( QWidget ):
     @staticmethod
     def CustomIndex():
         return CUSTOM_INDEX
+
     @staticmethod
     def AvailableIconRange():
         return range(ICON_NUMBER)
