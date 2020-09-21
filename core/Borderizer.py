@@ -6,6 +6,7 @@ from krita              import Selection , Krita , ManagedColor
 from struct             import pack , unpack
 from PyQt5.QtCore       import QRect
 from sys                import stderr
+from collections        import deque
 
 from .AlphaGrow         import Grow
 from .AlphaScrapperSafe import Scrapper
@@ -39,15 +40,11 @@ DEPTHS = { "U8"  : ("B" , 2**8  - 1 ) ,
            "F16" : ("e" , 1.0       ) ,
            "F32" : ("f" , 1.0       ) }
 
-# TODO: Use this inside the Borderizer method later.
 class BorderException( Exception ):
     def __init__( self , args ): super().__init__( args )
 
-# TODO: When I use this before do any layer change, The krita eraser starts to fail. Idk why
 class Borderizer( object ):
     ANIMATION_IMPORT_DEFAULT_INDEX = -1
-    # info :: krita.InfoObject
-    # TODO: Use info inside the Borderizer methods.
     def __init__( self , info = None ):
         self.info = info
 
@@ -65,7 +62,6 @@ class Borderizer( object ):
         dtype , dmax = DEPTHS[depth]
 
         if depth[0] == "U":
-            # TODO: Use a better cast method
             cast = int
         else:
             cast = float
@@ -74,19 +70,6 @@ class Borderizer( object ):
             color += pack( dtype , cast(cmps[i] * dmax) )
         color += pack( dtype , 0 )
         return color
-
-    #DEPRECATED:
-    @staticmethod
-    def get_color( color_type , components , node ):
-        if   color_type == "FG":
-            mcolor = self.view.foregroundColor()
-        elif color_type == "BG":
-            mcolor = self.view.backgroundColor()
-        else:
-            mcolor = ManagedColor( node.colorModel() , node.colorDepth() , node.colorProfile() )
-            mcolor.setComponents( components )
-        color = Borderizer.__get_true_color__( mcolor )
-        return (color,color)
 
     @staticmethod
     def fillWith( target , pxdata , bounds ):
@@ -127,10 +110,25 @@ class Borderizer( object ):
                 task( grow )
         return grow
 
+    @staticmethod
+    def getTrueBounds( node ):
+        """ Accumulate the union of bounds of each element of the node hierarchy defined by 'node'. """
+        greatest = node.bounds()
+        search   = deque( node.childNodes() )
+        while search:
+            n = search.pop()
+            greatest = greatest.united( n.bounds() )
+
+            for c in n.childNodes():
+                search.append(c)
+        return greatest
+
     def run( self , **data_from_gui ):
-        """ data_from_gui -> dict(...)
-                | datafrom_gui = { 'method' : ... , 'width' : ... , 'color' : ... , 'name' : ... , 'has-extra' : ... ,
-                                   'extra-arg: ... } """
+        """ Make borders to the given krita's node, using the keys defined in the global
+            variable KEYS.
+                data_from_gui -> dict(...)
+                and data_from_gui.keys() == KEYS
+        """
 
         if set(data_from_gui.keys()) != KEYS:
             print( f"[Borderizer] Couldn't match the keys of:\n{data_from_gui}, with the required keys: {KEYS}" , file = stderr )
@@ -164,7 +162,7 @@ class Borderizer( object ):
         color  = Borderizer.__get_true_color__( mcolor )
 
         # Bounds selection:
-        nbounds     = node.bounds()
+        nbounds      = Borderizer.getTrueBounds( node )
         if nbounds.isEmpty():
             print( f"[Borderizer] The layer is empty." , file = stderr )
             return False
@@ -175,6 +173,7 @@ class Borderizer( object ):
                              nbounds.y()      - thickness   ,
                              nbounds.width()  + 2*thickness ,
                              nbounds.height() + 2*thickness )
+
         if dbounds.contains( protoBounds ):
             bounds = protoBounds
         else:
