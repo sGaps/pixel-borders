@@ -3,8 +3,8 @@
 # --------------------------------------------------
 from PyQt5.QtWidgets import ( QComboBox   , QLineEdit   , QSpinBox     , QGroupBox , QWidget ,  # Widgets 
                               QVBoxLayout , QHBoxLayout , QFormLayout  , QLabel )               # Layouts
-from PyQt5.Qt        import Qt                                      # Constants
-from .Preview        import Preview , CUSTOM_INDEX , ICON_NUMBER    # Icon/Image handle
+from PyQt5.Qt        import Qt                                              # Constants
+from .Preview        import Preview , CUSTOM_INDEX , ICON_NUMBER , TABLE    # Icon/Image handle
 from PyQt5.QtCore    import pyqtSlot , pyqtSignal
 
 class ImageDisplay( QGroupBox ):
@@ -13,7 +13,7 @@ class ImageDisplay( QGroupBox ):
             void imageChanged( int )
         SLOTS:
             void select_image( int )
-k           void load_image_from( str )
+            void load_image_from( str )
     """
     imageChanged = pyqtSignal( int )
 
@@ -34,6 +34,10 @@ k           void load_image_from( str )
         self.imageChanged.emit( index )
 
     @pyqtSlot( str )
+    def select_image_by_name( self , method_name ):
+        self.select_image( TABLE.get( method_name , CUSTOM_INDEX ) )
+
+    @pyqtSlot( str )
     def load_image_from( self , relative_path ):
         self.image.loadImg( relative_path )
         self.index = -1
@@ -46,7 +50,7 @@ MAXNAMELENGTH = 64
 EDITNAMEMODE  = QLineEdit.Normal
 
 TYPES       = { "simple" : 0 , "custom" : 1 }
-DESCRIPTION = { -1 : "No description." , 0 : "Quick way of make borders." , 1 : "Build your own borders." }
+DESCRIPTION = { -1 : "No description." , 0 : "Quick way to make borders." , 1 : "Build your own borders." }
 INDEX_TYPES = { 0 : "simple" , 1 : "custom" }
 
 class BasicInfo( QGroupBox ):
@@ -201,6 +205,10 @@ class BasicSettings( QWidget ):
         if self.WLeft.getImageIndex() != index:
             self.WLeft.select_image( index )
             self.iconChanged.emit( index )
+
+    @pyqtSlot( str )
+    def setIconByName( self , method_name ):
+        self.WLeft.select_image_by_name( method_name )
 
     def icon( int ):
         return self.WLeft.getImageIndex()

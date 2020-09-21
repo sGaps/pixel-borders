@@ -2,12 +2,12 @@
 # Created by: ( Gaps | sGaps | ArtGaps )
 # -----------------------------------------------
 # PyQt5 Modules:
-from PyQt5.QtWidgets import QDialog  , QVBoxLayout , QLayout
+from PyQt5.QtWidgets import QDialog , QVBoxLayout , QLayout
 
 # Elements of the GUI:
 from .Colors            import ColorButtons
 from .AdvancedSettings  import AdvancedSettings
-from .BasicSettings     import BasicSettings , INDEX_TYPES , TYPES
+from .BasicSettings     import BasicSettings , INDEX_TYPES , TYPES , CUSTOM_INDEX
 from .CloseButtons      import CloseButtons
 
 # Defines a base class for the window ::::::::::::::::::::::::::::::
@@ -18,19 +18,21 @@ class DialogBox( QDialog ):
 
 # Gui itself :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 class GUI( object ):
+    FG_DESC = ("FG",None)
+    BG_DESC = ("BG",None)
     # TODO: add a borderizer parameter here:
+    # TODO: Connect Preview/Settings with first parameter of AdvancedSettings, so it would show an icon
+    #       related to the current method.
     def __init__( self , parent = None , title = "PxGUI" ):
         self.window = DialogBox( parent )
-        self.window.setWindowTitle( title )
         self.Lbody  = QVBoxLayout()
-        # This is used for know when is displayed the optional data
-        self.displayingExtra = True
-
+        self.window.setWindowTitle( title )
 
         self.settings = BasicSettings   ()
         self.color    = ColorButtons    ()
         self.advanced = AdvancedSettings()
         self.close    = CloseButtons    ()
+        self.dynPrev  = True            # Enables dynamic preview.
 
         self.build_data()
 
@@ -44,85 +46,55 @@ class GUI( object ):
         # This solves the resize problem It had before
         self.Lbody.setSizeConstraint( QLayout.SetFixedSize )
 
-        # Aditional config:
-        #self.advanced.setMaxOptionalValue(0)
-        #self.toggle_optional_visibility()
-
         # Settings setup:
         self.settings.typeChanged.connect( self.on_type_update )
         self.settings.nameChanged.connect( self.on_name_update )
 
-        # Color setup
+        # Color setup:
         self.color.fg_released.connect( self.on_fg_release )
         self.color.bg_released.connect( self.on_bg_release )
 
+        # Advanced setup:
+        self.advanced.hide_buttons()
+        self.advanced.firstMethodChanged.connect(
+                self.__preview_update_request__ )
+
+        # Close actions setup:
         self.close.accept.connect( self.on_accept )
         self.close.cancel.connect( self.on_cancel )
 
-        # TODO: REFACTOR
-        # Signal conections:
-        # self.settings..connect   ( self.on_method_update    )
-        # self.settings.thicknessChanged.connect( self.on_thickness_update )
-
-        # self.settings.methodChanged.connect( self.advanced.setOptionalDescription )
-
-        # self.color.fg_released.connect( self.on_fg_release )
-        # self.color.bg_released.connect( self.on_bg_release )
-
-
-        # self.advanced.optionalChanged.connect( self.on_optional_update )
+    # Works like a pyqtSlot( str ) 
+    def __preview_update_request__( self , method ):
+        if self.dynPrev:
+            self.settings.setIconByName( method )
+        else:
+            self.settings.setIconByName( CUSTOM_INDEX )
 
     def on_type_update( self ):
         stype = self.settings.type()
+        # Toogle advanced-buttons visibility:
         if stype == TYPES["simple"]:
             self.advanced.discardAllExceptFirst()
-            self.advanced.hide_butons()
+            self.advanced.hide_buttons()
+            self.dynPrev = True
         elif stype == TYPES["custom"]:
-            self.advanced.show_butons()
+            self.advanced.show_buttons()
+            self.dynPrev = False
 
     def hasExtra( self ):
         return self.data["method"] > 1
-
-    # They cannot be Slots because this isn't a QObject
-    # Used as pyqtSlot( int )
-    def on_method_update( self , index_method ):
-        self.data["method"]    = index_method
-        self.data["has-extra"] = self.hasExtra()
-        self.toggle_optional_visibility()
-
-    def toggle_optional_visibility( self ):
-        if self.data["has-extra"]:
-            if not self.displayingExtra:
-                self.advanced.show_all()
-                self.displayingExtra = True
-        else:
-            if self.displayingExtra:
-                self.advanced.hide_all()
-                self.displayingExtra = False
-
 
     # Used as pyqtSlot( str )
     def on_name_update( self , name ):
         self.data["name"] = name
 
-    # Used as pyqtSlot( int )
-    def on_thickness_update( self , thickness ):
-        if self.data["thickness"] != thickness:
-            self.data["thickness"] = thickness
-            self.advanced.setMaxOptionalValue( thickness - 1 )
-
     # Used as pyqtSlot()
     def on_fg_release( self ):
-        self.data["color"] = "FG"
+        self.data["colordsc"] = GUI.FG_DESC
 
     # Used as pyqtSlot( int )
     def on_bg_release( self ):
-        self.data["color"] = "BG"
-
-    # Used as pyqtSlot( int )
-    def on_optional_update( self , value ):
-        if self.data["extra-arg"] != value:
-            self.data["extra-arg"] = value
+        self.data["colordsc"] = GUI.BG_DESC
 
     # Used as pyqtSlot()
     def on_accept( self ):
@@ -138,23 +110,15 @@ class GUI( object ):
         # This closes the window
         self.window.reject()
 
-
     # TODO: Add "start" , "finish" , "custom-range" attributes.
     # TODO: add a new color "CS" -> Custom. Also add a new attribute "color-comp"
     def build_data( self ):
-        """
-        self.data = { "method"    : 0        ,  # METHOD[0]                == Classic
-                      "thickness" : 1        ,  # Border Width / thickness == 1
-                      "color"     : "FG"     ,  # Foreground Color
-                      "name"      : "border" ,  # Layer name
-                      "has-extra" : False    ,  # No more arguments
-                      "extra-arg" : 0        ,  # value (For this case is dummy a value)
-                      "start"     : -1       ,  # Start application frame on the timeline
-                      "finish"    : -1       }  # Finish application frame on the timeline
-                      """
+        """ builds the internal data used for in the widget.
+            NOTE: GUI object isn't a QObject instance, so it cannot have explicit pyqtSignals and
+                  pyqtSlots """
         self.data = {
-                "methoddsc" : []          , # [(method,thickness)]
-                "colordsc"  : ("FG",None) , # ( color_type , components )
+                "methoddsc" : []          , # [[method,thickness]]
+                "colordsc"  : GUI.FG_DESC , # ( color_type , components )
                 "trdesc"    : None        , # Transparency descriptor = ( transparency_value , threshold )
                 "name"      : "Border"    , # String
                 # Attributes that requires a connection with krita:

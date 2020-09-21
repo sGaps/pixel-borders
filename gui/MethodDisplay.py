@@ -1,5 +1,5 @@
 from PyQt5.QtCore    import QAbstractTableModel , QModelIndex , Qt , QVariant
-from PyQt5.QtWidgets import ( QTableView , QStyledItemDelegate , QHeaderView ,
+from PyQt5.QtWidgets import ( QTableView , QAbstractItemView , QStyledItemDelegate , QHeaderView ,
                               QSpinBox , QComboBox )
 from PyQt5.QtCore    import pyqtSlot , pyqtSignal
 
@@ -25,7 +25,7 @@ class MethodDelegate( QStyledItemDelegate ):
             editor.addItems( INDEX_METHODS )
         elif col == MethodDelegate.STEP_COL:
             editor = QSpinBox( parent )
-            editor.setFrame( False ) # ??
+            editor.setFrame( False )
             editor.setMinimum( MethodDelegate.MIN )
             editor.setMaximum( MethodDelegate.MAX )
         return editor
@@ -41,6 +41,7 @@ class MethodDelegate( QStyledItemDelegate ):
             value   = INDEX_METHODS.index( index.model().data( index , Qt.EditRole ) )
             combo   = editor
             combo.setCurrentIndex( value )
+            combo.showPopup()
         elif col == MethodDelegate.STEP_COL:
             value   = int( index.model().data( index , Qt.EditRole ) )
             spinbox = editor
@@ -56,7 +57,6 @@ class MethodDelegate( QStyledItemDelegate ):
             # Write & Exit:
             method  = combo.currentIndex()
             model.setData( index , method , Qt.EditRole )
-            pass
         elif col == MethodDelegate.STEP_COL:
             spinbox = editor
             # Force the evaluation of its contents:
@@ -78,8 +78,15 @@ class MethodModel( QAbstractTableModel ):
             HLabels     :: [ String ]
 
         This model has editable items.
+
+        SIGNALS
+            void rowMethodChanged( int )
+            void rowStepsChanged( int )
     """
-    MINIMAL  = ["force",1]
+    rowMethodChanged = pyqtSignal( int )
+    rowStepsChanged  = pyqtSignal( int )
+
+    MINIMAL  = ["any-neighbor",1]
     NAME_COL = 0
     STEP_COL = 1
     def __init__( self , parent = None ):
@@ -96,14 +103,6 @@ class MethodModel( QAbstractTableModel ):
         else:
             return QVariant()
 
-    #@Deprecated
-    @classmethod
-    def singleton( cls ):
-        single = cls()
-        single._data = [ MethodModel.MINIMAL.copy() ]
-        single.rows = 1
-        return single
-
     def rowCount( self , index = QModelIndex() ):
         return len( self._data )
 
@@ -114,43 +113,39 @@ class MethodModel( QAbstractTableModel ):
         return Qt.ItemIsEditable | Qt.ItemIsEnabled
 
     def data( self , index , role = Qt.DisplayRole ):
-        row = index.row()
-        col = index.column()
-        if not index.isValid():
-            return QVariant()
+        if index.isValid():
+            row = index.row()
+            col = index.column()
+            if not index.isValid():
+                return QVariant()
 
-        if role == Qt.DisplayRole:
-            return self._data[row][col]
+            if role == Qt.DisplayRole:
+                return self._data[row][col]
 
-        elif role == Qt.TextAlignmentRole:
-            info = self._data[row][col]
-            if isinstance( info , int ) or isinstance( info , float ):
-                return Qt.AlignVCenter | Qt.AlignRight
-            else:
+            elif role == Qt.TextAlignmentRole:
                 return Qt.AlignVCenter | Qt.AlignLeft
-        elif role == Qt.CheckStateRole:
-            return QVariant()
-        # TODO: Remove
-        #elif Qt.DecorationRole:
-        #   if col == MethodModel.NAME_COL:
-        #       # Where colors = { "method-name" : QtGui.QColor("#ff0000#) , ... }
-        #       color = colors[ self._data[row][col][0] ]
-        #       return color
-        # Other case
-        # This is weird... what is supussed to be returned by this?
 
-        elif role == Qt.EditRole:
-            return self._data[row][col]
-        else: return QVariant()
+            elif role == Qt.CheckStateRole:
+                return QVariant()
+
+            elif role == Qt.EditRole:
+                return self._data[row][col]
+            else:
+                return QVariant()
+        else:
+            return QVariant()
 
     def setData( self , index , value , role = Qt.EditRole ):
+        """ emits a rowMethodChanged or rowStepsChanged """
         row = index.row()
         col = index.column()
         if index.isValid() and role == Qt.EditRole:
             if col == MethodModel.NAME_COL:
                 self._data[row][col] = INDEX_METHODS[value]
+                self.rowMethodChanged.emit( row )
             elif col == MethodModel.STEP_COL:
                 self._data[row][col] = value
+                self.rowStepsChanged.emit( row )
             self.dataChanged.emit( index , index , [role] )
             return True
         pass
@@ -204,20 +199,47 @@ class MethodModel( QAbstractTableModel ):
         return False
 
 class MethodWidget( QTableView ):
+    """
+        SIGNALS
+            void firstMethodChanged( str )
+        SLOTS
+            void addMethod()
+            void removeMethod()
+    """
+    firstMethodChanged = pyqtSignal( str )
+
     def __init__( self , parent = None ):
         super().__init__( parent )
-        self.setModel( MethodModel() )
+        model = MethodModel()
+        self.setModel( model )
         self.setItemDelegate( MethodDelegate() )
-        self.openPersistentEditor( self.model().index( 0 , 0 ) )
+        #self.openPersistentEditor( self.model().index( 0 , 0 ) )
         self.horizontalHeader().setSectionResizeMode( QHeaderView.Stretch )
-        #self.openPersistentEditor( self.model().index( 0 , 1 ) )
+
+        model.rowMethodChanged.connect( self.__first_method_update_request__ )
+
+        # Enables the edition after a single click
+        #self.setEditTriggers( QAbstractItemView.AllEditTriggers )
+
+    def mousePressEvent( self , event ):
+        index = self.indexAt( event.pos() )
+        if index.isValid():
+            self.edit( index )
+
+
+    @pyqtSlot( int )
+    def __first_method_update_request__( self , row ):
+        if row == 0:
+            model = self.model()
+            self.firstMethodChanged.emit( model.data( model.index(0,0) , Qt.EditRole ) )
 
     @pyqtSlot()
     def addMethod( self ):
         model = self.model()
         last  = model.rowCount()
-        if model.insertRows( last , 1 ):
-            self.openPersistentEditor( model.index( last , 0 ) )
+        model.insertRows( last , 1 )
+        #if model.insertRows( last , 1 ):
+        #    self.openPersistentEditor( model.index( last , 0 ) )
 
     @pyqtSlot()
     def removeMethod( self ):
@@ -225,7 +247,7 @@ class MethodWidget( QTableView ):
         last  = model.rowCount() - 1
         model.removeRows( last , 1 )
 
-    def dataLenght():
+    def dataLength( self ):
         return self.model().rowCount()
 
     def getData( self ):
