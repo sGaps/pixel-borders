@@ -11,7 +11,7 @@ DEFAULT_OUTPUT_DIR = ".output"
 # TODO: OPTIMIZE!
 class FrameHandler( object ):
     # TODO: add an attribute called: force_write to verify when the file must be written at any cost.
-    def __init__( self , doc , krita_instance , subfolder = DEFAULT_OUTPUT_DIR , xRes = None , yRes = None , info = None ):
+    def __init__( self , doc , krita_instance , subfolder = DEFAULT_OUTPUT_DIR , xRes = None , yRes = None , info = None , debug = False ):
         self.kis    = krita_instance
         self.doc    = doc
         self.bounds = doc.bounds()
@@ -20,6 +20,10 @@ class FrameHandler( object ):
         self.exportdirpath = f"{ self.docdirpath }/{ subfolder }"
         self.exported      = []
         self.exportReady   = False
+        if not debug:
+            self.debug = lambda msg : ()
+        else:
+            self.debug = lambda msg : print( msg , file = stderr )
 
         if xRes is None: self.xRes = doc.xRes()
         else:            self.xRes = xRes
@@ -90,7 +94,7 @@ class FrameHandler( object ):
         if not node.animated():
             return None
 
-        frames = [ f for f in range(start,start+length) if node.hasKeyframeAtTime(f) ]
+        frames = [ f for f in range(start,start+length+1) if node.hasKeyframeAtTime(f) ]
         if frames:
             return [frames[0],frames[-1]]
         else:
@@ -108,7 +112,7 @@ class FrameHandler( object ):
         anim_limits    = []
         while queue:
             n       = queue.pop()
-            limits  = self.__get_frame_limits_(n,start,length+1)  # Note
+            limits  = self.__get_frame_limits_(n,start,length)  # Note
             #current = self.__get_first_frame_index__(n,start,finish)
             if limits is not None:
                 # Add the node to the result:
@@ -134,7 +138,8 @@ class FrameHandler( object ):
     def get_animation_range( self , node , start , finish ):
         """ Returns a range for the animation if there's animation. Else
             returns None. """
-        return self.__exhaustive_take_animated_nodes__( node , start , finish+1 )[1]
+        length = finish - start + 1
+        return self.__exhaustive_take_animated_nodes__( node , start , length )[1]
 
     def get_animated_subnodes( self , node , start , finish ):
         """ Returns all the nodes in the node-hierarchy for the animation if there's animation. Else
@@ -149,9 +154,9 @@ class FrameHandler( object ):
             try:
                 os.makedirs( self.exportdirpath )
             except FileNotFoundError:
-                print( f"[FrameHandler]: couldn't create: {self.exportdirpath} trying again " , file = stderr )
+                self.debug( f"[FrameHandler]: couldn't create: {self.exportdirpath} trying again " )
                 self.exportdirpath = os.path.dirname( self.doc.fileName() ) + "/" + DEFAULT_OUTPUT_DIR
-                print( f"                with a new name {self.exportdirpath}." , file = stderr )
+                self.debug( f"                with a new name {self.exportdirpath}." )
                 self.exportReady = False
             except FileExistsError:
                 self.exportReady = True
@@ -164,9 +169,9 @@ class FrameHandler( object ):
             if info object wasn't defined. then filename must have the suffix of png files."""
         if self.exportReady:
             filepath = f"{self.exportdirpath}/{filename}"
-            print( f"[FrameHandler]: Trying to export > {filepath}" , file = stderr )
+            self.debug( f"[FrameHandler]: Trying to export > {filepath}" )
         else:
-            print( f"[FrameHandler]: {self.exportdirpath} doesn't exist. Export failed" , file = stderr )
+            self.debug( f"[FrameHandler]: {self.exportdirpath} doesn't exist. Export failed" )
             return False
 
         batchmodeK = self.kis.batchmode()
@@ -198,14 +203,17 @@ class FrameHandler( object ):
             frames     = [ f"{searchpath}/{f}" for f in framenames ]
 
         batchmode  = self.kis.batchmode()
-        self.kis.doc.setBatchmode( True )
+        batchmodeD = self.doc.batchmode()
+        self.doc.setBatchmode( True )
         try:
-            if not self.doc.importAnimation( frames , startframe , step ):
+            if not self.doc.importAnimation( frames , startframe , 1 ):
                 raise ImportError( f"Unable to export animation frames from {self.exportdirpath}" )
             done = True
         except ImportError as error:
-            print( error , file = stderr )
+            self.debug( error )
             done = False
+
+        self.doc.setBatchmode( batchmodeD )
         self.kis.setBatchmode( batchmode )
         return done
 

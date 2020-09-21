@@ -5,6 +5,7 @@ TYPES = { 1 : "B" ,
           2 : "H" ,
           4 : "I" ,
           8 : "L" }
+
 class Grow( object ):
     # TODO: Add a better description
     # TODO: Write about both indices arrays.
@@ -41,6 +42,7 @@ class Grow( object ):
     """
     # TODO: Optimize!!
     # Pass the size of the [GRect]
+    # TODO: Remove safe_mode flag. It's not used
     def __init__( self , data , width , size , safe_mode = True ):
         """ Save shared information for futher method applications. """
         # TODO: Finish
@@ -54,12 +56,14 @@ class Grow( object ):
         self.__nextView   = None    # TODO: Watch this.
         self.__indexSize  = None    # TODO: Consider remove it. I think you can use __searchView.itemsize instead.
         self.__count      = None
+        self.__prevSize   = 0
         self.safemode     = None
 
         self.setData( data , width , size , safe_mode )
+
     @classmethod
     def singleton( cls ):
-        return cls( None , 0 , 0 , False )
+        return cls( bytearray() , 0 , 0 , True )
 
     # __get_required_bytes_for__ :: (Bounded a , Integral a) => a -> Int
     @classmethod
@@ -76,7 +80,7 @@ class Grow( object ):
         """ Smart constructor/Setter. If safe_mode is False, then data will be mutated after every operation
             of the object. """
         self.data = bytearray( 0x01 if b else 0x00 for b in data )
-        # Always is updated
+        # it's Always updated
         self.width    = width
         self.safemode = safe_mode
         self.size     = size
@@ -85,7 +89,7 @@ class Grow( object ):
         required_size      = size * self.__indexSize
         self.__environment = bytearray( required_size )   # TODO: Look if this is right
         # Verify if is totally required create a new __searchBody array
-        if not self.__searchView or len( previous ) != size:
+        if not self.__searchView or len( self.__searchView ) != size:
             # Cast the search body into a integer of the required sizes to represent the size value.
             self.__searchView = memoryview( bytearray(required_size) ).cast( TYPES[self.__indexSize] )
             self.__nextView   = memoryview( bytearray(required_size) ).cast( TYPES[self.__indexSize] )

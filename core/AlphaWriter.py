@@ -1,4 +1,4 @@
-# Module:      core.AlphaWriter.py | [ Language Python ]
+# Module:      core.AlphaWriter.py | [ Language Python ]    @DEPRECATED
 # Created by: ( Gaps | sGaps | ArtGaps )
 # ------------------------------------------------------
 """ Defines an Scrapper object to extract the alpha data of a krita node.
