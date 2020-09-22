@@ -1,0 +1,43 @@
+from PyQt5.QtWidgets import ( QGroupBox , QLabel ,  # Widgets 
+                              QFormLayout  )        # Layouts
+from PyQt5.QtCore    import pyqtSlot , pyqtSignal
+from .Lookup         import kis , doc , node
+from .SpinBox        import SpinBoxFactory
+
+class TransparencySettings( QGroupBox ):
+    """
+        SIGNALS
+            void transparencyChanged( int   )
+            void transparencyChanged( float )
+            void thresholdChanged   ( int   )
+            void thresholdChanged   ( float )
+    """
+    transparencyChanged = pyqtSignal( [int] , [float] )
+    thresholdChanged    = pyqtSignal( [int] , [float] )
+    def __init__( self , parent = None ):
+        super().__init__( parent )
+
+        # Krita dependency
+        depth = node.colorDepth()
+        self.setTitle( "Transparency Descriptor" )
+
+        self.Lmain = QFormLayout()
+        self.Wtrns = SpinBoxFactory( depth )    # Transparency
+        self.Wthrs = SpinBoxFactory( depth )    # Threshold
+
+        self.Wtrns.setValue( self.Wtrns.minimum() )
+        self.Wthrs.setValue( self.Wthrs.minimum() )
+
+        self.Lmain.addRow( "Transparency" , self.Wtrns )
+        self.Lmain.addRow( "Threshold"    , self.Wthrs )
+
+        self.setLayout( self.Lmain )
+
+        self.Wtrns.valueChanged.connect( self.__transparency_update_request__ )
+        self.Wthrs.valueChanged.connect( self.__threshold_update_request__    )
+
+    def __transparency_update_request__( self , value ):
+        self.transparencyChanged.emit( value )
+
+    def __threshold_update_request__( self , value ):
+        self.thresholdChanged.emit( value )

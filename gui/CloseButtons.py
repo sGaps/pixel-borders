@@ -1,11 +1,11 @@
 # Module:      gui.CloseButtons.py | [ Language Python ]
 # Created by: ( Gaps | sGaps | ArtGaps )
 # ------------------------------------------------------
-from PyQt5.QtWidgets import ( QGroupBox   , QDialogButtonBox ,  # Widgets
+from PyQt5.QtWidgets import ( QDialogButtonBox , QWidget ,      # Widgets
                               QHBoxLayout )                     # Layouts
-from PyQt5.QtCore    import pyqtSlot , pyqtSignal
+from PyQt5.QtCore    import pyqtSlot , pyqtSignal , Qt
 
-class CloseButtons( QGroupBox ):
+class CloseButtons( QWidget ):
     """ Contains and show a image 
         SIGNALS:
             void cancel()
@@ -19,9 +19,10 @@ class CloseButtons( QGroupBox ):
         self.buttons = QDialogButtonBox( QDialogButtonBox.Ok
                                        | QDialogButtonBox.Cancel )
         self.Lmain.addWidget( self.buttons )
-        self.Lmain.addStretch( 1 )
 
         self.setLayout( self.Lmain )
+
+        self.Lmain.setAlignment( Qt.AlignVCenter | Qt.AlignRight )
 
         self.buttons.accepted.connect( self.__update_accept_request__ )
         self.buttons.rejected.connect( self.__update_cancel_request__ )

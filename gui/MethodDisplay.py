@@ -3,12 +3,9 @@ from PyQt5.QtWidgets import ( QTableView , QAbstractItemView , QStyledItemDelega
                               QSpinBox , QComboBox )
 from PyQt5.QtCore    import pyqtSlot , pyqtSignal
 
-# This will be used as representation body. It's at same level than Widgets. Can be added to
-# the Widget stack of a layout
-# table = QTableView()
-
 INDEX_METHODS = ["force","any-neighbor","corners","not-corners"]
 
+# TODO: Fix ComboBox Render bugs.
 class MethodDelegate( QStyledItemDelegate ):
     MAX = 200
     MIN = 1

@@ -2,13 +2,21 @@
 # Created by: ( Gaps | sGaps | ArtGaps )
 # -----------------------------------------------
 # PyQt5 Modules:
-from PyQt5.QtWidgets import QDialog , QVBoxLayout , QLayout
+from PyQt5.QtWidgets import QDialog , QWidget , QHBoxLayout , QVBoxLayout , QLayout
 
 # Elements of the GUI:
 from .Colors            import ColorButtons
 from .AdvancedSettings  import AdvancedSettings
 from .BasicSettings     import BasicSettings , INDEX_TYPES , TYPES , CUSTOM_INDEX
 from .CloseButtons      import CloseButtons
+
+# Krita dependent:
+from .krita_connection.Lookup import KRITA_AVAILABLE
+if KRITA_AVAILABLE:
+    from .krita_connection.TimeOptions          import TimeOptions
+    from .krita_connection.TransparencySettings import TransparencySettings
+    from .krita_connection.Lookup               import kis , doc , node
+    from .krita_connection.SpinBox              import SpinBoxFactory
 
 # Defines a base class for the window ::::::::::::::::::::::::::::::
 class DialogBox( QDialog ):
@@ -20,9 +28,11 @@ class DialogBox( QDialog ):
 class GUI( object ):
     FG_DESC = ("FG",None)
     BG_DESC = ("BG",None)
+    CS_DESC = ("CS",None)
     # TODO: add a borderizer parameter here:
     # TODO: Connect Preview/Settings with first parameter of AdvancedSettings, so it would show an icon
     #       related to the current method.
+    # TODO: Fix render problems with MethodDelegate:
     def __init__( self , parent = None , title = "PxGUI" ):
         self.window = DialogBox( parent )
         self.Lbody  = QVBoxLayout()
@@ -63,6 +73,66 @@ class GUI( object ):
         self.close.accept.connect( self.on_accept )
         self.close.cancel.connect( self.on_cancel )
 
+        self.tryKonnect()
+
+    def tryKonnect( self ):
+        if KRITA_AVAILABLE:
+            self.LKrita = QHBoxLayout()
+            self.WKrita = QWidget()
+            self.WKrita.setLayout( self.LKrita )
+
+            index     = self.Lbody.indexOf( self.close )
+            self.Lbody.insertWidget( index , self.WKrita )
+
+            # [?] Time Options:
+            self.time = TimeOptions()
+            self.LKrita.addWidget( self.time )
+
+            # Make connections:
+            self.__on_enable_animation_update_request__( True )
+            self.time.enabledAnimation.connect( self.__on_enable_animation_update_request__ )
+
+            self.time.startTimeChanged.connect( self.__on_start_animation_update_request__ )
+            self.time.endTimeChanged.connect  ( self.__on_end_animation_update_request__ )
+
+            # [!] Transparency Options:
+            self.transparency = TransparencySettings()
+            index             = self.Lbody.indexOf( self.close )
+            self.LKrita.addWidget( self.transparency )
+
+            # Make connections:
+            self.transparency.transparencyChanged.connect(
+                    self.__on_transparency_update_request__ )
+
+            self.transparency.thresholdChanged.connect(
+                    self.__on_threshold_update_request__ )
+
+            # [C] Color - Extra Options:
+            self.color.tryCustomBuild( node , SpinBoxFactory )
+            self.color.cs_released.connect( self.on_cs_release )
+
+            self.data["node"] = node
+            self.data["doc"]  = doc
+            self.data["kis"]  = kis
+
+    def __on_transparency_update_request__( self , value ):
+        self.data["trdesc"][0] = value
+
+    def __on_threshold_update_request__( self , value ):
+        self.data["trdesc"][1] = value
+
+    def __on_start_animation_update_request__( self , time ):
+        self.data["animation"][0] = time
+
+    def __on_end_animation_update_request__( self , time ):
+        self.data["animation"][1] = time
+
+    def __on_enable_animation_update_request__( self , enabled ):
+        if enabled:
+            self.data["animation"] = self.time.getTime()
+        else:
+            self.data["animation"] = None
+
     # Works like a pyqtSlot( str ) 
     def __preview_update_request__( self , method ):
         if self.dynPrev:
@@ -84,6 +154,9 @@ class GUI( object ):
     def hasExtra( self ):
         return self.data["method"] > 1
 
+    def on_cs_release( self ):
+        self.data["colordsc"] = GUI.CS_DESC
+
     # Used as pyqtSlot( str )
     def on_name_update( self , name ):
         self.data["name"] = name
@@ -100,6 +173,7 @@ class GUI( object ):
     def on_accept( self ):
         # Light update:
         self.data["methoddsc"] = self.advanced.getData()
+        self.data["colordsc"]  = (self.data["colordsc"][0] , self.color.getComponents())
 
         self.report_data()
         # This closes the window
@@ -119,13 +193,13 @@ class GUI( object ):
         self.data = {
                 "methoddsc" : []          , # [[method,thickness]]
                 "colordsc"  : GUI.FG_DESC , # ( color_type , components )
-                "trdesc"    : None        , # Transparency descriptor = ( transparency_value , threshold )
+                "trdesc"    : [0,0]       , # Transparency descriptor = ( transparency_value , threshold )
                 "name"      : "Border"    , # String
                 # Attributes that requires a connection with krita:
                 "node"      : None        , # Krita Node
                 "doc"       : None        , # Krita Document
                 "kis"       : None        , # Krita Instance
-                "animation" : None          # None if it hasn't animation. Else ( start , finish ) -> start , finish are Ints in [UInt]
+                "animation" : None          # None if it hasn't animation. Else [ start , finish ] -> start , finish are Ints in [UInt]
               }
 
     def report_data( self ):
