@@ -29,9 +29,8 @@ class GUI( object ):
     FG_DESC = ("FG",None)
     BG_DESC = ("BG",None)
     CS_DESC = ("CS",None)
+
     # TODO: add a borderizer parameter here:
-    # TODO: Connect Preview/Settings with first parameter of AdvancedSettings, so it would show an icon
-    #       related to the current method.
     # TODO: Fix render problems with MethodDelegate:
     def __init__( self , parent = None , title = "PxGUI" ):
         self.window = DialogBox( parent )
@@ -184,8 +183,6 @@ class GUI( object ):
         # This closes the window
         self.window.reject()
 
-    # TODO: Add "start" , "finish" , "custom-range" attributes.
-    # TODO: add a new color "CS" -> Custom. Also add a new attribute "color-comp"
     def build_data( self ):
         """ builds the internal data used for in the widget.
             NOTE: GUI object isn't a QObject instance, so it cannot have explicit pyqtSignals and
@@ -215,7 +212,6 @@ class GUI( object ):
     def run( self ):
         self.window.show()
         self.window.activateWindow()
-
 
 if __name__ == "__main__":
     gui = GUI(500,300)

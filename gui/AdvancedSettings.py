@@ -1,6 +1,6 @@
-# Module:      gui.Advanced.py | [ Language Python ]
+# Module:      gui.AdvancedSettings.py | [ Language Python ]
 # Created by: ( Gaps | sGaps | ArtGaps )
-# --------------------------------------------------
+# ----------------------------------------------------------
 from PyQt5.QtWidgets import ( QGroupBox  , QPushButton , QLabel ,    # Widgets
                               QVBoxLayout , QHBoxLayout )   # Layouts
 from PyQt5.QtCore    import pyqtSlot , pyqtSignal

@@ -1,3 +1,6 @@
+# Module:      gui.krita_connection.TransparencySettings.py | [ Language Python ]
+# Created by: ( Gaps | sGaps | ArtGaps )
+# -------------------------------------------------------------------------------
 from PyQt5.QtWidgets import ( QGroupBox , QLabel ,  # Widgets 
                               QFormLayout  )        # Layouts
 from PyQt5.QtCore    import pyqtSlot , pyqtSignal

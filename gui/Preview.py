@@ -1,6 +1,6 @@
-# Module:      gui.Image.py | [ Language Python ]
+# Module:      gui.Preview.py | [ Language Python ]
 # Created by: ( Gaps | sGaps | ArtGaps )
-# -----------------------------------------------
+# -------------------------------------------------
 from PyQt5.QtWidgets import QLabel
 from PyQt5.QtGui     import QPixmap
 from os              import path

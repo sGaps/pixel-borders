@@ -1,6 +1,6 @@
-# Module:      gui.Settings.py | [ Language Python ]
+# Module:      gui.BasicSettings.py | [ Language Python ]
 # Created by: ( Gaps | sGaps | ArtGaps )
-# --------------------------------------------------
+# -------------------------------------------------------
 from PyQt5.QtWidgets import ( QComboBox   , QLineEdit   , QSpinBox     , QGroupBox , QWidget ,  # Widgets 
                               QVBoxLayout , QHBoxLayout , QFormLayout  , QLabel )               # Layouts
 from PyQt5.Qt        import Qt                                              # Constants

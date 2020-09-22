@@ -1,3 +1,6 @@
+# Module:      gui.krita_connection.Lookup.py | [ Language Python ]
+# Created by: ( Gaps | sGaps | ArtGaps )
+# -----------------------------------------------------------------
 from sys import stderr
 debug  = True           # TODO: Change to False
 dprint = (lambda s : print( s , file = stderr )) if debug else (lambda s : ())

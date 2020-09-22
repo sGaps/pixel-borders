@@ -1,3 +1,6 @@
+# Module:      gui.MethodDisplay.py | [ Language Python ]
+# Created by: ( Gaps | sGaps | ArtGaps )
+# -------------------------------------------------------
 from PyQt5.QtCore    import QAbstractTableModel , QModelIndex , Qt , QVariant
 from PyQt5.QtWidgets import ( QTableView , QAbstractItemView , QStyledItemDelegate , QHeaderView ,
                               QSpinBox , QComboBox )

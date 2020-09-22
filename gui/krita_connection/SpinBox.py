@@ -1,3 +1,6 @@
+# Module:      gui.krita_connection.SpinBox.py | [ Language Python ]
+# Created by: ( Gaps | sGaps | ArtGaps )
+# ------------------------------------------------------------------
 from PyQt5.QtWidgets import QSpinBox , QDoubleSpinBox
 
 class USpinBox( QSpinBox ):
