@@ -4,11 +4,21 @@
 from PyQt5.QtCore    import QAbstractTableModel , QModelIndex , Qt , QVariant
 from PyQt5.QtWidgets import ( QTableView , QAbstractItemView , QStyledItemDelegate , QHeaderView ,
                               QSpinBox , QComboBox )
-from PyQt5.QtCore    import pyqtSlot , pyqtSignal
+from PyQt5.QtCore    import pyqtSlot , pyqtSignal , QTimer
 
 INDEX_METHODS = ["force","any-neighbor","corners","not-corners"]
 
-# TODO: Fix ComboBox Render bugs.
+# TODO: Close popup after a single click
+class PComboBox( QComboBox ):
+    def __init__( self , parent = None ):
+        super().__init__( parent )
+
+    def displayPopup( self ):
+        self.timer = QTimer( self )
+        self.timer.timeout.connect( self.showPopup )
+        self.timer.setSingleShot( True )
+        self.timer.start(100)
+
 class MethodDelegate( QStyledItemDelegate ):
     MAX = 200
     MIN = 1
@@ -20,7 +30,7 @@ class MethodDelegate( QStyledItemDelegate ):
         """ Provides a simple QSpinbox editor with a range of [1..200] """
         col = index.column()
         if col == MethodDelegate.NAME_COL:
-            editor = QComboBox( parent )
+            editor = PComboBox( parent )
             editor.setFrame( False )
             editor.addItems( INDEX_METHODS )
         elif col == MethodDelegate.STEP_COL:
@@ -41,7 +51,8 @@ class MethodDelegate( QStyledItemDelegate ):
             value   = INDEX_METHODS.index( index.model().data( index , Qt.EditRole ) )
             combo   = editor
             combo.setCurrentIndex( value )
-            combo.showPopup()
+            combo.setAutoFillBackground( True )
+            combo.displayPopup()
         elif col == MethodDelegate.STEP_COL:
             value   = int( index.model().data( index , Qt.EditRole ) )
             spinbox = editor
@@ -82,9 +93,11 @@ class MethodModel( QAbstractTableModel ):
         SIGNALS
             void rowMethodChanged( int )
             void rowStepsChanged( int )
+            void cellBeingEdited( int , int )
     """
     rowMethodChanged = pyqtSignal( int )
     rowStepsChanged  = pyqtSignal( int )
+    cellBeingEdited  = pyqtSignal( int , int )
 
     MINIMAL  = ["any-neighbor",1]
     NAME_COL = 0
@@ -129,6 +142,7 @@ class MethodModel( QAbstractTableModel ):
                 return QVariant()
 
             elif role == Qt.EditRole:
+                self.cellBeingEdited.emit( row , col )
                 return self._data[row][col]
             else:
                 return QVariant()
@@ -186,18 +200,6 @@ class MethodModel( QAbstractTableModel ):
         else:
             return False
 
-    # TODO: Delete
-    def addRowToRecipe( self , index = QModelIndex() ):
-        self._data.append( [ INDEX_METHODS[0] , 1 ] )
-        self.rows += 1
-        return True
-
-    # TODO: Delete
-    def removeRowToRecipe( self , index = QModelIndex() ):
-        # Must be selected item.
-        self.rows += 1
-        return False
-
 class MethodWidget( QTableView ):
     """
         SIGNALS
@@ -205,27 +207,31 @@ class MethodWidget( QTableView ):
         SLOTS
             void addMethod()
             void removeMethod()
+            void cellBeingEdited( int , int )
     """
     firstMethodChanged = pyqtSignal( str )
+    cellBeingEdited    = pyqtSignal( int , int )
 
     def __init__( self , parent = None ):
         super().__init__( parent )
         model = MethodModel()
         self.setModel( model )
         self.setItemDelegate( MethodDelegate() )
-        #self.openPersistentEditor( self.model().index( 0 , 0 ) )
         self.horizontalHeader().setSectionResizeMode( QHeaderView.Stretch )
 
         model.rowMethodChanged.connect( self.__first_method_update_request__ )
 
-        # Enables the edition after a single click
-        #self.setEditTriggers( QAbstractItemView.AllEditTriggers )
+        self.setEditTriggers( QAbstractItemView.SelectedClicked )
+        model.cellBeingEdited.connect( self.__cell_being_edited_update_request__ )
+
+    @pyqtSlot( int , int )
+    def __cell_being_edited_update_request__( self , row , col ):
+        self.cellBeingEdited.emit( row , col )
 
     def mousePressEvent( self , event ):
         index = self.indexAt( event.pos() )
         if index.isValid():
             self.edit( index )
-
 
     @pyqtSlot( int )
     def __first_method_update_request__( self , row ):
@@ -238,8 +244,6 @@ class MethodWidget( QTableView ):
         model = self.model()
         last  = model.rowCount()
         model.insertRows( last , 1 )
-        #if model.insertRows( last , 1 ):
-        #    self.openPersistentEditor( model.index( last , 0 ) )
 
     @pyqtSlot()
     def removeMethod( self ):
@@ -249,6 +253,9 @@ class MethodWidget( QTableView ):
 
     def dataLength( self ):
         return self.model().rowCount()
+
+    def getUnsafeData( self ):
+        return self.model().getData()
 
     def getData( self ):
         return self.model().getData().copy()

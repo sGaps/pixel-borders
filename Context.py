@@ -1,3 +1,7 @@
+# Module:      Context.py | [ Language Python ]
+# Created by: ( Gaps | sGaps | ArtGaps )
+# ---------------------------------------------
+# TODO: Add Borderizer Handler here.
 # CONTEXT HANDLER:
 from sys   import stderr
 try:

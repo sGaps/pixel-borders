@@ -1,24 +1,11 @@
 
-# TODO: Delete this block
-# Run this script as a package.
-if __name__ == "__main__":
-    import sys
-    from os import path , getcwd
-    PACKAGE_PARENT = '..'
-    SCRIPT_DIR = path.dirname( path.realpath(path.join( getcwd() , path.expanduser(__file__) )) )
-    sys.path.append(path.normpath( path.join( SCRIPT_DIR , PACKAGE_PARENT ) ))
-    from pixel_border.Context     import CONTEXT , RUN , Extension
-    from pixel_border.gui.PxGUI   import GUI
-else:
-    from .Context     import CONTEXT , RUN , Extension
-    from .gui.PxGUI   import GUI
+from .Context     import CONTEXT , RUN , Extension
+from .gui.PxGUI   import GUI
 
-if CONTEXT == "INSIDE_KRITA":
-    # TODO: Import the borderizer later
-    # Connect manually the import
-    Connect = True
-else:
-    Connect = False
+if CONTEXT == "INSIDE_KRITA" & AVAILABLE_BORDERIZER:
+    # TODO: Uncomment after merge
+    # from .gui.Borderizer import Borderizer
+    pass
 
 METADATA = { "SYS_ID"    : "pykrita_pixel_border" ,
              "NAM_ID"    : "Pixel Borders"        ,
@@ -54,6 +41,8 @@ class PixelExtension( Extension ):
             RUN()
         else:
             self.ext = GUI( parent = wparent , title = METADATA["TITLE"] )
+            # borderizer = Borderizer()
+            # self.ext.setup_borderizer_connection( borderizer )
             self.ext.run()
 
 if __name__ == "__main__":

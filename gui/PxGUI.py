@@ -30,12 +30,12 @@ class GUI( object ):
     BG_DESC = ("BG",None)
     CS_DESC = ("CS",None)
 
-    # TODO: add a borderizer parameter here:
-    # TODO: Fix render problems with MethodDelegate:
     def __init__( self , parent = None , title = "PxGUI" ):
         self.window = DialogBox( parent )
         self.Lbody  = QVBoxLayout()
         self.window.setWindowTitle( title )
+        # Do nothing
+        self.borderizer = None
 
         self.settings = BasicSettings   ()
         self.color    = ColorButtons    ()
@@ -65,7 +65,9 @@ class GUI( object ):
 
         # Advanced setup:
         self.advanced.hide_buttons()
-        self.advanced.firstMethodChanged.connect(
+        #self.advanced.firstMethodChanged.connect(
+        #        self.__preview_update_request__ )
+        self.advanced.cellBeingEdited.connect(
                 self.__preview_update_request__ )
 
         # Close actions setup:
@@ -114,18 +116,23 @@ class GUI( object ):
             self.data["doc"]  = doc
             self.data["kis"]  = kis
 
+    # Used as pyqtSlot( [int] , [float] )
     def __on_transparency_update_request__( self , value ):
         self.data["trdesc"][0] = value
 
+    # Used as pyqtSlot( [int] , [float] )
     def __on_threshold_update_request__( self , value ):
         self.data["trdesc"][1] = value
 
+    # Used as pyqtSlot( int )
     def __on_start_animation_update_request__( self , time ):
         self.data["animation"][0] = time
 
+    # Used as pyqtSlot( int )
     def __on_end_animation_update_request__( self , time ):
         self.data["animation"][1] = time
 
+    # Used as pyqtSlot( bool )
     def __on_enable_animation_update_request__( self , enabled ):
         if enabled:
             self.data["animation"] = self.time.getTime()
@@ -133,26 +140,28 @@ class GUI( object ):
             self.data["animation"] = None
 
     # Works like a pyqtSlot( str ) 
-    def __preview_update_request__( self , method ):
-        if self.dynPrev:
-            self.settings.setIconByName( method )
-        else:
-            self.settings.setIconByName( CUSTOM_INDEX )
+    # Works like a pyqtSlot( int , int ) 
+    def __preview_update_request__( self , row , col ):
+        if col == 0:
+            if self.dynPrev:
+                self.settings.setIconByName( self.advanced.getCellContent(row,col) )
+            else:
+                self.settings.setIconByName( CUSTOM_INDEX )
 
     def on_type_update( self ):
         stype = self.settings.type()
         # Toogle advanced-buttons visibility:
         if stype == TYPES["simple"]:
+            self.settings.setIconByName( self.advanced.getCellContent(0,0) )
             self.advanced.discardAllExceptFirst()
             self.advanced.hide_buttons()
             self.dynPrev = True
         elif stype == TYPES["custom"]:
+            self.settings.setIconByName( CUSTOM_INDEX )
             self.advanced.show_buttons()
             self.dynPrev = False
 
-    def hasExtra( self ):
-        return self.data["method"] > 1
-
+    # Used as pyqtSlot()
     def on_cs_release( self ):
         self.data["colordsc"] = GUI.CS_DESC
 
@@ -175,6 +184,8 @@ class GUI( object ):
         self.data["colordsc"]  = (self.data["colordsc"][0] , self.color.getComponents())
 
         self.report_data()
+        if self.borderizer:
+            self.borderizer.run( **self.data )
         # This closes the window
         self.window.accept()
 
@@ -205,9 +216,9 @@ class GUI( object ):
             print( f"{' ':4}{k}: {v}" )
         print( "}" )
 
-    # TODO: Complete this after finish borders branch tasks
     def setup_borderizer_connection( self , borderizer ):
-        pass
+        """ borderizer :: dict -> IO () """
+        self.borderizer = borderizer
 
     def run( self ):
         self.window.show()

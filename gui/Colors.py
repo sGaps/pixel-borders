@@ -1,11 +1,10 @@
 # Module:      gui.Colors.py | [ Language Python ]
 # Created by: ( Gaps | sGaps | ArtGaps )
 # ------------------------------------------------
-from PyQt5.QtWidgets import ( QPushButton , QGroupBox , QLabel ,                        # Widgets
-                              QVBoxLayout , QHBoxLayout , QLayout , QFormLayout )       # Layouts
+from PyQt5.QtWidgets import ( QPushButton , QGroupBox , QLabel , QTableWidget , QHeaderView ,               # Widgets
+                              QVBoxLayout , QHBoxLayout , QLayout , QFormLayout , QAbstractItemView )       # Layouts
 from PyQt5.QtCore     import pyqtSlot , pyqtSignal
 
-# TODO: Add a third button: "Custom" and a third option ==> press_cs( self ) -> "CS"
 class ColorButtons( QGroupBox ):
     """ Holds some buttons to select a color
         SIGNALS:
@@ -28,7 +27,7 @@ class ColorButtons( QGroupBox ):
         self.BGbut = QPushButton( "Background" )
         # TODO: Add a krita connection here
         self.CSbut = QPushButton( "Custom" )
-        self.LSub  = QFormLayout()
+        self.WTabl = QTableWidget()
         self.WComp = None
         self.Wname = None
         self.KConn = False
@@ -53,20 +52,29 @@ class ColorButtons( QGroupBox ):
         self.BGbut.released.connect( self.press_bg )
         self.CSbut.released.connect( self.press_cs )
 
-    # TODO: Fix Render.
     def tryCustomBuild( self , node , SpinBoxFactory ):
         self.CSbut.show()
         # Only Read-Mode
         depth      = node.colorDepth()
         self.WComp = []
         self.Wname = []
-        for c in node.channels():
+
+        chans      = node.channels()
+        nchans     = len( chans )
+        self.WTabl.setRowCount   ( nchans )
+        self.WTabl.setColumnCount( 2 )
+        for i in range(nchans):
             spin = SpinBoxFactory(depth)
-            name = QLabel( c.name() )
-            self.LSub.addRow( name , spin )
+            name = QLabel( chans[i].name() )
+            self.WTabl.setCellWidget( i , 0 , name )
+            self.WTabl.setCellWidget( i , 1 , spin )
             self.WComp.append( spin )
             self.Wname.append( name )
-        self.Lmain.addLayout( self.LSub )
+        self.Lmain.addWidget( self.WTabl )
+        self.WTabl.horizontalHeader().setSectionResizeMode( QHeaderView.Stretch )
+        self.WTabl.verticalHeader().setSectionResizeMode( QHeaderView.Stretch )
+        self.WTabl.setHorizontalHeaderLabels( [ "Channel" , "Value" ] )
+        self.WTabl.setEditTriggers( QAbstractItemView.SelectedClicked )
         self.hide_components()
         self.KConn = True
 
@@ -78,12 +86,14 @@ class ColorButtons( QGroupBox ):
 
     @pyqtSlot()
     def hide_components( self ):
+        self.WTabl.hide()
         for i in range( len(self.WComp) ):
             self.WComp[i].hide()
             self.Wname[i].hide()
 
     @pyqtSlot()
     def show_components( self ):
+        self.WTabl.show()
         for i in range( len(self.WComp) ):
             self.WComp[i].show()
             self.Wname[i].show()

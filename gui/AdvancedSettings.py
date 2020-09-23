@@ -13,8 +13,10 @@ class AdvancedSettings( QGroupBox ):
         SLOTS:
             void hide_buttons()
             void show_butons()
+            void cellBeingEdited( int , int )
     """
     firstMethodChanged = pyqtSignal( str )
+    cellBeingEdited    = pyqtSignal( int , int )
 
     def __init__( self , parent = None ):
         super().__init__( parent )
@@ -23,8 +25,7 @@ class AdvancedSettings( QGroupBox ):
         self.Wtable  = MethodWidget()
         self.Badd    = QPushButton( "Add " )
         self.Brem    = QPushButton( "Remove" )
-        self.Winfo    = QLabel(
-                "Press double click in an entry to edit its contents" )
+        self.Winfo    = QLabel( "Press click in an entry to edit its contents" )
 
         self.setLayout( self.Lmain )
 
@@ -44,6 +45,12 @@ class AdvancedSettings( QGroupBox ):
 
         self.Wtable.firstMethodChanged.connect(
                 self.__first_method_change_update_request__ )
+        self.Wtable.cellBeingEdited.connect( 
+                self.__cell_being_edited_update_request__ )
+
+    @pyqtSlot( int , int )
+    def __cell_being_edited_update_request__( self , row , col ):
+        self.cellBeingEdited.emit( row , col )
 
     @pyqtSlot( str )
     def __first_method_change_update_request__( self , method ):
@@ -51,6 +58,9 @@ class AdvancedSettings( QGroupBox ):
 
     def dataLength( self ):
         return self.Wtable.dataLength()
+
+    def getCellContent( self , row , col ):
+        return self.Wtable.getUnsafeData()[row][col]
 
     def getData( self ):
         return self.Wtable.getData()
