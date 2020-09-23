@@ -45,8 +45,9 @@ class BorderException( Exception ):
 
 class Borderizer( object ):
     ANIMATION_IMPORT_DEFAULT_INDEX = -1
-    def __init__( self , info = None ):
+    def __init__( self , info = None , cleanUpAtFinish = False ):
         self.info = info
+        self.cleanUpAtFinish = cleanUpAtFinish
 
     @staticmethod
     def __get_true_color__( managedcolor ):
@@ -124,8 +125,7 @@ class Borderizer( object ):
         return greatest
 
     def run( self , **data_from_gui ):
-        """ Make borders to the given krita's node, using the keys defined in the global
-            variable KEYS.
+        """ Make borders to the given krita's node, using the keys defined in the global variable KEYS.
                 data_from_gui -> dict(...)
                 and data_from_gui.keys() == KEYS
         """
@@ -163,7 +163,7 @@ class Borderizer( object ):
 
         # Bounds selection:
         nbounds      = Borderizer.getTrueBounds( node )
-        if nbounds.isEmpty():
+        if nbounds.isEmpty() and not node.animated() :
             print( f"[Borderizer] The layer is empty." , file = stderr )
             return False
 
@@ -206,7 +206,7 @@ class Borderizer( object ):
 
         # First Abstractions
         scrap  = Scrapper()
-        frameH = FrameHandler( doc , kis )
+        frameH = FrameHandler( doc , kis , debug = False )
         # Builds the color data
 
         colordata = Borderizer.makePxDataWithColor( color , length )
@@ -224,6 +224,7 @@ class Borderizer( object ):
             anim_length   = len( str( len( timeline ) ) )
             original_time = doc.currentTime()
             frameH.build_directory()
+            print( f"TIMELINE: {timeline}" )
 
             for t in timeline:
                 # Update the current time and wait in synchronous mode
@@ -254,9 +255,13 @@ class Borderizer( object ):
             border.setName( name )
             border.enableAnimation()
 
+
             # Explicit Cleaning:
             target.remove()
             del target
+
+            if self.cleanUpAtFinish:
+                frameH.removeExportedFiles( removeSubFolder = True )
 
             doc.setCurrentTime( original_time )
             done = True

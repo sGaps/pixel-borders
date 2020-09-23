@@ -8,9 +8,8 @@ from   sys         import stderr
 import krita
 import os
 DEFAULT_OUTPUT_DIR = ".output"
-# TODO: OPTIMIZE!
+
 class FrameHandler( object ):
-    # TODO: add an attribute called: force_write to verify when the file must be written at any cost.
     def __init__( self , doc , krita_instance , subfolder = DEFAULT_OUTPUT_DIR , xRes = None , yRes = None , info = None , debug = False ):
         self.kis    = krita_instance
         self.doc    = doc
@@ -86,7 +85,6 @@ class FrameHandler( object ):
             t -= 1
         return t
 
-    # TODO: Optimize
     def __get_frame_limits_( self , node , start , length ):
         """ returns the first and last frame-indexes inside the range of start-index
             with a given length of the search.
@@ -108,12 +106,10 @@ class FrameHandler( object ):
             method (...) => (animated_nodes,first_frame) """
         animated_nodes = []
         queue          = deque([node])
-        #first_frame    = None
         anim_limits    = []
         while queue:
             n       = queue.pop()
             limits  = self.__get_frame_limits_(n,start,length)  # Note
-            #current = self.__get_first_frame_index__(n,start,finish)
             if limits is not None:
                 # Add the node to the result:
                 animated_nodes.append(n)
@@ -128,12 +124,13 @@ class FrameHandler( object ):
             for c in n.childNodes():
                 queue.append(c)
         if anim_limits:
-            return ( animated_nodes , range(*anim_limits) )
+            return ( animated_nodes , range(anim_limits[0],anim_limits[1]+1) )
         else:
             return ( animated_nodes , None )
 
     def get_animation_of( self , node , start , finish ):
-        return __exhaustive_take_animated_nodes__( node , start , finish+1 )
+        length = finish - start + 1
+        return __exhaustive_take_animated_nodes__( node , start , length )
 
     def get_animation_range( self , node , start , finish ):
         """ Returns a range for the animation if there's animation. Else
@@ -144,7 +141,8 @@ class FrameHandler( object ):
     def get_animated_subnodes( self , node , start , finish ):
         """ Returns all the nodes in the node-hierarchy for the animation if there's animation. Else
             returns []. """
-        return self.__exhaustive_take_animated_nodes__( node , start , finish+1 )[0]
+        length = finish - start + 1
+        return self.__exhaustive_take_animated_nodes__( node , start , length )[0]
 
     def get_exported_files( self ):
         return self.exported
@@ -162,6 +160,20 @@ class FrameHandler( object ):
                 self.exportReady = True
             else:
                 self.exportReady = True
+
+    def removeExportedFiles( self , removeSubFolder = False ):
+        try:
+            for f in self.exported:
+                os.remove( f )
+            if removeSubFolder:
+                try:
+                    os.rmdir( self.exportdirpath )
+                except:
+                    self.debug( f"[FrameHandler] Unable to remove the export directory [ {self.exportdirpath} ]." )
+            return True
+        except:
+            self.debug( f"[FrameHandler] Unable to remove exported files" )
+            return False
 
     def exportFrame( self , filename , node ):
         """ Export the node data of the current time to a file and records the file path into )
@@ -196,6 +208,10 @@ class FrameHandler( object ):
         """ Import files from export directory path saved in the object.
             NOTE: export directory must exist, else no action are performed. """
         searchpath = self.exportdirpath
+
+        if not files:
+            files = self.exported
+
         if files:
             frames = files
         else:
@@ -226,16 +242,15 @@ if __name__ == "__main__":
     print( f.__exhaustive_take_animated_nodes__(node,0,20) )
     print( f.exportFrame( "abcd.png"  , node ) )
 
-    infoTest = False
+    infoTest = True
     if infoTest:
         info = krita.InfoObject()
         info.setProperties({
-            "alpha":True ,
-            "compression":1 , #None
-            "forceSRGB":False ,
-            "indexed":False ,
-            "interlaced":False ,
-            "saveSRGBProfile":False ,
-            "transparencyFillColor":[]
-                    })
+            "alpha"                 : True  ,
+            "compression"           : 1     , #None
+            "forceSRGB"             : False ,
+            "indexed"               : False ,
+            "interlaced"            : False ,
+            "saveSRGBProfile"       : False ,
+            "transparencyFillColor" : []    })
         print( info.properties() )
