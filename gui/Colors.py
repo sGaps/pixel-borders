@@ -1,8 +1,8 @@
 # Module:      gui.Colors.py | [ Language Python ]
 # Created by: ( Gaps | sGaps | ArtGaps )
 # ------------------------------------------------
-from PyQt5.QtWidgets import ( QPushButton , QGroupBox , QLabel , QTableWidget , QHeaderView ,               # Widgets
-                              QVBoxLayout , QHBoxLayout , QLayout , QFormLayout , QAbstractItemView )       # Layouts
+from PyQt5.QtWidgets import ( QPushButton , QGroupBox , QLabel , QTableWidget , QHeaderView ,           # Widgets
+                              QVBoxLayout , QHBoxLayout , QLayout , QFormLayout , QAbstractItemView )   # Layouts
 from PyQt5.QtCore     import pyqtSlot , pyqtSignal
 
 class ColorButtons( QGroupBox ):
@@ -66,15 +66,20 @@ class ColorButtons( QGroupBox ):
         self.WTabl.setColumnCount( 2 )
         for i in range(nchans):
             spin = SpinBoxFactory(depth)
-            name = QLabel( chans[i].name() )
+            name = QLabel( " " + chans[i].name() )
             self.WTabl.setCellWidget( i , 0 , name )
             self.WTabl.setCellWidget( i , 1 , spin )
             self.WComp.append( spin )
             self.Wname.append( name )
+        # Add the table to the main layout
         self.Lmain.addWidget( self.WTabl )
+        # Configure headers: 
         self.WTabl.horizontalHeader().setSectionResizeMode( QHeaderView.Stretch )
         self.WTabl.verticalHeader().setSectionResizeMode( QHeaderView.Stretch )
         self.WTabl.setHorizontalHeaderLabels( [ "Channel" , "Value" ] )
+        # Configure size adjust policy:
+        self.WTabl.adjustSize()
+
         self.WTabl.setEditTriggers( QAbstractItemView.SelectedClicked )
         self.hide_components()
         self.KConn = True

@@ -25,7 +25,7 @@ KEYS = {  "methoddsc" , # [[method,thickness]] where method is
           "colordsc"  , # ( color_type , components )
                         # where color_type = "FG" | "BG" , "CS"
                         #       components = [UInt]
-          "trdesc"    , # Transparency descriptor = ( transparency_value , threshold )
+          "trdesc"    , # Transparency descriptor = [ transparency_value , threshold ]
           # Are node , doc and kis really required?
           "node"      , # Krita Node
           "doc"       , # Krita Document
@@ -239,7 +239,7 @@ class Borderizer( object ):
                 doc.waitForDone()
 
                 alpha  = scrap.extractAlpha( source , bounds , transparency , threshold )
-                grow.setData( alpha , width , length , safe_mode = True )
+                grow.setData( alpha , width , length )
                 # Make the borders and update the target data.
                 Borderizer.applyMethodRecipe( grow , methodRecipe )
                 newAlpha = grow.difference_with( alpha )
@@ -273,7 +273,7 @@ class Borderizer( object ):
             done = True
         else:
             alpha    = scrap.extractAlpha( source , bounds , transparency , threshold )
-            grow     = Grow( alpha , width , length , safe_mode = True )
+            grow     = Grow( alpha , width , length )
             Borderizer.applyMethodRecipe( grow , methodRecipe )
             newAlpha = grow.difference_with( alpha )
             # Update and Write

@@ -20,9 +20,11 @@ class FSpinBox( QDoubleSpinBox ):
 
         # Search how many decimals use krita
         if depth == "F16":
-            self.setDecimals( 7 )
+            # Previous: 7
+            self.setDecimals( 6 )   # Krita uses 6 decimals
         else:
-            self.setDecimals( 15 )
+            # Previous: 15
+            self.setDecimals( 6 )   # Krita uses 6 decimals
 
 def SpinBoxFactory( depth ):
     if depth[0] == "U":

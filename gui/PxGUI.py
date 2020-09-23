@@ -198,6 +198,7 @@ class GUI( object ):
 
         self.report_data()
         if self.borderizer:
+            # TODO: Move this to a different thread:
             self.borderizer.run( **self.data )
         # This closes the window
         self.window.accept()
