@@ -8,9 +8,9 @@ class USpinBox( QSpinBox ):
         super().__init__( parent )
         self.setMinimum( 0 )
         if depth == "U8":
-            self.setMaximum( 2**8 )
+            self.setMaximum( 2**8 - 1 )
         else:
-            self.setMaximum( 2**16 )
+            self.setMaximum( 2**16 - 1 )
 
 class FSpinBox( QDoubleSpinBox ):
     def __init__( self , depth = "U8" , parent = None ):

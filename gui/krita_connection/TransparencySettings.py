@@ -4,7 +4,7 @@
 from PyQt5.QtWidgets import ( QGroupBox , QLabel ,  # Widgets 
                               QFormLayout  )        # Layouts
 from PyQt5.QtCore    import pyqtSlot , pyqtSignal
-from .Lookup         import kis , doc , node
+from .Lookup         import kis
 from .SpinBox        import SpinBoxFactory
 
 class TransparencySettings( QGroupBox ):
@@ -21,7 +21,8 @@ class TransparencySettings( QGroupBox ):
         super().__init__( parent )
 
         # Krita dependency
-        depth = node.colorDepth()
+        depth = kis.activeDocument().activeNode().colorDepth()
+
         self.setTitle( "Transparency Descriptor" )
 
         self.Lmain = QFormLayout()

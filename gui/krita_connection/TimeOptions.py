@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import ( QSpinBox     , QGroupBox , QLabel ,   # Widgets 
                               QFormLayout  )                        # Layouts
 from PyQt5.QtCore    import pyqtSlot , pyqtSignal
-from .Lookup         import kis , doc , node
+from .Lookup         import kis
 
 class TimeOptions( QGroupBox ):
     """
@@ -15,6 +15,8 @@ class TimeOptions( QGroupBox ):
     enabledAnimation = pyqtSignal( bool )
     def __init__( self , parent = None ):
         super().__init__( parent )
+        doc = kis.activeDocument()
+
         self.timeline = ( doc.fullClipRangeStartTime() ,
                           doc.fullClipRangeEndTime()   )
         self.Lmain    = QFormLayout()

@@ -9,14 +9,17 @@ from .Colors            import ColorButtons
 from .AdvancedSettings  import AdvancedSettings
 from .BasicSettings     import BasicSettings , INDEX_TYPES , TYPES , CUSTOM_INDEX
 from .CloseButtons      import CloseButtons
+from sys                import stderr
 
 # Krita dependent:
 from .krita_connection.Lookup import KRITA_AVAILABLE
 if KRITA_AVAILABLE:
     from .krita_connection.TimeOptions          import TimeOptions
     from .krita_connection.TransparencySettings import TransparencySettings
-    from .krita_connection.Lookup               import kis , doc , node
+    from .krita_connection.Lookup               import kis
     from .krita_connection.SpinBox              import SpinBoxFactory
+    #doc  = kis.activeDocument()
+    #node = doc.activeNode()
 
 # Defines a base class for the window ::::::::::::::::::::::::::::::
 class DialogBox( QDialog ):
@@ -78,9 +81,21 @@ class GUI( object ):
 
     def tryKonnect( self ):
         if KRITA_AVAILABLE:
+            # [D] Data:
+            doc  = kis.activeDocument()
+            node = doc.activeNode() if doc else None
+            self.data["node"] = node
+            self.data["doc"]  = doc
+            self.data["kis"]  = kis
+
+            if not (kis and doc and node):
+                return
+
+            # [L] Layout & Extra Widgets:
             self.LKrita = QHBoxLayout()
             self.WKrita = QWidget()
             self.WKrita.setLayout( self.LKrita )
+
 
             index     = self.Lbody.indexOf( self.close )
             self.Lbody.insertWidget( index , self.WKrita )
@@ -112,9 +127,6 @@ class GUI( object ):
             self.color.tryCustomBuild( node , SpinBoxFactory )
             self.color.cs_released.connect( self.on_cs_release )
 
-            self.data["node"] = node
-            self.data["doc"]  = doc
-            self.data["kis"]  = kis
 
     # Used as pyqtSlot( [int] , [float] )
     def __on_transparency_update_request__( self , value ):
@@ -181,7 +193,8 @@ class GUI( object ):
     def on_accept( self ):
         # Light update:
         self.data["methoddsc"] = self.advanced.getData()
-        self.data["colordsc"]  = (self.data["colordsc"][0] , self.color.getComponents())
+        typecolor , components  = (self.data["colordsc"][0] , self.color.getNormalizedComponents() )
+        self.data["colordsc"] = ( typecolor , components )
 
         self.report_data()
         if self.borderizer:
@@ -211,10 +224,10 @@ class GUI( object ):
               }
 
     def report_data( self ):
-        print( "Data Sent: {" )
+        print( "[PxGUI] Data Sent: {" , file = stderr )
         for k , v in self.data.items():
-            print( f"{' ':4}{k}: {v}" )
-        print( "}" )
+            print( f"{' ':4}{k}: {v}" , file = stderr )
+        print( "}" , file = stderr )
 
     def setup_borderizer_connection( self , borderizer ):
         """ borderizer :: dict -> IO () """

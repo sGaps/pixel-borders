@@ -1,6 +1,8 @@
 # Module:      AlphaScrapper.py | [ Language Python ]
 # Created by: ( Gaps | sGaps | ArtGaps )
 # ---------------------------------------------------
+# [[ IT's NOT USED ]] 
+
 class Scrapper( object ):
     """ Utility class for extract the alpha channel from a krita node. """
     def __init__( self ):

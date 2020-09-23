@@ -1,11 +1,11 @@
-
+# Module:      main.py | [ Language Python ]
+# Created by: ( Gaps | sGaps | ArtGaps )
+# ------------------------------------------
 from .Context     import CONTEXT , RUN , Extension
 from .gui.PxGUI   import GUI
 
-if CONTEXT == "INSIDE_KRITA" & AVAILABLE_BORDERIZER:
-    # TODO: Uncomment after merge
-    # from .gui.Borderizer import Borderizer
-    pass
+if CONTEXT == "INSIDE_KRITA":
+     from .core.Borderizer import Borderizer
 
 METADATA = { "SYS_ID"    : "pykrita_pixel_border" ,
              "NAM_ID"    : "Pixel Borders"        ,
@@ -31,18 +31,18 @@ class PixelExtension( Extension ):
                                       METADATA["TOOL_PATH"] )
         action.triggered.connect( self.run )
 
-    def run(self , wparent = None ):
+    def run( self ):
         if CONTEXT == "OUTSIDE_KRITA":
-            self.ext = GUI( parent = wparent , title = METADATA["TITLE"] )
+            self.ext = GUI( parent = None , title = METADATA["TITLE"] )
             self.ext.run()
             self.setWindowTitle( "Pixel Border - GUI test" )
             self.resize( *DEFAULTSIZE["test-body"] )
             self.show()
             RUN()
         else:
-            self.ext = GUI( parent = wparent , title = METADATA["TITLE"] )
-            # borderizer = Borderizer()
-            # self.ext.setup_borderizer_connection( borderizer )
+            self.ext = GUI( parent = None , title = METADATA["TITLE"] )
+            borderizer = Borderizer( cleanUpAtFinish = False )
+            self.ext.setup_borderizer_connection( borderizer )
             self.ext.run()
 
 if __name__ == "__main__":

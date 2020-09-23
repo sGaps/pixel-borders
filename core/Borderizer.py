@@ -134,10 +134,16 @@ class Borderizer( object ):
             print( f"[Borderizer] Couldn't match the keys of:\n{data_from_gui}, with the required keys: {KEYS}" , file = stderr )
             return False
 
+
         # [@] Initialization
         node = data_from_gui["node"]
         doc  = data_from_gui["doc"]
         kis  = data_from_gui["kis"]
+
+        if not ( node and kis and doc ):
+            print( f"[Borderizer] Couldn't run with incomplete information: node = {node} , krita = {kis} , document = {doc}" )
+            return False
+
         view = kis.activeWindow().activeView()
 
         # Method parse:

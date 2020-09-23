@@ -60,7 +60,8 @@ class ColorButtons( QGroupBox ):
         self.Wname = []
 
         chans      = node.channels()
-        nchans     = len( chans )
+        # IGNORE THE ALPHA CHANNEL (It's always at the end)
+        nchans     = len( chans ) - 1
         self.WTabl.setRowCount   ( nchans )
         self.WTabl.setColumnCount( 2 )
         for i in range(nchans):
@@ -81,6 +82,13 @@ class ColorButtons( QGroupBox ):
     def getComponents( self ):
         if self.WComp:
             return [ c.value() for c in self.WComp ]
+        else:
+            return None
+
+    def getNormalizedComponents( self ):
+        if self.WComp:
+            maxv = self.WComp[0].maximum()
+            return[ (c.value() * 1.0 ) / maxv for c in self.WComp ]
         else:
             return None
 

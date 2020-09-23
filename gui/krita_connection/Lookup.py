@@ -17,12 +17,11 @@ else:
     # TODO: Uncomment
     #doc = kis.activeDocument()
     # TODO: Remove
-    doc = kis.openDocument( "/home/sgaps/.local/share/krita/pykrita/pixel_border/test_gui/single.kra" )
+    #doc = kis.openDocument( "/home/sgaps/.local/share/krita/pykrita/pixel_border/test_gui/single.kra" )
 
-    dprint( f"[KRITA - LOOKUP]:\n\tkrita -> {kis}\n\t{doc.name()} : {doc.fileName()}" )
-    dprint( f"\tTimeline: ( {doc.fullClipRangeStartTime()},{doc.fullClipRangeEndTime()} )" )
+    dprint( f"[KRITA - LOOKUP]:\n\tkrita -> {kis}" )
 
     # TODO: Uncomment
     #node = doc.activeNode()
     # TODO: Remove
-    node = doc.topLevelNodes()[1]
+    #node = doc.topLevelNodes()[1]
