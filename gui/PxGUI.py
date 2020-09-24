@@ -68,8 +68,6 @@ class GUI( object ):
 
         # Advanced setup:
         self.advanced.hide_buttons()
-        #self.advanced.firstMethodChanged.connect(
-        #        self.__preview_update_request__ )
         self.advanced.cellBeingEdited.connect(
                 self.__preview_update_request__ )
 
@@ -78,6 +76,7 @@ class GUI( object ):
         self.close.cancel.connect( self.on_cancel )
 
         self.tryKonnect()
+        self.__preview_update_request__( 0 , 0 )
 
     def tryKonnect( self ):
         if KRITA_AVAILABLE:
@@ -151,7 +150,6 @@ class GUI( object ):
         else:
             self.data["animation"] = None
 
-    # Works like a pyqtSlot( str ) 
     # Works like a pyqtSlot( int , int ) 
     def __preview_update_request__( self , row , col ):
         if col == 0:
