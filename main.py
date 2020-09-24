@@ -12,8 +12,6 @@ METADATA = { "SYS_ID"    : "pykrita_pixel_border" ,
              "TOOL_PATH" : "tools/scripts"        ,
              "TITLE"     : "Pixel Borders"        }
 
-DEFAULTSIZE = { "test-body" : (300,100) }
-                
 class PixelExtension( Extension ):
     """
         Wrapper class for the GUI class.
@@ -31,6 +29,7 @@ class PixelExtension( Extension ):
                                       METADATA["TOOL_PATH"] )
         action.triggered.connect( self.run )
 
+    # TODO: This function is called twice everytime the action connected to run. Fix it.
     def run( self ):
         if CONTEXT == "OUTSIDE_KRITA":
             self.ext = GUI( parent = None , title = METADATA["TITLE"] )
@@ -40,11 +39,8 @@ class PixelExtension( Extension ):
             self.show()
             RUN()
         else:
-            self.ext = GUI( parent = None , title = METADATA["TITLE"] )
+            self.ext   = GUI( parent = None , title = METADATA["TITLE"] )
             borderizer = Borderizer( cleanUpAtFinish = False )
             self.ext.setup_borderizer_connection( borderizer )
             self.ext.run()
 
-if __name__ == "__main__":
-    p = PixelExtension( None )
-    p.run()

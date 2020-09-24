@@ -9,7 +9,9 @@ class CloseButtons( QWidget ):
     """ Contains and show a image 
         SIGNALS:
             void cancel()
-            void accept() """
+            void accept()
+        SLOTS:
+            void setEnabled( bool ) """
 
     cancel = pyqtSignal()
     accept = pyqtSignal()
@@ -26,6 +28,10 @@ class CloseButtons( QWidget ):
 
         self.buttons.accepted.connect( self.__update_accept_request__ )
         self.buttons.rejected.connect( self.__update_cancel_request__ )
+
+    @pyqtSlot( bool )
+    def setEnabled( self , enabled ):
+        self.buttons.setEnabled( enabled )
 
     @pyqtSlot()
     def __update_accept_request__( self ):

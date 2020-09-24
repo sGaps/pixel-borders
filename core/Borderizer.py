@@ -28,7 +28,6 @@ KEYS = {  "methoddsc" , # [[method,thickness]] where method is
                         # where color_type = "FG" | "BG" , "CS"
                         #       components = [UInt]
           "trdesc"    , # Transparency descriptor = [ transparency_value , threshold ]
-          # Are node , doc and kis really required?
           "node"      , # Krita Node
           "doc"       , # Krita Document
           "kis"       , # Krita Instance
@@ -101,9 +100,6 @@ class Borderizer( object ):
         """ makePxDataWithColor :: bytearray -> UInt -> bytearray """
         return colorbytes * repeat_times
 
-    # TODO: There's a problem with application. I don't know if it's at this level or it's in
-    #       the Grow-object level
-    #   ->  There's a inconsistency between steps number and border width.
     @staticmethod
     def applyMethodRecipe( grow , recipe ):
         """ Apply the grow recipe to the grow object. 
@@ -169,6 +165,7 @@ class Borderizer( object ):
         mcolor.setColorSpace( node.colorModel() , node.colorDepth() , node.colorProfile() )
         color  = Borderizer.__get_true_color__( mcolor )
 
+        # TODO: See if this has to be moved inside the animation-loop:
         # Bounds selection:
         nbounds      = Borderizer.getTrueBounds( node )
         if nbounds.isEmpty() and not node.animated() :
@@ -207,7 +204,9 @@ class Borderizer( object ):
         length = bounds.width() * bounds.height()
         pxSize = length * nchans
 
+        # [N] Node actions:
         source = node
+        # TODO: Add the target using an action to add it to the Undo-Stack
         target = doc.createNode( ".target" , "paintlayer" )
         # Link the target with the document: (Just above the node)
         source.parentNode().addChildNode( target , source )
@@ -231,8 +230,10 @@ class Borderizer( object ):
             grow          = Grow.singleton()
             anim_length   = len( str( len( timeline ) ) )
             original_time = doc.currentTime()
-            frameH.build_directory()
-            print( f"TIMELINE: {timeline}" )
+            if not frameH.build_directory():
+                target.remove()
+                del target
+                return False
 
             for t in timeline:
                 # Update the current time and wait in synchronous mode

@@ -2,7 +2,7 @@
 # Created by: ( Gaps | sGaps | ArtGaps )
 # -----------------------------------------------
 # PyQt5 Modules:
-from PyQt5.QtWidgets import QDialog , QWidget , QHBoxLayout , QVBoxLayout , QLayout
+from PyQt5.QtWidgets import QDialog , QWidget , QMessageBox , QHBoxLayout , QVBoxLayout , QLayout
 
 # Elements of the GUI:
 from .Colors            import ColorButtons
@@ -18,16 +18,14 @@ if KRITA_AVAILABLE:
     from .krita_connection.TransparencySettings import TransparencySettings
     from .krita_connection.Lookup               import kis
     from .krita_connection.SpinBox              import SpinBoxFactory
-    #doc  = kis.activeDocument()
-    #node = doc.activeNode()
 
 # Defines a base class for the window ::::::::::::::::::::::::::::::
 class DialogBox( QDialog ):
     def __init__( self , parent = None ): super().__init__( parent )
     def closeEvent( self , event ):       event.accept()
 
-
 # Gui itself :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# TODO: Add an warning when krita has an unsaved document
 class GUI( object ):
     FG_DESC = ("FG",None)
     BG_DESC = ("BG",None)
@@ -78,6 +76,17 @@ class GUI( object ):
         self.tryKonnect()
         self.__preview_update_request__( 0 , 0 )
 
+    def unsaved_document_warning( self ):
+        if KRITA_AVAILABLE and self.data["doc"]:
+            doc = self.data["doc"]
+            if not doc.fileName():
+                self.time.setChecked( False )
+                self.time.setEnabled( False )
+                QMessageBox.information( self.window , "Warning: unsaved document" , 
+                    "Unsaved Document Detected. please, save" +
+                    "your document and open again the plugin" +
+                    "to use the animation options." )
+
     def tryKonnect( self ):
         if KRITA_AVAILABLE:
             # [D] Data:
@@ -94,7 +103,6 @@ class GUI( object ):
             self.LKrita = QHBoxLayout()
             self.WKrita = QWidget()
             self.WKrita.setLayout( self.LKrita )
-
 
             index     = self.Lbody.indexOf( self.close )
             self.Lbody.insertWidget( index , self.WKrita )
@@ -189,6 +197,7 @@ class GUI( object ):
 
     # Used as pyqtSlot()
     def on_accept( self ):
+        self.close.setEnabled( False )
         # Light update:
         self.data["methoddsc"] = self.advanced.getData()
         typecolor , components  = (self.data["colordsc"][0] , self.color.getNormalizedComponents() )
@@ -204,6 +213,7 @@ class GUI( object ):
     # Used as pyqtSlot()
     def on_cancel( self ):
         # This closes the window
+        self.close.setEnabled( False )
         self.window.reject()
 
     def build_data( self ):
@@ -235,6 +245,7 @@ class GUI( object ):
     def run( self ):
         self.window.show()
         self.window.activateWindow()
+        self.unsaved_document_warning()
 
 if __name__ == "__main__":
     gui = GUI(500,300)

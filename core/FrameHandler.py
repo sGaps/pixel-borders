@@ -158,8 +158,14 @@ class FrameHandler( object ):
                 self.exportReady = False
             except FileExistsError:
                 self.exportReady = True
+            except PermissionError:
+                self.debug( f"[FrameHandler]: Write Permissions Denied. Couldn't create {self.exportdirpath}"  )
+                self.debug( f"                maybe you have not saved the document before apply this plugin." )
+                self.exportReady = False
+                break
             else:
                 self.exportReady = True
+        return self.exportReady
 
     def removeExportedFiles( self , removeSubFolder = False ):
         try:

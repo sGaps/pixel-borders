@@ -1,0 +1,19 @@
+# File: .gitignore
+# By: Gaps | sGaps | ArtGaps
+
+# Git Files:
+# .gitignore
+
+# Python Cache:
+*__pycache__/
+*.pyc
+
+# Test Directories:
+test_gui/
+# Krita files:
+*.kra
+# Temporary Files:
+*~
+
+# Special testing files
+*__test__*
