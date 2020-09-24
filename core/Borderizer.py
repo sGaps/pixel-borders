@@ -15,10 +15,12 @@ from .FrameHandler      import FrameHandler
 
 INDEX_METHODS = ["force","any-neighbor","corners","not-corners"]
 
-METHODS = { "force"        : Grow.force_grow        ,
-            "any-neighbor" : Grow.any_neighbor_grow ,
-            "corners"      : Grow.corners_grow      ,
-            "not-corners"  : Grow.not_corners_grow  }
+METHODS = { "force"             : Grow.force_grow             ,
+            "any-neighbor"      : Grow.any_neighbor_grow      ,
+            "corners"           : Grow.corners_grow           ,
+            "not-corners"       : Grow.not_corners_grow       ,
+            "strict-horizontal" : Grow.strict_horizontal_grow ,
+            "strict-vertical"   : Grow.strict_vertical_grow   }
 
 # Keys used in the data structure passed by the GUI
 KEYS = {  "methoddsc" , # [[method,thickness]] where method is

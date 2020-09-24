@@ -13,19 +13,23 @@ def pixmapFrom( relative_path ):
     return QPixmap( path.join(img_dir , relative_path) )
 # Too big: 256x256 px
 
-ICONS = [ pixmapFrom( "force.png" )        ,
-          pixmapFrom( "any-neighbor.png" ) ,
-          pixmapFrom( "corners.png"      ) ,
-          pixmapFrom( "not-corners.png"  ) ,
-          pixmapFrom( "custom.png"       ) ]
+ICONS = [ pixmapFrom( "force.png" )           ,
+          pixmapFrom( "any-neighbor.png" )    ,
+          pixmapFrom( "corners.png"      )    ,
+          pixmapFrom( "not-corners.png"  )    ,
+          pixmapFrom( "strict-horizontal.png" ) ,
+          pixmapFrom( "strict-vertical.png" )   ,
+          pixmapFrom( "custom.png" )          ]
 ICON_NUMBER  = len(ICONS)
 CUSTOM_INDEX = ICON_NUMBER - 1
 
-TABLE = { "force"           : 0 ,
-          "any-neighbor"    : 1 ,
-          "corners"         : 2 ,
-          "not-corners"     : 3 ,
-          "customs"         : 4 }
+TABLE = { "force"             : 0 ,
+          "any-neighbor"      : 1 ,
+          "corners"           : 2 ,
+          "not-corners"       : 3 ,
+          "strict-horizontal" : 4 ,
+          "strict-vertical"   : 5 ,
+          "customs"           : 6 }
 
 # Use __file__ for get the path
 class Preview( QLabel ):

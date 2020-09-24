@@ -209,13 +209,14 @@ class Grow( object ):
         return (self.__searchView , self.__count)
 
     def __any_neighbor_policy__( self , environment ):
-        """ __any_neighbor_policy__ :: [$Pixel-Enviroment] -> e | e = 0 , 1
-            State must be a [$Pixel-Enviroment] bit field.
+        """ __any_neighbor_policy__ :: [$Grow-State] -> e | e = 0 , 1
+            environment must be a [$Grow-State] bit field.
             It has a neighbor if the high nibble has a enabled bit. """
         return environment & 0xF0
 
     def __is_corner_policy__( self , environment ):
-        """ One of these bits enabled means there's free space at the respectively direction.
+        """ Grows only if the enviroment of [$Grow-State] can be considered as
+            a corner. It is Iff has only one vertical and one horizontal neighbor.
             WEST  = 1 << 7  = 0x80
             NORTH = 1 << 6  = 0x40
             SOUTH = 1 << 5  = 0x20
@@ -228,10 +229,30 @@ class Grow( object ):
         return 0x01 if h == v else 0x00
 
     def __not_corner_policy__( self , environment ):
+        """ negate version of __not_corner_policy__ """
         return not self.__is_corner_policy__( environment )
 
     def __always_grow_policy__( self , _ ):
+        """ No matter what happens, always grow. """
         return 0x01
+
+    def __strict_horizontal_policy__( self , environment ):
+        """ Grows only if the block has any horizontal neighbor
+            WEST  = 1 << 7  = 0x80
+            NORTH = 1 << 6  = 0x40
+            SOUTH = 1 << 5  = 0x20
+            EAST  = 1 << 4  = 0x10 """
+        return ( 0x00 if environment & (0x40 | 0x20)
+                      else environment & (0x80 | 0x10) )
+
+    def __strict_vertical_policy__( self , environment ):
+        """ Grows only if the block has any vertical neighbor
+            WEST  = 1 << 7  = 0x80
+            NORTH = 1 << 6  = 0x40
+            SOUTH = 1 << 5  = 0x20
+            EAST  = 1 << 4  = 0x10 """ 
+        return ( 0x00 if environment & (0x80 | 0x10)
+                      else environment & (0x40 | 0x20) )
 
     def __run_automata__( self , grow_policy ):
         """ Apply a grow policy inside the object. It must be an function that takes
@@ -286,6 +307,12 @@ class Grow( object ):
 
     def not_corners_grow( self ):
         self.__run_automata__( self.__not_corner_policy__ )
+
+    def strict_horizontal_grow( self ):
+        self.__run_automata__( self.__strict_horizontal_policy__ )
+
+    def strict_vertical_grow( self ):
+        self.__run_automata__( self.__strict_vertical_policy__ )
 
     def grow_with_custom_policy( self , grow_policy ):
         """ grow_policy :: ( [$Grow-State] -> Bool) -> IO () """
