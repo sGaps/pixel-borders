@@ -18,6 +18,7 @@ if KRITA_AVAILABLE:
     from .krita_connection.TransparencySettings import TransparencySettings
     from .krita_connection.Lookup               import kis
     from .krita_connection.SpinBox              import SpinBoxFactory
+    import cProfile
 
 # Defines a base class for the window ::::::::::::::::::::::::::::::
 class DialogBox( QDialog ):
@@ -31,12 +32,13 @@ class GUI( object ):
     BG_DESC = ("BG",None)
     CS_DESC = ("CS",None)
 
-    def __init__( self , parent = None , title = "PxGUI" ):
+    def __init__( self , parent = None , title = "PxGUI" , profiler = False ):
         self.window = DialogBox( parent )
         self.Lbody  = QVBoxLayout()
         self.window.setWindowTitle( title )
         # Do nothing
         self.borderizer = None
+        self.profiler   = profiler
 
         self.settings = BasicSettings   ()
         self.color    = ColorButtons    ()
@@ -206,7 +208,10 @@ class GUI( object ):
         self.report_data()
         if self.borderizer:
             # TODO: Move this to a different thread:
-            self.borderizer.run( **self.data )
+            if self.profiler:
+                cProfile.runctx( "self.borderizer.run( **self.data )" , globals() , locals() )
+            else:
+                self.borderizer.run( **self.data )
         # This closes the window
         self.window.accept()
 

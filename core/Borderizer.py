@@ -12,7 +12,6 @@ from .AlphaGrow         import Grow
 from .AlphaScrapperSafe import Scrapper
 from .FrameHandler      import FrameHandler
 
-
 INDEX_METHODS = ["force","any-neighbor","corners","not-corners"]
 
 METHODS = { "force"             : Grow.force_grow             ,
@@ -54,7 +53,9 @@ class Borderizer( object ):
     def __get_true_color__( managedcolor ):
         """ __get_true_color__ :: krita.ManagedColor -> bytearray 
 
-            Takes a krita.ManagedColor and returns a physical representation of the color (as bytearray structure) """
+            Takes a krita.ManagedColor and returns a physical representation of the color (as bytearray structure)
+            Update: now returns:
+                ( transparent_color , opaque_color ) """
         depth = managedcolor.colorDepth()
         cmps  = managedcolor.components()
         
@@ -70,8 +71,10 @@ class Borderizer( object ):
 
         for i in range(ncmps - 1):
             color += pack( dtype , cast(cmps[i] * dmax) )
-        color += pack( dtype , 0 )
-        return color
+
+        maxvalue = pack(dtype , dmax)
+        minvalue = pack(dtype , 0)
+        return ( color + minvalue , color + maxvalue , minvalue , maxvalue )
 
     @staticmethod
     def fillWith( target , pxdata , bounds ):
@@ -80,26 +83,29 @@ class Borderizer( object ):
         target.setPixelData( pxdata , bounds.x() , bounds.y() , bounds.width() , bounds.height() )
 
     @staticmethod
-    def getMinMaxValuesFrom( node ):
-        """ getMinMaxValuesFrom :: Node -> (Number,Number) """
-        pattern , maxv = DEPTHS[ node.colorDepth() ]
-        return ( pack( pattern , 0 ) , pack( pattern , maxv ) )
-
-    # TODO: Requires offset parameter
-    @staticmethod
-    def updateAlphaOf( pxdata , length , nchans , minval , maxval , newalpha ):
-        chSize = len(maxval)
-        skip   = nchans - 1
-        offset = skip * chSize
-        step   = offset + chSize
-        for i in range( length ):
-            index = step * i + offset
-            pxdata[ index : index + chSize ] = maxval if newalpha[i] else minval
-        return pxdata
-    @staticmethod
     def makePxDataWithColor( colorbytes , repeat_times ):
         """ makePxDataWithColor :: bytearray -> UInt -> bytearray """
         return colorbytes * repeat_times
+
+    @staticmethod
+    def makePxDataUsingAlpha( maxval , nocolor , opaque , alpha , length , nchans ):
+        item_size    = len( maxval )                # Channel Size
+        new_contents = nocolor * length             # Pixel data
+        offset       = item_size * (nchans - 1)     # Local start position of the alpha channel
+        step         = item_size * nchans
+        pos          = 0
+        while True:
+            pos   = alpha.find( maxval , pos )
+            if pos < 0:
+                break
+
+            start = pos * step + offset
+
+            if alpha[pos]: 
+                new_contents[ start : start + item_size ] = opaque
+            # Update!
+            pos  += 1
+        return new_contents
 
     @staticmethod
     def applyMethodRecipe( grow , recipe ):
@@ -132,7 +138,6 @@ class Borderizer( object ):
                          nBounds.y()      - thickness   ,
                          nBounds.width()  + 2*thickness ,
                          nBounds.height() + 2*thickness )
-        # The point universe is defined by document_bounds.
         return document_bounds.intersected( pBounds )
 
     def run( self , **data_from_gui ):
@@ -152,7 +157,7 @@ class Borderizer( object ):
         kis  = data_from_gui["kis"]
 
         if not ( node and kis and doc ):
-            print( f"[Borderizer] Couldn't run with incomplete information: node = {node} , krita = {kis} , document = {doc}" )
+            print( f"[Borderizer] Couldn't run with incomplete information: node = {node} , krita = {kis} , document = {doc}" , file = stderr )
             return False
 
         view = kis.activeWindow().activeView()
@@ -176,7 +181,7 @@ class Borderizer( object ):
         # This explicit conversion is totally required because the krita. View objects sometimes don't 
         # update the color space of user's color (foreground and background colors)
         mcolor.setColorSpace( node.colorModel() , node.colorDepth() , node.colorProfile() )
-        color  = Borderizer.__get_true_color__( mcolor )
+        nocolor , color , trBytes , opBytes = Borderizer.__get_true_color__( mcolor )
 
         dbounds     = doc.bounds()
 
@@ -185,7 +190,6 @@ class Borderizer( object ):
         transparency , threshold = data_from_gui["trdesc"]
 
         # They're used for the writing proccess
-        TRANSPARENT , OPAQUE = Borderizer.getMinMaxValuesFrom( node )
 
         batchK , batchD = kis.batchmode() , doc.batchmode()
         kis.setBatchmode( True )
@@ -197,7 +201,8 @@ class Borderizer( object ):
 
         # [N] Node actions:
         source = node
-        # TODO: Add the target using an action to add it to the Undo-Stack
+
+        # TODO: Add the Border-node using an action to add it to the Undo-Stack
         target = doc.createNode( ".target" , "paintlayer" )
         # Link the target with the document: (Just above the node)
         source.parentNode().addChildNode( target , source )
@@ -216,7 +221,8 @@ class Borderizer( object ):
             timeline       = None
         
         if timeline:
-            grow          = Grow.singleton()
+            canvasSize    = dbounds.width() * dbounds.height()
+            grow          = Grow.singleton( amount_of_items_on_search = canvasSize )
             anim_length   = len( str( len( timeline ) ) )
             original_time = doc.currentTime()
             if not frameH.build_directory():
@@ -224,7 +230,6 @@ class Borderizer( object ):
                 del target
                 return False
 
-            # TODO: Add previous bounds constraint or something similar.
             colordata = None
             for t in timeline:
                 # Update the current time and wait in synchronous mode:
@@ -234,8 +239,7 @@ class Borderizer( object ):
 
                 # [C] Clean Previous influence
                 if colordata:
-                    Borderizer.updateAlphaOf( colordata , length , nchans , TRANSPARENT , TRANSPARENT , newAlpha )
-                    Borderizer.fillWith( target , colordata , bounds )
+                    Borderizer.fillWith( target , Borderizer.makePxDataWithColor( nocolor , length ) , bounds )
 
                 # [X] Bounds Update:
                 bounds = Borderizer.getBounds( source , dbounds , thickness )
@@ -244,7 +248,6 @@ class Borderizer( object ):
                 width  = bounds.width()
                 length = bounds.width() * bounds.height()
                 pxSize = length * nchans
-                colordata = Borderizer.makePxDataWithColor( color , length )
 
                 # [R] Projection Refreshment dependent:
                 alpha  = scrap.extractAlpha( source , bounds , transparency , threshold )
@@ -254,7 +257,8 @@ class Borderizer( object ):
                 Borderizer.applyMethodRecipe( grow , methodRecipe )
                 newAlpha = grow.difference_with( alpha )
 
-                Borderizer.updateAlphaOf( colordata , length , nchans , TRANSPARENT , OPAQUE , newAlpha )
+                colordata = Borderizer.makePxDataUsingAlpha( b"\xff" , nocolor , opBytes , newAlpha , length , nchans )
+
                 Borderizer.fillWith( target , colordata , bounds )
 
                 doc.refreshProjection()
@@ -288,7 +292,6 @@ class Borderizer( object ):
             width  = bounds.width()
             length = bounds.width() * bounds.height()
             pxSize = length * nchans
-            colordata = Borderizer.makePxDataWithColor( color , length )
 
             alpha    = scrap.extractAlpha( source , bounds , transparency , threshold )
             grow     = Grow( alpha , width , length )
@@ -296,7 +299,7 @@ class Borderizer( object ):
             newAlpha = grow.difference_with( alpha )
 
             # Update and Write
-            Borderizer.updateAlphaOf( colordata , length , nchans , TRANSPARENT , OPAQUE , newAlpha )
+            colordata = Borderizer.makePxDataUsingAlpha( b"\xff" , nocolor , opBytes , newAlpha , length , nchans )
             Borderizer.fillWith( target , colordata , bounds )
 
             # Exit:
@@ -310,15 +313,3 @@ class Borderizer( object ):
         doc.setBatchmode( batchD )
         return done
 
-# ---------------------------
-# TODO: DELETE THIS
-if __name__ == "__main__":
-    kis = Krita.instance()
-    d = kis.activeDocument()
-    w = kis.activeWindow()
-    v = w.activeView()
-    n = d.activeNode()
-    print( n.channels() )
-    b = Borderizer(n,d,v)
-    print( b.nodeOrChildrenAreAnimated(n) )
-# ----------------------------

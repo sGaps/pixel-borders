@@ -28,7 +28,7 @@ class Grow( object ):
         * Preserved elements are these considered as transparent after a __run_automata__ step.
         * Modified elements are these considered as opaques after a __run_automata__ step.
     """
-    def __init__( self , data , width , size ):
+    def __init__( self , data , width , size , amount_of_items_on_search = None ):
         """ Save shared information for futher method applications. """
 
         self.data         = None    # User canvas data.
@@ -43,12 +43,13 @@ class Grow( object ):
         self.__count      = None    # Int: Number of elements in the search
         self.__cmodif     = None    # Int: Number of elements modified.
         self.__cpresv     = None    # Int: Number of elements not-modified (preserved)
+        self.__staticsize = 0
 
-        self.setData( data , width , size )
+        self.setData( data , width , size , force_amount_of_items_on_search = amount_of_items_on_search )
 
     @classmethod
-    def singleton( cls ):
-        return cls( bytearray() , 0 , 0 )
+    def singleton( cls , amount_of_items_on_search = None ):
+        return cls( bytearray() , 0 , 0 , amount_of_items_on_search )
 
     @classmethod
     def __get_required_bytes_for__( cls , size ):
@@ -59,7 +60,7 @@ class Grow( object ):
             else:            limit <<= 8
         raise TypeError( f"Size uses too many bytes. Available bytes sizes: {set(TYPES.keys())}" )
 
-    def setData( self , data , width , size ):
+    def setData( self , data , width , size , force_amount_of_items_on_search = None ):
         """ Smart constructor/Setter. If safe_mode is False, then data will be mutated after every operation
             of the object. """
 
@@ -70,8 +71,23 @@ class Grow( object ):
         self.__indexSize   = Grow.__get_required_bytes_for__( size )
         required_size      = size * self.__indexSize
 
-        if not self.__searchView or len( self.__searchView ) != size:
-            # Cast the search body into a integer of the required sizes to represent the size value.
+        # Try to avoid new memoryview allocations each time this method is called:
+        if force_amount_of_items_on_search:
+            # Recalculate values:
+            self.__indexSize = Grow.__get_required_bytes_for__( force_amount_of_items_on_search )
+            required_size    = force_amount_of_items_on_search * self.__indexSize
+
+            if force_amount_of_items_on_search != self.__staticsize or not self.__searchView:
+                # Cast each bytearray into a static integer type, based in the size required for 
+                # represent the maximum index-value of the canvas.
+                self.__searchView = memoryview( bytearray(required_size) ).cast( TYPES[self.__indexSize] )
+                self.__modified   = memoryview( bytearray(required_size) ).cast( TYPES[self.__indexSize] )
+                self.__preserved  = memoryview( bytearray(required_size) ).cast( TYPES[self.__indexSize] ) 
+            self.__staticsize = force_amount_of_items_on_search
+
+        elif not self.__staticsize and (not self.__searchView or len( self.__searchView ) != size):
+            # Cast each bytearray into a static integer type, based in the size required for 
+            # represent the maximum index-value of the canvas.
             self.__searchView = memoryview( bytearray(required_size) ).cast( TYPES[self.__indexSize] )
             self.__modified   = memoryview( bytearray(required_size) ).cast( TYPES[self.__indexSize] )
             self.__preserved  = memoryview( bytearray(required_size) ).cast( TYPES[self.__indexSize] ) 
@@ -92,33 +108,40 @@ class Grow( object ):
 
             NOTE: This method ensures that only transparent pixels are added into the search list. """
         # Search is not defined yet. We only have "Preserved elements" for now.
-        data      = self.data
+        states    = self.data
         preserved = self.__preserved
+        modified  = self.__modified
         count     = 0
 
         # Position variables:
         rawlength = self.size
         rows      = self.width
-        first_row = rows
+        first_row = rows - 1
         last_row  = rawlength - rows
         last_col  = rows - 1
 
         # [$Grow-State] Access constants:
         SEARCHRQ  = 1 << 2  # [$]
         OPAQUE    = 1       # [O]
-        for pos in range(rawlength):
-            pixel = data[pos]
+        IGNORE    = OPAQUE
+        
+        start     = 0
+        while True:
+            pos = states.find( OPAQUE , start )
+            if pos < 0:
+                break
+            else:
+                start = pos + 1
 
-            # Hard coded "Any neighbor" addition policy:
-            if not pixel & OPAQUE and ((pos > first_row       and data[pos - rows] & OPAQUE ) or     # Has a opaque neighbor at north.
-                                       (pos < last_row        and data[pos + rows] & OPAQUE ) or     # ::     ::      ::     at south.
-                                       (pos % rows            and data[pos - 1] & OPAQUE )    or     # ::     ::      ::     at west.
-                                       (pos % rows < last_col and data[pos + 1] & OPAQUE )    ):     # ::     ::      ::     at east.
-                data[pos]       |= SEARCHRQ
-                preserved[count] = pos
-                count           += 1
+            if ( (  pos > first_row       and not states[pos - rows] & IGNORE ) or
+                 (  pos < last_row        and not states[pos + rows] & IGNORE ) or
+                 (  pos % rows            and not states[pos - 1]    & IGNORE ) or
+                 (  pos % rows < last_col and not states[pos + 1]    & IGNORE ) ):
+                # Doesn't require to add a search request:
+                modified[count] = pos
+                count          += 1
         # Count update:
-        self.__cpresv = count 
+        self.__cmodif = count
         self.__context_update__()
 
     def __context_update__( self ):
@@ -127,17 +150,15 @@ class Grow( object ):
 
         states      = self.data
         search      = self.__searchView
-        #newsearch   = self.__nextView
         modified    = self.__modified
         preserved   = self.__preserved
-        #environment = self.__environment
-        #count       = self.__count
+
         newcount    = 0
         modif_count = self.__cmodif
         presv_count = self.__cpresv
 
         rows      = self.width
-        first_row = rows
+        first_row = rows - 1
         last_row  = self.size - rows
         last_col  = rows - 1
 
@@ -270,7 +291,7 @@ class Grow( object ):
         states      = self.data # States = Data + context
 
         rows      = self.width
-        first_row = rows
+        first_row = rows - 1
         last_row  = self.size - rows
         last_col  = rows - 1
 
@@ -325,7 +346,7 @@ class Grow( object ):
 
     def difference_with( self , external ):
         d = self.data
-        return bytearray( 0xFF & ~external[i] if d[i] & 0x01 else 0x00 & ~external[i] for i in range(self.size) )
+        return bytearray( 0xFF & ~external[i] if d[i] & 0x01 else 0x00 for i in range(self.size) )
 
     def xor_with( self , external ):
         """ Returns a new data without the [$Grow-State] bit field context, then apply XOR operation with a give 'external'
@@ -334,31 +355,3 @@ class Grow( object ):
         d = self.data
         return bytearray( external[i] ^ 0xFF if d[i] & 0x01 else external[i] ^ 0x00 for i in range(self.size) )
 
-
-# -------------------------------------------------------------
-if __name__ == "__main__":
-    case = "unsafe"
-    if case == "secure":
-        b = bytearray( b"\x00\x00\x00" + 
-                       b"\x00\xff\x00" +
-                       b"\x00\x00\x00" )
-        width  = 3
-        secure = True
-    elif case == "unsafe":
-        b = bytearray( b"\x00\x00\x00" + 
-                       b"\x00\xff\x00" +
-                       b"\x00\x00\x00" )
-        width  = 3
-        secure = False
-    else:
-        b = bytearray()
-        width  = 0
-        secure = False
-
-    g  = Grow( len(b) , width , secure )
-    b1 = g.classic_grow(b)
-    b2 = g.corners_grow(b)
-    print( "Original" , b  , id(b)  )
-    print( "Classic " , b1 , id(b1) )
-    print( "Corners " , b2 , id(b2) )
-# -------------------------------------------------------------
