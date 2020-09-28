@@ -83,8 +83,8 @@ class GUI( object ):
                 self.time.setChecked( False )
                 self.time.setEnabled( False )
                 QMessageBox.information( self.window , "Warning: unsaved document" , 
-                    "Unsaved Document Detected. please, save" +
-                    "your document and open again the plugin" +
+                    "Unsaved document detected. please, save\n" +
+                    "your document and open again the plugin\n" +
                     "to use the animation options." )
 
     def tryKonnect( self ):

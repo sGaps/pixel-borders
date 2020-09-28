@@ -85,6 +85,7 @@ class Borderizer( object ):
         pattern , maxv = DEPTHS[ node.colorDepth() ]
         return ( pack( pattern , 0 ) , pack( pattern , maxv ) )
 
+    # TODO: Requires offset parameter
     @staticmethod
     def updateAlphaOf( pxdata , length , nchans , minval , maxval , newalpha ):
         chSize = len(maxval)
@@ -121,6 +122,18 @@ class Borderizer( object ):
             for c in n.childNodes():
                 search.append(c)
         return greatest
+
+    @staticmethod
+    def getBounds( node , document_bounds , thickness ):
+        """ Returns a QRect that represents the bounds of the target layer. """
+        nBounds = node.bounds() # NOTE: node.bounds() returns a QRect() that include the bounds of
+                                #       child nodes.
+        pBounds = QRect( nBounds.x()      - thickness   ,
+                         nBounds.y()      - thickness   ,
+                         nBounds.width()  + 2*thickness ,
+                         nBounds.height() + 2*thickness )
+        # The point universe is defined by document_bounds.
+        return document_bounds.intersected( pBounds )
 
     def run( self , **data_from_gui ):
         """ Make borders to the given krita's node, using the keys defined in the global variable KEYS.
@@ -165,24 +178,7 @@ class Borderizer( object ):
         mcolor.setColorSpace( node.colorModel() , node.colorDepth() , node.colorProfile() )
         color  = Borderizer.__get_true_color__( mcolor )
 
-        # TODO: See if this has to be moved inside the animation-loop:
-        # Bounds selection:
-        nbounds      = Borderizer.getTrueBounds( node )
-        if nbounds.isEmpty() and not node.animated() :
-            print( f"[Borderizer] The layer is empty." , file = stderr )
-            return False
-
         dbounds     = doc.bounds()
-        # Try to get natural bounds:
-        protoBounds = QRect( nbounds.x()      - thickness   ,
-                             nbounds.y()      - thickness   ,
-                             nbounds.width()  + 2*thickness ,
-                             nbounds.height() + 2*thickness )
-
-        if dbounds.contains( protoBounds ):
-            bounds = protoBounds
-        else:
-            bounds = dbounds
 
         # Misc & Time:
         name          = data_from_gui["name"]
@@ -196,13 +192,8 @@ class Borderizer( object ):
         doc.setBatchmode( True )
 
         # [!] Run method:
-        width  = bounds.width()
         chans  = node.channels()
         nchans = len(chans)
-
-        # How many elements and their true size in the node.
-        length = bounds.width() * bounds.height()
-        pxSize = length * nchans
 
         # [N] Node actions:
         source = node
@@ -216,9 +207,7 @@ class Borderizer( object ):
         frameH = FrameHandler( doc , kis , debug = False )
         # Builds the color data
 
-        colordata = Borderizer.makePxDataWithColor( color , length )
-
-        # Time Selection:
+        # [T] Time Selection:
         protoTimeline = data_from_gui["animation"]
         if protoTimeline:
             start , finish = protoTimeline
@@ -235,19 +224,36 @@ class Borderizer( object ):
                 del target
                 return False
 
+            # TODO: Add previous bounds constraint or something similar.
+            colordata = None
             for t in timeline:
-                # Update the current time and wait in synchronous mode
+                # Update the current time and wait in synchronous mode:
                 doc.setCurrentTime(t)
                 doc.refreshProjection()
                 doc.waitForDone()
 
+                # [C] Clean Previous influence
+                if colordata:
+                    Borderizer.updateAlphaOf( colordata , length , nchans , TRANSPARENT , TRANSPARENT , newAlpha )
+                    Borderizer.fillWith( target , colordata , bounds )
+
+                # [X] Bounds Update:
+                bounds = Borderizer.getBounds( source , dbounds , thickness )
+
+                # [B] Bounds dependent:
+                width  = bounds.width()
+                length = bounds.width() * bounds.height()
+                pxSize = length * nchans
+                colordata = Borderizer.makePxDataWithColor( color , length )
+
+                # [R] Projection Refreshment dependent:
                 alpha  = scrap.extractAlpha( source , bounds , transparency , threshold )
                 grow.setData( alpha , width , length )
+
                 # Make the borders and update the target data.
                 Borderizer.applyMethodRecipe( grow , methodRecipe )
                 newAlpha = grow.difference_with( alpha )
 
-                # Update and Write
                 Borderizer.updateAlphaOf( colordata , length , nchans , TRANSPARENT , OPAQUE , newAlpha )
                 Borderizer.fillWith( target , colordata , bounds )
 
@@ -275,10 +281,20 @@ class Borderizer( object ):
             doc.setCurrentTime( original_time )
             done = True
         else:
+            # [X] Bounds Update:
+            bounds = Borderizer.getBounds( source , dbounds , thickness )
+
+            # [B] Bounds dependent:
+            width  = bounds.width()
+            length = bounds.width() * bounds.height()
+            pxSize = length * nchans
+            colordata = Borderizer.makePxDataWithColor( color , length )
+
             alpha    = scrap.extractAlpha( source , bounds , transparency , threshold )
             grow     = Grow( alpha , width , length )
             Borderizer.applyMethodRecipe( grow , methodRecipe )
             newAlpha = grow.difference_with( alpha )
+
             # Update and Write
             Borderizer.updateAlphaOf( colordata , length , nchans , TRANSPARENT , OPAQUE , newAlpha )
             Borderizer.fillWith( target , colordata , bounds )
