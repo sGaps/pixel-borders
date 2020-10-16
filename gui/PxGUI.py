@@ -9,7 +9,11 @@ from .Colors            import ColorButtons
 from .AdvancedSettings  import AdvancedSettings
 from .BasicSettings     import BasicSettings , INDEX_TYPES , TYPES , CUSTOM_INDEX
 from .CloseButtons      import CloseButtons
+from .DataLoader        import DataLoader
 from sys                import stderr
+
+# Misc.
+import cProfile
 
 # Krita dependent:
 from .krita_connection.Lookup import KRITA_AVAILABLE
@@ -18,7 +22,6 @@ if KRITA_AVAILABLE:
     from .krita_connection.TransparencySettings import TransparencySettings
     from .krita_connection.Lookup               import kis
     from .krita_connection.SpinBox              import SpinBoxFactory
-    import cProfile
 
 # Defines a base class for the window ::::::::::::::::::::::::::::::
 class DialogBox( QDialog ):
@@ -28,17 +31,20 @@ class DialogBox( QDialog ):
 # Gui itself :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 # TODO: Add an warning when krita has an unsaved document
 class GUI( object ):
-    FG_DESC = ("FG",None)
-    BG_DESC = ("BG",None)
-    CS_DESC = ("CS",None)
-
+    FG_DESC = ["FG",None]
+    BG_DESC = ["BG",None]
+    CS_DESC = ["CS",None]
+    
     def __init__( self , parent = None , title = "PxGUI" , profiler = False ):
         self.window = DialogBox( parent )
         self.Lbody  = QVBoxLayout()
         self.window.setWindowTitle( title )
-        # Do nothing
+
+        # Don't connect at begining
         self.borderizer = None
+        # Does it require profiler?
         self.profiler   = profiler
+        self.loader     = DataLoader()
 
         self.settings = BasicSettings   ()
         self.color    = ColorButtons    ()
@@ -46,7 +52,7 @@ class GUI( object ):
         self.close    = CloseButtons    ()
         self.dynPrev  = True            # Enables dynamic preview.
 
-        self.build_data()
+        self.data     = self.build_data()
 
         # Main body building:
         self.Lbody.addWidget( self.settings )
@@ -61,6 +67,7 @@ class GUI( object ):
         # Settings setup:
         self.settings.typeChanged.connect( self.on_type_update )
         self.settings.nameChanged.connect( self.on_name_update )
+        self.settings.loadRequest.connect( self.load_last_data )
 
         # Color setup:
         self.color.fg_released.connect( self.on_fg_release )
@@ -201,9 +208,9 @@ class GUI( object ):
     def on_accept( self ):
         self.close.setEnabled( False )
         # Light update:
-        self.data["methoddsc"] = self.advanced.getData()
-        typecolor , components  = (self.data["colordsc"][0] , self.color.getNormalizedComponents() )
-        self.data["colordsc"] = ( typecolor , components )
+        self.data["methoddsc"]   = self.advanced.getData()
+        components               = self.color.getNormalizedComponents()
+        self.data["colordsc"][1] = components
 
         self.report_data()
         if self.borderizer:
@@ -212,7 +219,9 @@ class GUI( object ):
                 cProfile.runctx( "self.borderizer.run( **self.data )" , globals() , locals() )
             else:
                 self.borderizer.run( **self.data )
-        # This closes the window
+        # This close and exit
+        if KRITA_AVAILABLE:
+            self.write_current_data()
         self.window.accept()
 
     # Used as pyqtSlot()
@@ -221,11 +230,53 @@ class GUI( object ):
         self.close.setEnabled( False )
         self.window.reject()
 
+
+    def update_widgets_from_data():
+        idealkeys = set( self.build_data().keys() )
+        currnkeys = set( self.data.keys() )
+        if idealkeys.intersection( currnkeys ) == idealkeys:
+            try:
+                self.settings.setName( self.data["name"] )
+                self.settings.setType( INDEX_TYPES[1] if self.data["methoddsc"] > 1 else INDEX_TYPES[0] )
+            except:
+                pass
+
+    def load_last_data( self ):
+        """ Only updates the method description and layer name """
+        retrieved = self.loader.loadData()
+        if retrieved:
+            self.data.update( retrieved )
+
+            # Basic Settings:
+            self.settings.setName( self.data["name"] )
+            self.settings.setName( self.data["name"] )
+
+            # This assumes a recipe is simple if it has only an element. Else is custom.
+            if len(retrieved["methoddsc"]) > 1:
+                self.settings.setTypeByName( "custom" )
+            else:
+                self.settings.setTypeByName( "simple" )
+            self.advanced.setRecipe( self.data["methoddsc"] )
+
+            if KRITA_AVAILABLE:
+                tr , th = retrieved["trdesc"]
+                self.transparency.setTransparency( tr )
+                self.transparency.setThreshold( th )
+
+    def write_current_data( self ):
+        toWrite = self.data.copy()
+        toWrite.pop( "node" )
+        toWrite.pop( "doc" )
+        toWrite.pop( "kis" )
+        toWrite.pop( "colordsc" )
+        toWrite.pop( "animation" )
+        self.loader.writeData( toWrite )
+
     def build_data( self ):
         """ builds the internal data used for in the widget.
             NOTE: GUI object isn't a QObject instance, so it cannot have explicit pyqtSignals and
                   pyqtSlots """
-        self.data = {
+        data = {
                 "methoddsc" : []          , # [[method,thickness]]
                 "colordsc"  : GUI.FG_DESC , # ( color_type , components )
                 "trdesc"    : [0,0]       , # Transparency descriptor = ( transparency_value , threshold )
@@ -235,7 +286,9 @@ class GUI( object ):
                 "doc"       : None        , # Krita Document
                 "kis"       : None        , # Krita Instance
                 "animation" : None          # None if it hasn't animation. Else [ start , finish ] -> start , finish are Ints in [UInt]
-              }
+        }
+
+        return data
 
     def report_data( self ):
         print( "[PxGUI] Data Sent: {" , file = stderr )

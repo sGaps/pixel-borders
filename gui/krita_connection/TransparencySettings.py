@@ -40,6 +40,12 @@ class TransparencySettings( QGroupBox ):
         self.Wtrns.valueChanged.connect( self.__transparency_update_request__ )
         self.Wthrs.valueChanged.connect( self.__threshold_update_request__    )
 
+    def setTransparency( self , transparency ):
+        self.Wtrns.setValue( transparency )
+
+    def setThreshold( self , threshold ):
+        self.Wthrs.setValue( threshold )
+
     def __transparency_update_request__( self , value ):
         self.transparencyChanged.emit( value )
 

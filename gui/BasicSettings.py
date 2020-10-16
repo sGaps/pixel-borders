@@ -1,8 +1,9 @@
 # Module:      gui.BasicSettings.py | [ Language Python ]
 # Created by: ( Gaps | sGaps | ArtGaps )
 # -------------------------------------------------------
-from PyQt5.QtWidgets import ( QComboBox   , QLineEdit   , QSpinBox     , QGroupBox , QWidget ,  # Widgets 
-                              QVBoxLayout , QHBoxLayout , QFormLayout  , QLabel )               # Layouts
+from PyQt5.QtWidgets import ( QComboBox , QLineEdit , QSpinBox    ,                 # Widgets
+                              QGroupBox , QWidget   , QPushButton ,                 # Widgets 
+                              QVBoxLayout , QHBoxLayout , QFormLayout  , QLabel )   # Layouts
 from PyQt5.Qt        import Qt                                              # Constants
 from .Preview        import Preview , CUSTOM_INDEX , ICON_NUMBER , TABLE    # Icon/Image handle
 from PyQt5.QtCore    import pyqtSlot , pyqtSignal
@@ -58,6 +59,7 @@ class BasicInfo( QGroupBox ):
         SIGNALS:
             void typeChanged( int )
             void nameChanged( str )
+            void loadRequest( str )
         SLOTS:
             void setName( str )         => emits a nameChanged signal
             void setType( int )         => emits a typeChanged signal
@@ -65,12 +67,14 @@ class BasicInfo( QGroupBox ):
     """
     typeChanged = pyqtSignal( int )
     nameChanged = pyqtSignal( str )
+    loadRequest = pyqtSignal()
 
     def __init__( self , parent = None ):
         super().__init__( parent )
         self.Lmain = QFormLayout()
         self.Wname = QLineEdit()
         self.Wtype = QComboBox()
+        self.BLast = QPushButton( "Load last border recipe" )
         self.Wdesc = QLabel()
 
         self.Wname.setMaxLength( 64 )
@@ -86,6 +90,7 @@ class BasicInfo( QGroupBox ):
 
         self.Lmain.addRow( "Recipe type"    , self.Wtype )
         self.Lmain.addRow( "Layer Name"     , self.Wname )
+        self.Lmain.addRow( self.BLast )
         self.Lmain.addRow( self.Wdesc )
 
         self.setTitle( "Basic Settings" )
@@ -94,10 +99,16 @@ class BasicInfo( QGroupBox ):
         self.Wname.textChanged.connect( self.__update_name_request__ )
         self.Wtype.currentIndexChanged.connect( self.__update_type_request__ )
         self.typeChanged.connect( self.__update_desc_request )
+        self.BLast.released.connect( self.__last_config_request__ )
+
+    @pyqtSlot()
+    def __last_config_request__( self ):
+        self.loadRequest.emit()
 
     @pyqtSlot( int )
     def __update_desc_request( self , index ):
         self.Wdesc.setText( DESCRIPTION.get(index,-1) )
+
     @pyqtSlot( str )
     def __update_name_request__( self , name ):
         self.nameChanged.emit( name )
@@ -143,6 +154,7 @@ class BasicSettings( QWidget ):
             void iconChanged( int )
             void typeChanged( int )
             void nameChanged( str )
+            void loadRequest()
         SLOTS:
             void setIcon( int )         => emits a imageChanged signal
             void setIconByName( int )   => emits a imageChanged signal
@@ -153,6 +165,7 @@ class BasicSettings( QWidget ):
     typeChanged = pyqtSignal( int )
     iconChanged = pyqtSignal( int )
     nameChanged = pyqtSignal( str )
+    loadRequest = pyqtSignal()
     def __init__( self , parent = None ):
         super().__init__( parent )
         self.Lmain  = QHBoxLayout ()
@@ -168,7 +181,12 @@ class BasicSettings( QWidget ):
 
         self.WRight.nameChanged.connect( self.__update_name_request__ )
         self.WRight.typeChanged.connect( self.__update_type_request__ )
+        self.WRight.loadRequest.connect( self.__last_config_request__ )
         self.WLeft.imageChanged.connect( self.__update_icon_request__ )
+
+    @pyqtSlot()
+    def __last_config_request__( self ):
+        self.loadRequest.emit()
 
     @pyqtSlot( str )
     def __update_name_request__( self , name ):
@@ -193,9 +211,14 @@ class BasicSettings( QWidget ):
 
     @pyqtSlot( int )
     def setType( self , index ):
-        if self.method() == index:
+        if self.type() != index:
             self.WRight.setType( index )
             self.typeChanged.emit( index )
+
+    @pyqtSlot( str )
+    def setTypeByName( self , typename ):
+        if typename in TYPES:
+            self.setType( TYPES[typename] )
 
     def type( self ):
         return self.WRight.type()

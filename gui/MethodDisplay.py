@@ -162,7 +162,6 @@ class MethodModel( QAbstractTableModel ):
                 self.rowStepsChanged.emit( row )
             self.dataChanged.emit( index , index , [role] )
             return True
-        pass
 
     def getData( self ):
         return self._data
@@ -250,6 +249,18 @@ class MethodWidget( QTableView ):
         model = self.model()
         last  = model.rowCount() - 1
         model.removeRows( last , 1 )
+
+    def setRecipe( self , recipe ):
+        model = self.model()
+        while model.removeRows( 0 , 1 ):
+            pass
+
+        steps = len(recipe)
+        model.insertRows( 0 , steps - 1 )
+        for i in range( steps ):
+            step = recipe[i]
+            model.setData( model.index(i,0) , INDEX_METHODS.index(step[0]) , Qt.EditRole )
+            model.setData( model.index(i,1) , step[1] , Qt.EditRole )
 
     def dataLength( self ):
         return self.model().rowCount()

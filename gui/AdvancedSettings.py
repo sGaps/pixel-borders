@@ -25,7 +25,7 @@ class AdvancedSettings( QGroupBox ):
         self.Wtable  = MethodWidget()
         self.Badd    = QPushButton( "Add " )
         self.Brem    = QPushButton( "Remove" )
-        self.Winfo    = QLabel( "Press click in an entry to edit its contents" )
+        self.Winfo   = QLabel( "Press click in an entry to edit its contents" )
 
         self.setLayout( self.Lmain )
 
@@ -64,6 +64,9 @@ class AdvancedSettings( QGroupBox ):
 
     def getData( self ):
         return self.Wtable.getData()
+
+    def setRecipe( self , recipe ):
+        return self.Wtable.setRecipe( recipe )
 
     @pyqtSlot()
     def discardAllExceptFirst( self ):
