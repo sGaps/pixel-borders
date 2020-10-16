@@ -1,6 +1,20 @@
 # Module:      gui.Colors.py | [ Language Python ]
 # Created by: ( Gaps | sGaps | ArtGaps )
 # ------------------------------------------------
+"""
+    Defines a widget used in PxGUI.
+
+    [:] Defined in this module
+    --------------------------
+    ColorButtons :: class
+        Widget used for display the color description.
+
+    [*] Created By 
+     |- Gaps : sGaps : ArtGaps
+"""
+
+
+
 from PyQt5.QtWidgets import ( QPushButton , QGroupBox , QLabel , QTableWidget , QHeaderView ,           # Widgets
                               QVBoxLayout , QHBoxLayout , QLayout , QFormLayout , QAbstractItemView )   # Layouts
 from PyQt5.QtCore     import pyqtSlot , pyqtSignal

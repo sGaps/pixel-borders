@@ -1,6 +1,44 @@
 # Module:      gui.Preview.py | [ Language Python ]
 # Created by: ( Gaps | sGaps | ArtGaps )
 # -------------------------------------------------
+"""
+    Defines a widget used in PxGUI.
+
+    [:] Defined in this module
+    --------------------------
+    this_module_dir :: str
+        module absolute path.
+    IMGDIRNAME      :: str
+        Name of the directory where the images are.
+
+    img_dir         :: class
+        concatenation of this_module_dir with IMGDIRNAME
+
+    pixmapFrom      :: functions
+        import an Image.
+
+    ICONS           :: [QPixmap]
+        retrieves the information.
+
+    ICON_NUMBER     :: int
+        number of available incons.
+
+    CUSTOM_INDEX    :: int
+        index of the custom method icon.
+
+    TABLE           :: dict
+        maps a method name to a integer. It's used to
+        retrieve icons from ICONS.
+    
+    Preview         :: class
+        Shows, loads, and imports icons.
+
+    [*] Created By 
+     |- Gaps : sGaps : ArtGaps
+"""
+
+
+
 from PyQt5.QtWidgets import QLabel
 from PyQt5.QtGui     import QPixmap
 from os              import path
@@ -33,6 +71,7 @@ TABLE = { "force"             : 0 ,
 
 # Use __file__ for get the path
 class Preview( QLabel ):
+    """ Utility class to import or load icons. """
     def __init__( self , parent = None ):
         super().__init__( parent )
 

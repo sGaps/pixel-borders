@@ -1,16 +1,41 @@
 # Module:      core.FrameHandler.py | [ Language Python ]
 # Created by: ( Gaps | sGaps | ArtGaps )
 # -----------------------------------------------------
-""" Defines a FrameHandler object to manage few special operations like
-    import animations and export krita nodes as files. """
+""" 
+    Defines a FrameHandler object to manage few special operations like
+    import animations and export krita nodes as files.
+
+    [:] Defined in this module
+    --------------------------
+    FrameHandler        :: class
+        Manages the IO - operations. It's used when a node has keyframes in a Krita.Animation.
+
+    DEFAULT_OUTPUT_DIR :: str
+        default output dir for export operation made by a FrameHandler instance.
+
+    [*] Created By 
+     |- Gaps : sGaps : ArtGaps
+    """
 from   collections import deque
 from   sys         import stderr
 import krita
 import os
-DEFAULT_OUTPUT_DIR = ".output"
 
+DEFAULT_OUTPUT_DIR = ".output"
 class FrameHandler( object ):
+    """
+        Utility object to export and import frames/images from and to krita.
+    """
     def __init__( self , doc , krita_instance , subfolder = DEFAULT_OUTPUT_DIR , xRes = None , yRes = None , info = None , debug = False ):
+        """
+            doc(krita.Document):            Current Document
+            krita_instance(krita.Krita):    Current Krita instance
+            subfolder(str):                 Subfolder used to import and export krita-frames
+            xRes(float):                    x Resolution
+            yRes(float):                    y Resolution
+            info(krita.InfoObject):         Information used to export frames. (export configuration)
+            debug(bool):                    enables/disables print operations in the stderr buffer.
+        """
         self.kis    = krita_instance
         self.doc    = doc
         self.bounds = doc.bounds()
@@ -34,6 +59,10 @@ class FrameHandler( object ):
 
     @staticmethod
     def __default_info__():
+        """ 
+            RETURNS
+                krita.InfoObject
+            Returns a singleton InfoObject. """
         info = krita.InfoObject()
         info.setProperties({
             "alpha"                 : True  ,   # Always must be true
@@ -46,16 +75,29 @@ class FrameHandler( object ):
                     })
         return info
     def setInfo( self , info ):
-        """ Sets the export InfoObject. """
+        """
+            ARGUMENTS
+                info(krita.InfoObject): object used to describe the export options.
+            Sets the export InfoObject. """
         self.info = info
 
     def setRes( self, xRes , yRes ):
-        """ Sets the export resolution. """
+        """ 
+            ARGUMENTS
+                xRes(float):                    x Resolution
+                yRes(float):                    y Resolution
+            Sets the export resolution. """
         self.xRes = xRes
         self.yRes = yRes
 
     def __exhaustive_is_animated__( self , node ):
-        """ Returns true if there's an animated node in the tree node-hierarchy described by 'node'. """
+        """
+            ARGUMENTS
+                node(krita.Node):   Current node
+            RETURNS
+                bool
+            Returns true if there's an animated node in the tree node-hierarchy described by 'node'.
+            """
         queue = deque([node])
         while queue:
             n = queue.pop()
@@ -66,8 +108,18 @@ class FrameHandler( object ):
         return False
 
     def __get_first_frame_index__( self , node , start , finish ):
-        """ Returns the first frame of the node in the timeline.
-            If it isn't animated, returns None. """
+        """ 
+            ARGUMENTS
+                node(krita.Node):   source node.
+                start(int):         start time index.
+                finish(int):        finish time index.
+            RETURNS
+                int or None
+
+            Returns the first frame index of the node in the timeline.
+            If it isn't animated or it doesn't have keyframes, returns None.
+            NOTE: this uses a inclusive range [start,finish]
+            """
         if not node.animated(): return None
 
         t         = start
@@ -76,8 +128,17 @@ class FrameHandler( object ):
         return t
 
     def __get_last_frame_index__( self , node , start , finish ):
-        """ Returns the first frame of the node in the timeline.
-            If it isn't animated, returns None. """
+        """ 
+            ARGUMENTS
+                node(krita.Node):   source node.
+                start(int):         start time index.
+                finish(int):        finish time index.
+            RETURNS
+                int or None
+
+            Returns the first frame index of the node in the timeline.
+            If it isn't animated, returns None.
+            NOTE: this uses a inclusive range [start,finish] """
         if not node.animated(): return None
 
         t         = finish
@@ -86,9 +147,18 @@ class FrameHandler( object ):
         return t
 
     def __get_frame_limits_( self , node , start , length ):
-        """ returns the first and last frame-indexes inside the range of start-index
+        """ 
+            ARGUMENTS
+                node(krita.Node):   source node.
+                start(int):         start time index.
+                length(int):        length of the animation range.
+            RETURNS
+                int or None
+
+            returns the first and last frame-indexes inside the range of start-index
             with a given length of the search.
-            returns None if there isn't any frame or animation."""
+            returns None if there isn't any frame or animation.
+            NOTE: this uses an inclusive range [start, length] """
         if not node.animated():
             return None
 
@@ -100,16 +170,24 @@ class FrameHandler( object ):
 
     # Returns all the animated subnodes and the minimum first frame-index
     def __exhaustive_take_animated_nodes__( self , node , start , length ):
-        """ Returns the list of animated nodes and the index
-            of the first key frame on the timeline.
-            
-            method (...) => (animated_nodes,first_frame) """
+        """ 
+            ARGUMENTS
+                node(krita.Node):   source node.
+                start(int):         start time index.
+                length(int):        length of the animation range.
+            RETURNS
+                ( [ krita.Node] , [int] ) or
+                ( []            , None  )
+            Returns the list of animated nodes and the inclusive indexes
+            of the leftmost and rightmost keyframes in the animation
+            range [start,length] """
         animated_nodes = []
         queue          = deque([node])
         anim_limits    = []
+        # Search:
         while queue:
             n       = queue.pop()
-            limits  = self.__get_frame_limits_(n,start,length)  # Note
+            limits  = self.__get_frame_limits_(n,start,length)
             if limits is not None:
                 # Add the node to the result:
                 animated_nodes.append(n)
@@ -120,7 +198,7 @@ class FrameHandler( object ):
                 else:
                     anim_limits = limits
 
-            # Search in the child nodes:
+            # Add children to search:
             for c in n.childNodes():
                 queue.append(c)
         if anim_limits:
@@ -129,25 +207,69 @@ class FrameHandler( object ):
             return ( animated_nodes , None )
 
     def get_animation_of( self , node , start , finish ):
+        """
+            ARGUMENTS
+                node(krita.Node):   source node.
+                start(int):         start time index.
+                finish(int):        finish time index.
+            RETURNS
+                ( [ krita.Node] , [int] ) or
+                ( []            , None  )
+            Wrapper function of __exhaustive_take_animated_nodes__
+
+            Returns a list of animated nodes and, the leftmost
+            and rightmost keyframe indexes of the inclusive
+            range [start,finish]
+        """
         length = finish - start + 1
         return __exhaustive_take_animated_nodes__( node , start , length )
 
     def get_animation_range( self , node , start , finish ):
-        """ Returns a range for the animation if there's animation. Else
-            returns None. """
+        """ 
+            ARGUMENTS
+                node(krita.Node):   source node.
+                start(int):         start time index.
+                finish(int):        finish time index.
+            RETURNS
+                [int] or None
+            Returns a inclusive range for the animation if there's animation. Else
+            returns None.
+
+            See also: get_animation_of"""
         length = finish - start + 1
         return self.__exhaustive_take_animated_nodes__( node , start , length )[1]
 
     def get_animated_subnodes( self , node , start , finish ):
-        """ Returns all the nodes in the node-hierarchy for the animation if there's animation. Else
-            returns []. """
+        """ 
+            ARGUMENTS
+                node(krita.Node):   source node.
+                start(int):         start time index.
+                finish(int):        finish time index.
+            RETURNS
+                [krita.Node]
+            Returns all the nodes in the node-hierarchy for the animation if there's animation. Else
+            returns [].
+            See also: get_animation_of"""
         length = finish - start + 1
         return self.__exhaustive_take_animated_nodes__( node , start , length )[0]
 
     def get_exported_files( self ):
+        """
+            RETURNS
+                [ str ]
+            Returns a list of all exported keyframes/files.
+            each element is a full path to a file.
+        """
         return self.exported
 
     def build_directory( self ):
+        """
+            IO-ACTION
+                make the specified subfolder in the current Document path.
+                mkdir dirname( krita.activeDocument().fileName() )/subfolder
+            RETURNS
+                bool
+        """
         while not self.exportReady:
             try:
                 os.makedirs( self.exportdirpath )
@@ -168,8 +290,18 @@ class FrameHandler( object ):
         return self.exportReady
 
     def removeExportedFiles( self , removeSubFolder = False ):
+        """
+            ARGUMENTS
+                removeSubFolder(bool): Used to know when is totally required remove the subfolder.
+            IO-ACTION
+                remove all exported files, while it's allowed.
+            RETURNS
+                bool
+        """
         try:
             for f in self.exported:
+                # TODO: Verify if I require to change this by:
+                #       os.remove( f"{self.exportdirpath}/{f}" )
                 os.remove( f )
             if removeSubFolder:
                 try:
@@ -182,7 +314,15 @@ class FrameHandler( object ):
             return False
 
     def exportFrame( self , filename , node ):
-        """ Export the node data of the current time to a file and records the file path into )
+        """ 
+            ARGUMENTS
+                filename(str):      name of the file with image extension (.png, jpeg, ...)
+                node(krita.Node):   source node.
+            IO-ACTION
+                Export the node pixel data as filename
+            RETURNS
+                bool
+            Export the node data of the current time to a file and records the file path into )
             the object. 
             if info object wasn't defined. then filename must have the suffix of png files."""
         if self.exportReady:
@@ -211,10 +351,20 @@ class FrameHandler( object ):
         return result
 
     def importFrames( self , startframe , files = [] ):
-        """ Import files from export directory path saved in the object.
-            NOTE: export directory must exist, else no action are performed. """
+        """ 
+            ARGUMENTS
+                startframe(int):    start keyframe index to add the animation.
+                files([str]):       which files will be used as animation.
+            IO-ACTION
+                try import all files
+            RETURNS
+                bool
+            Import files from export directory path saved in the object.
+            if files is empty, then this uses the exported files.
+            NOTE: export directory must exist, else does nothing. """
         searchpath = self.exportdirpath
 
+        # I
         if not files:
             files = self.exported
 
@@ -239,24 +389,3 @@ class FrameHandler( object ):
         self.kis.setBatchmode( batchmode )
         return done
 
-if __name__ == "__main__":
-    import krita
-    kis = krita.Krita.instance()
-    doc  = kis.activeDocument()
-    node = doc.activeNode()
-    f = FrameHandler(node,doc,72,72,"test_gui/subfolder")
-    print( f.__exhaustive_take_animated_nodes__(node,0,20) )
-    print( f.exportFrame( "abcd.png"  , node ) )
-
-    infoTest = True
-    if infoTest:
-        info = krita.InfoObject()
-        info.setProperties({
-            "alpha"                 : True  ,
-            "compression"           : 1     , #None
-            "forceSRGB"             : False ,
-            "indexed"               : False ,
-            "interlaced"            : False ,
-            "saveSRGBProfile"       : False ,
-            "transparencyFillColor" : []    })
-        print( info.properties() )

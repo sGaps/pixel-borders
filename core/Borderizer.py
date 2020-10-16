@@ -1,7 +1,52 @@
 # Module:      core.Borderizer.py | [ Language Python ]
 # Created by: ( Gaps | sGaps | ArtGaps )
 # -----------------------------------------------------
-""" Defines a Borderizer object to add pixel borders to a krita node. """
+""" 
+    Defines a Borderizer object to add pixel borders to a krita node.
+
+    [:] Defined in this module
+    --------------------------
+    Borderizer      :: class
+        Object used to add borders to a source krita layer/node. This layer can be a
+        paint layer or group layer.
+
+        Also this layer can be animated, so an animated border will be created.
+        NOTE: The method requires read/write permissions to perform an animation operation.
+
+    INDEX_METHODS   :: [str]
+        List of available grow methods.
+
+    METHODS         :: dict
+        Maps each available method name => Grow.grow_method( ... )
+
+    KEYS            :: set
+        Holds each required keys to run a Borderizer object.
+            "methoddsc" -> Method descriptor It's a method recipe. maps [ [str,int] ] type.
+                            example: [ ["any-neighbor",1] , ["corners",2] , ["strict-horizontal",4] ]
+            "colordsc"  -> Color descriptor. Says what color must be used.
+                            ["FG" , _]:             Foreground
+                            ["BG" , _]:             Background
+                            ["CS" , components]:    Custom
+                                    where components :: [int]
+            "trdesc"    -> Transparency descriptor. This means wich values will be considered as transparent
+                            [ transparency_value , threshold ]
+            "node"      -> Krita source node.
+            "kis"       -> Krita instance.
+            "doc"       -> Krita document.
+            "animation" -> Animation range. It holds a list with which means a inclusive range. [start,finish]
+                           When this is equal to None, then there's no animation.
+                            example: [ 1 , 10 ] => start at frame 1, and animate until frame 10
+            "name"      -> The name that will be used for the new border layer.
+    DEPTHS          :: dict
+        Holds relevant information about the color Depth, like cast type and max limits.
+
+    [*] Created By 
+     |- Gaps : sGaps : ArtGaps
+"""
+
+
+
+
 from krita              import Selection , Krita , ManagedColor
 from struct             import pack , unpack
 from PyQt5.QtCore       import QRect
@@ -12,7 +57,7 @@ from .AlphaGrow         import Grow
 from .AlphaScrapperSafe import Scrapper
 from .FrameHandler      import FrameHandler
 
-INDEX_METHODS = ["force","any-neighbor","corners","not-corners"]
+INDEX_METHODS = ["force","any-neighbor","corners","not-corners","strict-horizontal","strict-vertical"]
 
 METHODS = { "force"             : Grow.force_grow             ,
             "any-neighbor"      : Grow.any_neighbor_grow      ,
@@ -23,7 +68,7 @@ METHODS = { "force"             : Grow.force_grow             ,
 
 # Keys used in the data structure passed by the GUI
 KEYS = {  "methoddsc" , # [[method,thickness]] where method is
-          "colordsc"  , # ( color_type , components )
+          "colordsc"  , # [ color_type , components ]
                         # where color_type = "FG" | "BG" , "CS"
                         #       components = [UInt]
           "trdesc"    , # Transparency descriptor = [ transparency_value , threshold ]
@@ -40,22 +85,35 @@ DEPTHS = { "U8"  : ("B" , 2**8  - 1 ) ,
            "F16" : ("e" , 1.0       ) ,
            "F32" : ("f" , 1.0       ) }
 
-class BorderException( Exception ):
-    def __init__( self , args ): super().__init__( args )
-
 class Borderizer( object ):
+    """
+        Object used to make borders to regular, group or animated nodes.
+        This will search into the sub node hiearchy to make the borders correctly.
+    """
     ANIMATION_IMPORT_DEFAULT_INDEX = -1
     def __init__( self , info = None , cleanUpAtFinish = False ):
+        """
+            ARGUMENTS
+                info(krita.InfoObject): Specify some special arguments to export files.
+                cleanUpAtFinish(bool):  Indicates if is totally required to remove all exported files.
+        """
         self.info = info
         self.cleanUpAtFinish = cleanUpAtFinish
 
     @staticmethod
     def __get_true_color__( managedcolor ):
-        """ __get_true_color__ :: krita.ManagedColor -> bytearray 
-
-            Takes a krita.ManagedColor and returns a physical representation of the color (as bytearray structure)
-            Update: now returns:
-                ( transparent_color , opaque_color ) """
+        """ 
+            ARGUMENTS
+                managedcolor(krita.ManagedColor): source normalized color from krita.
+            RETURNS
+                ( bytearray , bytearray , bytearray , bytearray )
+            Takes a krita.ManagedColor and returns four relevant bytearrays:
+                ( color transparent,
+                  color opaque     ,
+                  min alpha value  ,
+                  max alpha value  )
+        """
+                
         depth = managedcolor.colorDepth()
         cmps  = managedcolor.components()
         
@@ -78,17 +136,38 @@ class Borderizer( object ):
 
     @staticmethod
     def fillWith( target , pxdata , bounds ):
-        """ fillWith :: krita.Node -> bytearray -> PyQt5.QtCore.QRect -> IO () 
+        """ 
+            ARGUMENTS
+                target(krita.Node):         target node.
+                pxdata(bytearray):          pixel data.
+                bounds(PyQt5.QtCore.QRect): bounds of the pixel data.
             Updates the node pixelData using a bytearray and a QRect """
         target.setPixelData( pxdata , bounds.x() , bounds.y() , bounds.width() , bounds.height() )
 
     @staticmethod
     def makePxDataWithColor( colorbytes , repeat_times ):
-        """ makePxDataWithColor :: bytearray -> UInt -> bytearray """
+        """ 
+            ARGUMENTS
+                colorbytes(bytearray):  color to repeat
+                repeat_times(int):      how many times that color repeats
+            RETURNS
+                bytearray
+        """
         return colorbytes * repeat_times
 
     @staticmethod
     def makePxDataUsingAlpha( maxval , nocolor , opaque , alpha , length , nchans ):
+        """
+            ARGUMENTS
+                maxval(bytearray):  max alpha value.
+                nocolor(bytearray): Transparent color.
+                opaque(bytearray):  Opaque color.
+                alpha(bytearray):   simplified version of pixel data. (returned by a Scrapper or Grow object)
+                length(int):        length of the alpha data.
+                nchans(int):        How many channels has the color space.
+            RETURNS
+                bytearray
+        """
         item_size    = len( maxval )                # Channel Size
         new_contents = nocolor * length             # Pixel data
         offset       = item_size * (nchans - 1)     # Local start position of the alpha channel
@@ -109,8 +188,13 @@ class Borderizer( object ):
 
     @staticmethod
     def applyMethodRecipe( grow , recipe ):
-        """ Apply the grow recipe to the grow object. 
-            grow :: Grow ; recipe :: [(Grow -> Grow Action,Int)] """
+        """ 
+            ARGUMENTS
+                grow(AlphaGrow.Grow):               object that describes how the alpha will grow.
+                recipe([AlphaGrow.Grow.method()):   list of methods from a AlphaGrow.Grow object
+            RETURNS
+                AlphaGrow.Grow
+            Apply the grow recipe to the grow object. """
         for task , steps in recipe:
             for i in range(steps):
                 task( grow )
@@ -118,7 +202,12 @@ class Borderizer( object ):
 
     @staticmethod
     def getTrueBounds( node ):
-        """ Accumulate the union of bounds of each element of the node hierarchy defined by 'node'. """
+        """ 
+            ARGUMENTS
+                node(krita.Node):   source node
+            RETURNS
+                PyQt5.QtCore.QRect
+            Accumulate the union of bounds of each element of the node hierarchy defined by 'node'. """
         greatest = node.bounds()
         search   = deque( node.childNodes() )
         while search:
@@ -131,7 +220,12 @@ class Borderizer( object ):
 
     @staticmethod
     def getBounds( node , document_bounds , thickness ):
-        """ Returns a QRect that represents the bounds of the target layer. """
+        """ 
+            ARGUMENTS
+                node(krita.Node):                       source node.
+                document_bounds(PyQt5.QtCore.QRect):    Bounds of the document.
+                thickness(int):                         how many pixels will be added to each side of the document_bounds
+            Returns a QRect that represents the bounds of the target layer. """
         nBounds = node.bounds() # NOTE: node.bounds() returns a QRect() that include the bounds of
                                 #       child nodes.
         pBounds = QRect( nBounds.x()      - thickness   ,
@@ -141,9 +235,14 @@ class Borderizer( object ):
         return document_bounds.intersected( pBounds )
 
     def run( self , **data_from_gui ):
-        """ Make borders to the given krita's node, using the keys defined in the global variable KEYS.
-                data_from_gui -> dict(...)
-                and data_from_gui.keys() == KEYS
+        """ 
+            ARGUMENTS
+                data_from_gui(dict):    must have the keys of KEYS
+            RETURNS
+                bool
+            Make borders to the given krita's node, using the keys defined in the global variable KEYS.
+
+            See also: KEYS
         """
 
         if set(data_from_gui.keys()) != KEYS:

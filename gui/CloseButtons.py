@@ -1,6 +1,19 @@
 # Module:      gui.CloseButtons.py | [ Language Python ]
 # Created by: ( Gaps | sGaps | ArtGaps )
 # ------------------------------------------------------
+"""
+    Defines a widget used in PxGUI.
+
+    [:] Defined in this module
+    --------------------------
+    CloseButtons :: class
+        Widget used for display accept and cancel buttons.
+
+    [*] Created By 
+     |- Gaps : sGaps : ArtGaps
+"""
+
+
 from PyQt5.QtWidgets import ( QDialogButtonBox , QWidget ,      # Widgets
                               QHBoxLayout )                     # Layouts
 from PyQt5.QtCore    import pyqtSlot , pyqtSignal , Qt

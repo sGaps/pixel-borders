@@ -1,6 +1,29 @@
 # Module:      gui.MethodDisplay.py | [ Language Python ]
 # Created by: ( Gaps | sGaps | ArtGaps )
 # -------------------------------------------------------
+"""
+    Defines a widget used in PxGUI.
+
+    [:] Defined in this module
+    --------------------------
+    PComboBox       :: class
+        Widget used for display the color description.
+
+    MethodDelegate  :: class
+        Provides the correct editor to modify the data.
+
+    MethodModel     :: class
+        Manages the actual data.
+
+    MethodWidget    :: class
+        Displays the data.
+
+    [*] Created By 
+     |- Gaps : sGaps : ArtGaps
+"""
+
+
+
 from PyQt5.QtCore    import QAbstractTableModel , QModelIndex , Qt , QVariant
 from PyQt5.QtWidgets import ( QTableView , QAbstractItemView , QStyledItemDelegate , QHeaderView ,
                               QSpinBox , QComboBox )
@@ -10,6 +33,9 @@ INDEX_METHODS = ["force","any-neighbor","corners","not-corners","strict-horizont
 
 # TODO: Close popup after a single click
 class PComboBox( QComboBox ):
+    """
+        Spinbox that defines a displayPopup action.
+    """
     def __init__( self , parent = None ):
         super().__init__( parent )
 
@@ -20,6 +46,10 @@ class PComboBox( QComboBox ):
         self.timer.start(100)
 
 class MethodDelegate( QStyledItemDelegate ):
+    """
+        Delegate that creates an editor for the data retrieved by
+        MethodModel.
+    """
     MAX = 200
     MIN = 1
     NAME_COL = 0
@@ -27,7 +57,7 @@ class MethodDelegate( QStyledItemDelegate ):
     def __init__( self , parent = None ):
         super().__init__( parent )
     def createEditor( self , parent , option , index ):
-        """ Provides a simple QSpinbox editor with a range of [1..200] """
+        """ Provides a simple PComboBox or a QSpinBox editor """
         col = index.column()
         if col == MethodDelegate.NAME_COL:
             editor = PComboBox( parent )
@@ -88,7 +118,7 @@ class MethodModel( QAbstractTableModel ):
             rows , cols :: Int
             HLabels     :: [ String ]
 
-        This model has editable items.
+        also, this model has editable items.
 
         SIGNALS
             void rowMethodChanged( int )
@@ -166,13 +196,7 @@ class MethodModel( QAbstractTableModel ):
     def getData( self ):
         return self._data
 
-    # This must to call these methods: beginInsertRows() before inserting new rows into the data
-    # structure, and endInsertRows() immediatelyafterwards.
-    
-    # The parent index corresponds to the parent into which the new rows are inserted. first and
-    # and last are the row numbers that the new rows will have after been inserted
     def insertRows( self , row , count , parent = QModelIndex() ):
-        # Parent , first , last
         self.beginInsertRows( parent , row , row + count - 1 )
     
         new_rows   = [ MethodModel.MINIMAL.copy() for _ in range(count) ]
@@ -183,14 +207,12 @@ class MethodModel( QAbstractTableModel ):
 
         return True
 
-    # This must to call these methods: beginRemoveRows() -> endRemoveRows()
     def removeRows( self , row , count , parent = QModelIndex() ):
         if self.rowCount() > 1:
             # parent , first , last
             self.beginRemoveRows( parent , row , row + count - 1 )
         
             data       = self._data
-            #data       = data[row:] + data[row+count:]
             data       = data[:row] + data[row+count:]
             self._data = data
             self.endRemoveRows()
@@ -201,6 +223,7 @@ class MethodModel( QAbstractTableModel ):
 
 class MethodWidget( QTableView ):
     """
+        Holds info about the actual data.
         SIGNALS
             void firstMethodChanged( str )
         SLOTS

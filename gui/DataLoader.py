@@ -1,3 +1,15 @@
+"""
+    Utility module to load and write configuration files.
+
+    [:] Defined in this module
+    --------------------------
+    DataLoader :: class
+        Read and Write a data from PxGUI as a json file.
+
+    [*] Created By 
+     |- Gaps : sGaps : ArtGaps
+"""
+
 from PyQt5.QtWidgets import QPushButton
 from os              import path
 import json

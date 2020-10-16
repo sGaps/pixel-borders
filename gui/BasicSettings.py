@@ -1,6 +1,26 @@
 # Module:      gui.BasicSettings.py | [ Language Python ]
 # Created by: ( Gaps | sGaps | ArtGaps )
 # -------------------------------------------------------
+"""
+    Defines a widget used in PxGUI.
+
+    [:] Defined in this module
+    --------------------------
+    ImageDisplay    :: class
+        Contains an icon of a particular method or method type.
+
+    BasicInfo       :: class
+        Contains a button to reload the previous configuration, the name of the layer
+        and the method type.
+
+    BasicSettings   :: class
+        Constants an ImageDisplay and a BasicInfo objects.
+
+    [*] Created By 
+     |- Gaps : sGaps : ArtGaps
+"""
+
+
 from PyQt5.QtWidgets import ( QComboBox , QLineEdit , QSpinBox    ,                 # Widgets
                               QGroupBox , QWidget   , QPushButton ,                 # Widgets 
                               QVBoxLayout , QHBoxLayout , QFormLayout  , QLabel )   # Layouts

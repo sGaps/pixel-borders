@@ -1,3 +1,21 @@
+# Module:      gui.krita_connection.SpinBox.py | [ Language Python ]
+# Created by: ( Gaps | sGaps | ArtGaps )
+# ------------------------------------------------------------------
+"""
+    Defines a widget used in the PxGUI when krita is available.
+
+    [:] Defined in this module
+    --------------------------
+
+    TimeOptions :: class
+        Widget used to display animation/time information.
+
+    [*] Created By 
+     |- Gaps : sGaps : ArtGaps
+"""
+
+
+
 from PyQt5.QtWidgets import ( QSpinBox     , QGroupBox , QLabel ,   # Widgets 
                               QFormLayout  )                        # Layouts
 from PyQt5.QtCore    import pyqtSlot , pyqtSignal

@@ -1,15 +1,21 @@
-# Module:      AlphaScrapper.py | [ Language Python ]
+# Module:      core.AlphaScrapper.py | [ Language Python ]
 # Created by: ( Gaps | sGaps | ArtGaps )
-# ---------------------------------------------------
-# [[ IT's NOT USED ]] 
+# --------------------------------------------------------
+"""
+    [:] Defined in this module
+    --------------------------
+
+    Old and usafe version of the module gui.AlphaScrapperSafe.
+
+    [*] Created By 
+     |- Gaps : sGaps : ArtGaps
+"""
 
 class Scrapper( object ):
     """ Utility class for extract the alpha channel from a krita node. """
     def __init__( self ):
         pass
 
-    # Uses the function for fast indexing PyQt5.QtCore.QByteArray::at( int index ) -> char
-    # TODO: Fix problem here... what happens if the sz > 1?
     def isOpaqueAt( self , i , rawdata , sz , transparent = 0x00  ):
         """ Returns true if there isn't transparent bytes in rawdata. """
         return rawdata.count( transparent , i , i+sz ) != sz
@@ -18,9 +24,6 @@ class Scrapper( object ):
         """ Returns true if there is transparent bytes in rawdata. """
         return rawdata.find( transparent , i, sz ) > -1
 
-    # TODO: Change doc for bounds object
-    # TODO: See if I must have to rename this method and add an extra argument like: extractChannel( ... , channel = -1 , ... )
-    #       And then change offset = ... by: offset = (nmChn + channel) * szChn
     def extractAlpha( self , node , bounds , opaque = 0xFF , transparent = 0x00 ):
         """ Extract the alpha pixel data from the node, using bounds which is a QRect-like object. """
         if node is None or bounds.width() == 0 or bounds.height() == 0:
@@ -58,15 +61,3 @@ class Scrapper( object ):
         """ Returns the number of channels inside the node. """
         chans = node.channels()
         return len(chans) if chans else 1
-
-# -------------------------------------------------------------
-# TODO: REMOVE THIS
-if __name__ == "__main__":
-    from krita import Krita
-    kis = Krita.instance()
-    d = kis.activeDocument()
-    n = d.activeNode()
-    s = Scrapper()
-    data = s.extractAlpha(n,d)
-    print( data )
-# -------------------------------------------------------------

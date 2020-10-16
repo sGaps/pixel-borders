@@ -1,13 +1,29 @@
 # Module:      gui.AdvancedSettings.py | [ Language Python ]
 # Created by: ( Gaps | sGaps | ArtGaps )
 # ----------------------------------------------------------
+"""
+    Defines a widget used in PxGUI.
+
+    [:] Defined in this module
+    --------------------------
+    AdvancedSettings :: class
+        Widget used for display the method recipe.
+
+
+    [*] Created By 
+     |- Gaps : sGaps : ArtGaps
+"""
+
+
+
 from PyQt5.QtWidgets import ( QGroupBox  , QPushButton , QLabel ,    # Widgets
                               QVBoxLayout , QHBoxLayout )   # Layouts
 from PyQt5.QtCore    import pyqtSlot , pyqtSignal
 from .MethodDisplay  import MethodWidget
 
 class AdvancedSettings( QGroupBox ):
-    """ Contains additional information about the method.
+    """ 
+        Contains additional information about the method.
         SIGNALS:
             void firstMethodChanged( str )
         SLOTS:

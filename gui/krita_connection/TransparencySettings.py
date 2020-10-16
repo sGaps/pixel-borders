@@ -1,6 +1,21 @@
 # Module:      gui.krita_connection.TransparencySettings.py | [ Language Python ]
 # Created by: ( Gaps | sGaps | ArtGaps )
 # -------------------------------------------------------------------------------
+"""
+    Defines a widget used in the PxGUI when krita is available.
+
+    [:] Defined in this module
+    --------------------------
+
+    TransparencySettings :: class
+        Widget used to display attributes related to an transparency descriptor. 
+
+    [*] Created By 
+     |- Gaps : sGaps : ArtGaps
+"""
+
+
+
 from PyQt5.QtWidgets import ( QGroupBox , QLabel ,  # Widgets 
                               QFormLayout  )        # Layouts
 from PyQt5.QtCore    import pyqtSlot , pyqtSignal
@@ -11,8 +26,7 @@ class TransparencySettings( QGroupBox ):
     """
         SIGNALS
             void transparencyChanged( int   )
-            void transparencyChanged( float )
-            void thresholdChanged   ( int   )
+            void transparencyChanged( float ) void thresholdChanged   ( int   )
             void thresholdChanged   ( float )
     """
     transparencyChanged = pyqtSignal( [int] , [float] )

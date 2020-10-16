@@ -1,6 +1,24 @@
 # Module:      gui.PxGUI.py | [ Language Python ]
 # Created by: ( Gaps | sGaps | ArtGaps )
 # -----------------------------------------------
+"""
+    Defines the GUI itself wich Holds all the information
+    related to a border configuration.
+
+    This 
+
+    [:] Defined in this module
+    --------------------------
+    GUI :: class
+        Main Window of the plugin. Represents a border configuration that
+        can be edited by the user.
+
+    [*] Created By 
+     |- Gaps : sGaps : ArtGaps
+"""
+
+
+
 # PyQt5 Modules:
 from PyQt5.QtWidgets import QDialog , QWidget , QMessageBox , QHBoxLayout , QVBoxLayout , QLayout
 
@@ -31,11 +49,22 @@ class DialogBox( QDialog ):
 # Gui itself :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 # TODO: Add an warning when krita has an unsaved document
 class GUI( object ):
+    """
+        Graphic User Interface of the Plugin.
+    """
     FG_DESC = ["FG",None]
     BG_DESC = ["BG",None]
     CS_DESC = ["CS",None]
     
     def __init__( self , parent = None , title = "PxGUI" , profiler = False ):
+        """
+            ARGUMENTS
+                parent(QWidget)
+                title(str)
+                profiler(bool)
+            Builds all elements required to display the GUI and try to stablish
+            a connection with Krita.
+        """
         self.window = DialogBox( parent )
         self.Lbody  = QVBoxLayout()
         self.window.setWindowTitle( title )
@@ -86,6 +115,10 @@ class GUI( object ):
         self.__preview_update_request__( 0 , 0 )
 
     def unsaved_document_warning( self ):
+        """
+            Display a warning when There isn't any document.
+            for the canvas.
+        """
         if KRITA_AVAILABLE and self.data["doc"]:
             doc = self.data["doc"]
             if not doc.fileName():
@@ -97,6 +130,9 @@ class GUI( object ):
                     "to use the animation options." )
 
     def tryKonnect( self ):
+        """
+            Try to load each widget that depends on krita.
+        """
         if KRITA_AVAILABLE:
             # [D] Data:
             doc  = kis.activeDocument()
@@ -206,6 +242,7 @@ class GUI( object ):
 
     # Used as pyqtSlot()
     def on_accept( self ):
+        """ Actions performed when the accept button has been pressed. """
         self.close.setEnabled( False )
         # Light update:
         self.data["methoddsc"]   = self.advanced.getData()
@@ -226,23 +263,15 @@ class GUI( object ):
 
     # Used as pyqtSlot()
     def on_cancel( self ):
+        """ Actions performed when press cancel button. """
         # This closes the window
         self.close.setEnabled( False )
         self.window.reject()
 
 
-    def update_widgets_from_data():
-        idealkeys = set( self.build_data().keys() )
-        currnkeys = set( self.data.keys() )
-        if idealkeys.intersection( currnkeys ) == idealkeys:
-            try:
-                self.settings.setName( self.data["name"] )
-                self.settings.setType( INDEX_TYPES[1] if self.data["methoddsc"] > 1 else INDEX_TYPES[0] )
-            except:
-                pass
-
     def load_last_data( self ):
-        """ Only updates the method description and layer name """
+        """ Loads the previous configuration.
+            (Only method description and name)"""
         retrieved = self.loader.loadData()
         if retrieved:
             self.data.update( retrieved )
@@ -258,24 +287,30 @@ class GUI( object ):
                 self.settings.setTypeByName( "simple" )
             self.advanced.setRecipe( self.data["methoddsc"] )
 
+            # TODO: Is this totally right, I mean... This uses an argument that depends
+            #       on the color space.
             if KRITA_AVAILABLE:
                 tr , th = retrieved["trdesc"]
                 self.transparency.setTransparency( tr )
                 self.transparency.setThreshold( th )
 
     def write_current_data( self ):
+        """ Write the current data contents into a .json file """
         toWrite = self.data.copy()
         toWrite.pop( "node" )
         toWrite.pop( "doc" )
         toWrite.pop( "kis" )
         toWrite.pop( "colordsc" )
         toWrite.pop( "animation" )
+        toWrite.pop( "trdesc" )
         self.loader.writeData( toWrite )
 
     def build_data( self ):
-        """ builds the internal data used for in the widget.
-            NOTE: GUI object isn't a QObject instance, so it cannot have explicit pyqtSignals and
-                  pyqtSlots """
+        """ 
+            RETURNS
+                dict
+            builds the internal shared data.
+        """
         data = {
                 "methoddsc" : []          , # [[method,thickness]]
                 "colordsc"  : GUI.FG_DESC , # ( color_type , components )
@@ -291,20 +326,27 @@ class GUI( object ):
         return data
 
     def report_data( self ):
+        """
+            IO-ACTION
+                print on stderr the shared data.
+        """
         print( "[PxGUI] Data Sent: {" , file = stderr )
         for k , v in self.data.items():
             print( f"{' ':4}{k}: {v}" , file = stderr )
         print( "}" , file = stderr )
 
     def setup_borderizer_connection( self , borderizer ):
-        """ borderizer :: dict -> IO () """
+        """
+            ARGUMENTS
+                borderizer(core.Borderizer.Borderizer): Object that makes the true border using the core's modules
+            Sets the borderizer object.
+        """
         self.borderizer = borderizer
 
     def run( self ):
+        """
+            Setup everything execute the GUI.
+        """
         self.window.show()
         self.window.activateWindow()
         self.unsaved_document_warning()
-
-if __name__ == "__main__":
-    gui = GUI(500,300)
-    gui.setup()
