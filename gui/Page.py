@@ -1,31 +1,7 @@
 from PyQt5.QtCore       import QRect
 from PyQt5.QtWidgets    import ( QWidget , QStackedWidget , QVBoxLayout , QHBoxLayout , QLayout , # Used in Menu
                                  QPushButton )              # Used in ActionButtons
-
-
-ICONS = {   "OK" : () ,
-            "X"  : () ,
-            ">"  : () ,
-            "<"  : () ,
-            "?"  : () ,
-            "_"  : () }
-TYPES = { "Accept" : "OK" ,
-          "Cancel" : "X"  ,
-          "Info"   : "?"  }
-
-class ActionButton( QPushButton ):
-    ACCEPT = "OK"
-    CANCEL = "X"
-    NEXT   = ">"
-    PREV   = "<"
-    INFO   = "?"
-    NONE   = "_"
-    def __init__( self , parent = None ):
-        super().__init__( parent )
-        self.type = ActionButton.NONE
-
-    def load_icon( self , icon_name ):
-        pass
+from .ActionButton      import ActionButton , ICONS , TYPES
 
 class Page( QWidget ):
     TYPE = "Normal"
@@ -35,7 +11,6 @@ class Page( QWidget ):
         self.setLayout( self.layout )
 
         # Attributes:
-        self.data = {}
         self.next = nextP
         self.prev = prevP
         self.wdgt = {}
@@ -55,7 +30,7 @@ class Page( QWidget ):
         self.updateR()
 
     def getData( self ):
-        return self.data
+        return {}
 
     def includeWidget( self , widget , name ):
         if name not in self.wdgt:
@@ -144,7 +119,7 @@ class AlternativePage( Page ):
     def __init__( self , prevP = None , nextP = None , parent = None ):
         super().__init__( prevP , nextP , parent )
         self.altP = None
-        self.cond = False
+        self.cond = True
 
     def setAlternativePage( self , page ):
         self.altP = page
