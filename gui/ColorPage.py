@@ -1,59 +1,58 @@
-from PyQt5.QtWidgets import QWidget , QFormLayout , QPushButton , QLineEdit
-from PyQt5.QtCore    import pyqtSlot , pyqtSignal
-
-from .Page import AlternativePage
+from MenuPage           import AlternativePage , subTitleLabel
+from PyQt5.QtCore       import pyqtSlot , pyqtSignal
+from PyQt5.QtWidgets    import QVBoxLayout , QLabel , QPushButton
+from PyQt5.QtGui        import QFont
 
 class ColorPage( AlternativePage ):
     def __init__( self , prevP = None , nextP = None , altP = None , parent = None ):
-        super().__init__( prevP , nextP , parent )
-        self.setAlternativePage( altP )
+        super().__init__( prevP , nextP , altP , parent )
+        self.layout = QVBoxLayout( self )
+        self.color  = "FG"
 
-        self.includeWidget( QPushButton("Foreground Color") , "fg" )
-        self.includeWidget( QPushButton("Background Color") , "bg" )
-        self.color = "FG"
+        self.subTitle = subTitleLabel( "Step 3: Take color from" )
 
-        # Create connections:
-        f = self.getWidget( "fg"  )
-        f.setCheckable( True )
+        font = QFont()
+        font.setBold  ( True )
+        font.setItalic( True )
 
-        b = self.getWidget( "bg" )
-        b.setCheckable( True )
+        # Middle (Both Buttons)
+        self.fg = QPushButton( "Foreground" )
+        self.fg.setFont      ( font )
+        self.fg.setCheckable ( True )
+        self.bg = QPushButton( "Background" )
+        self.bg.setFont      ( font )
+        self.bg.setCheckable ( True )
 
-        f.released.connect( self.press_fg )
-        b.released.connect( self.press_bg )
+        # Layout Setup:
+        self.layout.addWidget( self.subTitle )
+        self.layout.addWidget( self.fg       )
+        self.layout.addWidget( self.bg       )
 
+        # Connections:
+        self.fg.released.connect( self.press_fg )
+        self.bg.released.connect( self.press_bg )
         self.press_fg()
-
-    @pyqtSlot( bool )
-    def selectAlternative( self , change_to_quick ):
-        using_quick = self.isNormalPath()
-        if using_quick:
-            if not change_to_quick:
-                self.swapNext()
-        elif change_to_quick:
-            self.swapNext()
 
     @pyqtSlot()
     def press_fg( self ):
-        f = self.getWidget( "fg"  )
-        b = self.getWidget( "bg" )
         # Visual
-        f.setChecked( True  )
-        b.setChecked( False )
+        self.fg.setChecked( True  )
+        self.bg.setChecked( False )
         # Logical
         self.color = "FG"
 
     @pyqtSlot()
     def press_bg( self ):
-        f = self.getWidget( "fg"  )
-        b = self.getWidget( "bg" )
         # Visual
-        f.setChecked( False )
-        b.setChecked( True  )
+        self.bg.setChecked( True )
+        self.fg.setChecked( False )
         # Logical
         self.color = "BG"
 
-    def getData( self ):
-        w = self.getWidget( "name" )
-        return { "colordsc" : (self.color,None) }
+    @pyqtSlot( bool )
+    def serve_negated_alternative_request( self , to_alternative ):
+        if (not to_alternative) != self.isAlt:
+            self.useAlternative()
 
+    def getData( self ):
+        return { "colordsc" : (self.color,None) }
