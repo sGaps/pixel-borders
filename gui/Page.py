@@ -26,6 +26,9 @@ class Page( QWidget ):
         self.layout.addLayout( self.main )
         self.layout.addWidget( self.Rbut )
 
+        # TODO: See I really need this
+        self.layout.setContentsMargins( 2 , 2 , 2 , 2 )
+
         self.updateL()
         self.updateR()
 

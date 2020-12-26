@@ -7,7 +7,7 @@ class Menu( QDialog ):
     def __init__( self , title = "PxGUI" , size_constraint = QLayout.SetFixedSize , parent = None ):
         super().__init__( parent )
         self.setWindowTitle( title )
-        
+
         # Layout setup:
         self.layout  = QVBoxLayout()
         self.setLayout( self.layout )
@@ -19,6 +19,8 @@ class Menu( QDialog ):
 
         # Setup buttons:
         self.layout.addWidget( self.main )
+        # TODO: See I I really need this
+        self.layout.setContentsMargins( 0 , 0 , 0 , 0 )
 
     def addPage( self , page , name ):
         if name not in self.pages:
@@ -51,5 +53,3 @@ class Menu( QDialog ):
 
     def on_accept( self ):
         pass
-
-

@@ -1,4 +1,5 @@
 from PyQt5.QtWidgets import QWidget , QFormLayout , QPushButton , QLineEdit
+from PyQt5.QtCore    import pyqtSlot , pyqtSignal
 from .Page import Page
 
 class NameContents( QWidget ):
@@ -17,9 +18,18 @@ class NameContents( QWidget ):
 
 
 class NamePage( Page ):
+    loadRequest = pyqtSignal()
     def __init__( self , prevP = None , nextP = None , parent = None ):
         super().__init__( prevP , nextP , parent )
+        load = QPushButton( "Use Previous Recipe" )
         self.includeWidget( NameContents() , "name" )
+        self.includeWidget( load           , "load" )
+
+        load.released.connect( self.__load_request__ )
+
+    @pyqtSlot()
+    def __load_request__( self ):
+        self.loadRequest.emit()
 
     def getData( self ):
         w = self.getWidget( "name" )

@@ -24,8 +24,8 @@
 
 
 
-from PyQt5.QtCore    import QAbstractTableModel , QModelIndex , Qt , QVariant
-from PyQt5.QtWidgets import ( QTableView , QAbstractItemView , QStyledItemDelegate , QHeaderView ,
+from PyQt5.QtCore    import QAbstractTableModel , QModelIndex , Qt , QVariant 
+from PyQt5.QtWidgets import ( QTableView , QAbstractItemView , QStyledItemDelegate , QHeaderView , QSizePolicy ,
                               QSpinBox , QComboBox )
 from PyQt5.QtCore    import pyqtSlot , pyqtSignal , QTimer
 
@@ -245,6 +245,9 @@ class MethodWidget( QTableView ):
 
         self.setEditTriggers( QAbstractItemView.SelectedClicked )
         model.cellBeingEdited.connect( self.__cell_being_edited_update_request__ )
+
+        # Works better:
+        self.setSizePolicy( QSizePolicy.Minimum , QSizePolicy.Preferred )
 
     @pyqtSlot( int , int )
     def __cell_being_edited_update_request__( self , row , col ):
