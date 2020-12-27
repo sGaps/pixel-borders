@@ -30,6 +30,8 @@ class Menu( QDialog ):
         self.pages  = {}
         self.names  = {}
         self.sinkIX = None
+        self.infoON = False
+        self.infoDG = About( self )
 
         # Main Body ---------------
         self.layout = QGridLayout()
@@ -55,6 +57,9 @@ class Menu( QDialog ):
         # Tab Order:
         self.setTabOrder( self.next , self.back    )
         self.setTabOrder( self.back , self.pageBag )
+
+        # Dialog Popup:
+        self.infoDG.finished.connect( self.catchDisplayedInfo )
 
     def addPage( self , page , name ):
         if name not in self.pages:
@@ -101,7 +106,6 @@ class Menu( QDialog ):
             print( f"{' ':4}{k}: {v}" , file = stderr )
         print( "}" , file = stderr )
 
-    # BUG: Doesn't work as it must do
     @pyqtSlot( int )
     def catchPageChangeEvent( self , page_index ):
         if not self.sinkIX:           return
@@ -144,13 +148,22 @@ class Menu( QDialog ):
         # TODO: Add rollback steps here:
         self.reject()
 
-    # TODO: Limit to display only one at time:
-    # TODO: Display the dialog box with a little offset from the parent position
     @pyqtSlot()
     def displayInfo( self ):
-        info = About( self )
-        info.show()
+        # Raises the children dialog box if the user press again the about button.
+        if self.infoON:
+            self.infoDG.raise_()
+            return
 
+        # Else, shows the dialog box
+        self.infoON = True
+        self.infoDG.show()
+
+    @pyqtSlot( int )
+    def catchDisplayedInfo( self , value ):
+        # Permits the user display again the "about" dialog box.
+        if not self.infoON: return
+        self.infoON = False
 
     @pyqtSlot()
     def closeEvent( self , event ):

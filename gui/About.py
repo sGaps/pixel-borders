@@ -11,7 +11,9 @@ class ButtonWithUrl( QPushButton ):
         self.setFlat( flat )
         self.url = QUrl( url , QUrl.TolerantMode )
         if url:
+            self.setToolTip( url )
             self.released.connect( self.openUrl )
+
 
     @pyqtSlot()
     def openUrl( self ):

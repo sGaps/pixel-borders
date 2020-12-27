@@ -1,7 +1,7 @@
 from MenuPage           import MenuPage
 from PyQt5.QtCore       import Qt
-from PyQt5.QtWidgets    import ( QLabel , QPushButton , QFrame ,
-                                 QFormLayout , QLineEdit , QWidget )
+from PyQt5.QtWidgets    import ( QLabel , QPushButton , QFrame , QSizePolicy ,
+                                 QFormLayout , QHBoxLayout , QLineEdit , QWidget )
 
 
 class NamePage( MenuPage ):
@@ -29,13 +29,21 @@ class NamePage( MenuPage ):
         self.info      = QPushButton( "About"  )
         self.cancel    = QPushButton( "Cancel" )
 
+        self.wbottom   = QWidget()
+        self.lbottom   = QHBoxLayout( self.wbottom )
+        self.lbottom.addWidget( self.info   )
+        self.lbottom.addWidget( self.cancel )
+        self.lbottom.setStretch( 0 , 0 )
+        self.lbottom.setContentsMargins( 0 , 0 , 0 , 0 )
+
         # Layout Setup:
         #self.layout.addWidget( self.subTitle )
         self.layout.addWidget( self.nameWidg , 0 , Qt.AlignBottom )
         self.layout.addWidget( self.hline    )
         self.layout.addWidget( self.previous )
-        self.layout.addWidget( self.info     )
-        self.layout.addWidget( self.cancel   )
+        self.layout.addWidget( self.wbottom  )
+        #self.layout.addWidget( self.info     )
+        #self.layout.addWidget( self.cancel   )
 
     def getData( self ):
         return { "name" : self.nameLine.text() }
