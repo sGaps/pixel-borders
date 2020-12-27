@@ -8,6 +8,7 @@ from krita_connection.Lookup import KRITA_AVAILABLE , dprint
 if KRITA_AVAILABLE:
     from krita import Krita
 
+# TODO: Add custom icons for arrows!
 def dirButton( text = "" , arrow_type = Qt.LeftArrow ):
         bttn = QToolButton()
         szPolicy = QSizePolicy( QSizePolicy.Preferred , QSizePolicy.Preferred )
@@ -17,9 +18,10 @@ def dirButton( text = "" , arrow_type = Qt.LeftArrow ):
 
         bttn.setSizePolicy( szPolicy )
         bttn.setCheckable( False )
-        bttn.setAutoRaise( False )
+        bttn.setAutoRaise( True  )
         bttn.setArrowType( arrow_type )
         bttn.setText( text )
+        bttn.setToolButtonStyle( Qt.ToolButtonIconOnly )
         return bttn
 
 class Menu( QDialog ):
@@ -40,10 +42,10 @@ class Menu( QDialog ):
         self.layout.setRowMinimumHeight  ( 0 , 200 )
 
         # Left (Next Button) ----->
-        self.next   = dirButton( ">" , Qt.LeftArrow )
+        self.next   = dirButton( ">" , Qt.RightArrow )
 
         # Right (Back Button) <----
-        self.back   = dirButton( "<" , Qt.LeftArrow )
+        self.back   = dirButton( "<" , Qt.LeftArrow  )
 
         # Center (Page Body) -----
         self.pageBag = QStackedWidget()

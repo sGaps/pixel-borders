@@ -37,13 +37,10 @@ class NamePage( MenuPage ):
         self.lbottom.setContentsMargins( 0 , 0 , 0 , 0 )
 
         # Layout Setup:
-        #self.layout.addWidget( self.subTitle )
         self.layout.addWidget( self.nameWidg , 0 , Qt.AlignBottom )
         self.layout.addWidget( self.hline    )
         self.layout.addWidget( self.previous )
         self.layout.addWidget( self.wbottom  )
-        #self.layout.addWidget( self.info     )
-        #self.layout.addWidget( self.cancel   )
 
     def getData( self ):
         return { "name" : self.nameLine.text() }
