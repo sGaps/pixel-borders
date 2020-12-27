@@ -1,4 +1,4 @@
-from MenuPage           import MenuPage , subTitleLabel
+from MenuPage           import MenuPage
 from PyQt5.QtCore       import pyqtSlot , pyqtSignal
 from PyQt5.QtWidgets    import QVBoxLayout , QLabel , QPushButton
 from PyQt5.QtGui        import QFont
@@ -7,11 +7,14 @@ class TypePage( MenuPage ):
     type_changed = pyqtSignal( bool )
 
     def __init__( self , backP = None , nextP = None , parent = None ):
-        super().__init__( backP , nextP , parent )
-        self.layout   = QVBoxLayout( self )
+        super().__init__( backP    = backP  ,
+                          nextP    = nextP  ,
+                          parent   = parent ,
+                          subTitle = "Step 2: Which method would you like?" )
+        #self.layout   = QVBoxLayout( self )
         self.is_quick = True
 
-        self.subTitle = subTitleLabel( "Step 2: Which method would you like?" )
+        #self.subTitle = subTitleLabel( "Step 2: Which method would you like?" )
 
         font = QFont()
         font.setBold  ( True )
@@ -26,7 +29,7 @@ class TypePage( MenuPage ):
         self.custom.setCheckable ( True )
 
         # Layout Setup:
-        self.layout.addWidget( self.subTitle )
+        #self.layout.addWidget( self.subTitle )
         self.layout.addWidget( self.quick    )
         self.layout.addWidget( self.custom   )
 

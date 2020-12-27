@@ -1,5 +1,5 @@
 from PyQt5.QtCore     import Qt , pyqtSignal , pyqtSlot
-from PyQt5.QtWidgets  import QWidget , QLabel
+from PyQt5.QtWidgets  import QWidget , QLabel , QVBoxLayout
 from PyQt5.QtGui      import QFont
 
 DEFAULT_PAGE_SIZE = (400 , 300)
@@ -21,15 +21,18 @@ class MenuPage( QWidget ):
         A MenuPage can go to left or right:
         [ backP ] <-- [ MenuPage ] --> [ nextP ]
     """
-    def __init__( self , backP = None , nextP = None , altNextP = None , parent = None ):
+    def __init__( self , backP = None , nextP = None ,
+                  parent = None , subTitle = "" ):
         super().__init__( parent )
         self.resize( *DEFAULT_PAGE_SIZE )
 
         self.next   = nextP
         self.back   = backP
         # It requires a manual layout setup
-        self.layout = None
-
+        self.layout   = QVBoxLayout  ( self )
+        self.subTitle = subTitleLabel( subTitle )
+        self.layout.addWidget( self.subTitle , 0 , Qt.AlignCenter |
+                                                   Qt.AlignTop    )
     def getData( self ):
         return {}
 
@@ -42,8 +45,12 @@ class AlternativePage( MenuPage ):
                           |
                           |- - - - --> [ altNextP ]
     """
-    def __init__( self , backP = None , nextP = None , altNextP = None , parent = None ):
-        super().__init__( backP , nextP , parent )
+    def __init__( self , backP = None , nextP = None ,
+                  altNextP = None , parent = None , subTitle = "" ):
+        super().__init__( backP    = backP    ,
+                          nextP    = nextP    ,
+                          parent   = parent   ,
+                          subTitle = subTitle )
         self.altn  = altNextP
         self.isAlt = False
 
@@ -58,5 +65,8 @@ class SinkPage( MenuPage ):
         A sink Page cannot go to another page.
         _- [ MenuPage ] -_
     """
-    def __init__( self , parent = None ):
-        super().__init__( None , None , parent )
+    def __init__( self , parent = None , subTitle = "" ):
+        super().__init__( backP    = None     ,
+                          nextP    = None     ,
+                          parent   = parent   ,
+                          subTitle = subTitle )

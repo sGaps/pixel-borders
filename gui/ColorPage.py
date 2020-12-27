@@ -1,15 +1,18 @@
-from MenuPage           import AlternativePage , subTitleLabel
+from MenuPage           import AlternativePage
 from PyQt5.QtCore       import pyqtSlot , pyqtSignal
 from PyQt5.QtWidgets    import QVBoxLayout , QLabel , QPushButton
 from PyQt5.QtGui        import QFont
 
 class ColorPage( AlternativePage ):
-    def __init__( self , prevP = None , nextP = None , altP = None , parent = None ):
-        super().__init__( prevP , nextP , altP , parent )
-        self.layout = QVBoxLayout( self )
+    def __init__( self , backP = None , nextP = None , altP = None , parent = None ):
+        super().__init__( backP    = backP  ,
+                          nextP    = nextP  ,
+                          parent   = parent ,
+                          subTitle = "Step 3: Take color from" )
+        #self.layout = QVBoxLayout( self )
         self.color  = "FG"
 
-        self.subTitle = subTitleLabel( "Step 3: Take color from" )
+        #self.subTitle = subTitleLabel( "Step 3: Take color from" )
 
         font = QFont()
         font.setBold  ( True )
@@ -24,7 +27,7 @@ class ColorPage( AlternativePage ):
         self.bg.setCheckable ( True )
 
         # Layout Setup:
-        self.layout.addWidget( self.subTitle )
+        #self.layout.addWidget( self.subTitle )
         self.layout.addWidget( self.fg       )
         self.layout.addWidget( self.bg       )
 

@@ -1,17 +1,22 @@
-from MenuPage           import MenuPage , subTitleLabel
+from MenuPage           import MenuPage
 from PyQt5.QtCore       import Qt
-from PyQt5.QtWidgets    import QVBoxLayout , QLabel , QPushButton , QFrame , QFormLayout , QLineEdit
+from PyQt5.QtWidgets    import ( QVBoxLayout , QLabel , QPushButton ,
+                                 QFrame , QFormLayout , QLineEdit , QWidget )
 
 
 class NamePage( MenuPage ):
     def __init__( self , backP = None , nextP = None , parent = None ):
-        super().__init__( backP , nextP , parent )
-        self.layout = QVBoxLayout( self )
+        super().__init__( backP    = backP  ,
+                          nextP    = nextP  ,
+                          parent   = parent ,
+                          subTitle = "Step 1: Choose a Name" )
+        #self.layout = QVBoxLayout( self )
 
-        self.subTitle = subTitleLabel( "Step 1: Choose a Name" )
+        #self.subTitle = subTitleLabel( "Step 1: Choose a Name" )
 
         # Middle (Label)
-        self.nameForm  = QFormLayout()
+        self.nameWidg  = QWidget()
+        self.nameForm  = QFormLayout( self.nameWidg )
         self.nameLabel = QLabel( "Name" )
         self.nameForm.setWidget( 1 , QFormLayout.LabelRole , self.nameLabel )
         # Middle (QLineEdit)
@@ -27,8 +32,8 @@ class NamePage( MenuPage ):
         self.cancel    = QPushButton( "Cancel" )
 
         # Layout Setup:
-        self.layout.addWidget( self.subTitle )
-        self.layout.addLayout( self.nameForm )
+        #self.layout.addWidget( self.subTitle )
+        self.layout.addWidget( self.nameWidg , 0 , Qt.AlignBottom )
         self.layout.addWidget( self.hline    )
         self.layout.addWidget( self.cancel   )
         self.layout.addWidget( self.previous )
