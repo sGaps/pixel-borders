@@ -26,14 +26,16 @@ class NamePage( MenuPage ):
         self.hline.setFrameShadow( QFrame.Sunken )
 
         self.previous  = QPushButton( "Use Previous Recipe" )
+        self.info      = QPushButton( "About"  )
         self.cancel    = QPushButton( "Cancel" )
 
         # Layout Setup:
         #self.layout.addWidget( self.subTitle )
         self.layout.addWidget( self.nameWidg , 0 , Qt.AlignBottom )
         self.layout.addWidget( self.hline    )
-        self.layout.addWidget( self.cancel   )
         self.layout.addWidget( self.previous )
+        self.layout.addWidget( self.info     )
+        self.layout.addWidget( self.cancel   )
 
     def getData( self ):
         return { "name" : self.nameLine.text() }

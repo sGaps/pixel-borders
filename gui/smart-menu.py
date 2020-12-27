@@ -1,7 +1,8 @@
 from PyQt5.QtCore     import Qt , pyqtSignal , pyqtSlot
 from PyQt5.QtWidgets  import ( QDialog , QToolButton , QStackedWidget ,
-                               QGridLayout , QSizePolicy )
+                               QMessageBox , QGridLayout , QSizePolicy )
 
+from About            import About
 from sys              import stderr
 from krita_connection.Lookup import KRITA_AVAILABLE , dprint
 if KRITA_AVAILABLE:
@@ -26,8 +27,9 @@ class Menu( QDialog ):
         super().__init__( parent )
 
         # Menu Logic --------------
-        self.pages = {}
-        self.names = {}
+        self.pages  = {}
+        self.names  = {}
+        self.sinkIX = None
 
         # Main Body ---------------
         self.layout = QGridLayout()
@@ -85,6 +87,7 @@ class Menu( QDialog ):
     def setupDefaultConnections( self ):
         self.next.released.connect( self.loadNextPage )
         self.back.released.connect( self.loadBackPage )
+        self.pageBag.currentChanged.connect( self.catchPageChangeEvent )
 
     def collectDataFromPages( self ):
         sum = {}
@@ -98,9 +101,19 @@ class Menu( QDialog ):
             print( f"{' ':4}{k}: {v}" , file = stderr )
         print( "}" , file = stderr )
 
+    # BUG: Doesn't work as it must do
+    @pyqtSlot( int )
+    def catchPageChangeEvent( self , page_index ):
+        if not self.sinkIX:           return
+        if page_index != self.sinkIX: return
+        self.sendBorderRequest()
+
+
     @pyqtSlot()
     def sendBorderRequest( self ):
         data = self.collectDataFromPages()
+        # TODO: Save the current data here (as JSON)
+        # ------------------------------------------
         if KRITA_AVAILABLE:
             # Add krita-dependent information here:
             kis  = Krita.instance()
@@ -113,6 +126,36 @@ class Menu( QDialog ):
             # TODO: Add calculation here in a secondary thread:
         else:
             self.reportData( data )
+
+    @pyqtSlot()
+    def usePreviousData( self ):
+        # TODO: Load the previous JSON. Verify if it exists. Notify if it doesn't
+        pass
+
+
+    @pyqtSlot( str )
+    def sendRequestWhenCurrentPageIs( self , name ):
+        page = self.names.get( name , None )
+        if page:
+            self.sinkIX = self.pageBag.indexOf( page )
+
+    @pyqtSlot()
+    def tryRollBack( self ):
+        # TODO: Add rollback steps here:
+        self.reject()
+
+    # TODO: Limit to display only one at time:
+    # TODO: Display the dialog box with a little offset from the parent position
+    @pyqtSlot()
+    def displayInfo( self ):
+        info = About( self )
+        info.show()
+
+
+    @pyqtSlot()
+    def closeEvent( self , event ):
+        event.accept()
+
 
 if __name__ == "__main__":
     from PyQt5.QtWidgets import QApplication , QVBoxLayout , QLabel
@@ -147,9 +190,15 @@ if __name__ == "__main__":
     tdscp.next   = animp
     animp.next   = waitp
 
-    # Granular Connections:
+    # Connections between Pages:
     typep.type_changed.connect( colorp.serve_negated_alternative_request )
     typep.type_changed.connect( animp.setOverride )
+
+    # Connections between Pages and Menu:
+    namep.cancel.released.connect( menu.reject      )
+    namep.info.released.connect  ( menu.displayInfo )
+    waitp.cancel.released.connect( menu.tryRollBack )
+    waitp.info.released.connect  ( menu.displayInfo )
 
     menu.addPage( namep   , "name"   )
     menu.addPage( typep   , "type"   )
@@ -161,5 +210,5 @@ if __name__ == "__main__":
     menu.addPage( waitp   , "wait"   )
 
     menu.setupDefaultConnections()
+    menu.sendRequestWhenCurrentPageIs( "wait" )
     main.exec_()
-    menu.sendBorderRequest()

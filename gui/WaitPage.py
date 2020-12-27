@@ -11,5 +11,5 @@ class WaitPage( SinkPage ):
         self.progress = QProgressBar()
 
         self.layout.addWidget( self.progress , 1 , Qt.AlignTop )
-        self.layout.addWidget( self.cancel )
         self.layout.addWidget( self.info   )
+        self.layout.addWidget( self.cancel )

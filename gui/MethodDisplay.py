@@ -18,13 +18,13 @@
     MethodWidget    :: class
         Displays the data.
 
-    [*] Created By 
+    [*] Created By
      |- Gaps : sGaps : ArtGaps
 """
 
 
 
-from PyQt5.QtCore    import QAbstractTableModel , QModelIndex , Qt , QVariant 
+from PyQt5.QtCore    import QAbstractTableModel , QModelIndex , Qt , QVariant
 from PyQt5.QtWidgets import ( QTableView , QAbstractItemView , QStyledItemDelegate , QHeaderView , QSizePolicy ,
                               QSpinBox , QComboBox )
 from PyQt5.QtCore    import pyqtSlot , pyqtSignal , QTimer
@@ -50,10 +50,10 @@ class MethodDelegate( QStyledItemDelegate ):
         Delegate that creates an editor for the data retrieved by
         MethodModel.
     """
-    MAX = 200
-    MIN = 1
+    MAX      = 200
+    MIN      = 1
     NAME_COL = 0
-    STEP_COL = 1 
+    STEP_COL = 1
     def __init__( self , parent = None ):
         super().__init__( parent )
     def createEditor( self , parent , option , index ):
@@ -198,7 +198,7 @@ class MethodModel( QAbstractTableModel ):
 
     def insertRows( self , row , count , parent = QModelIndex() ):
         self.beginInsertRows( parent , row , row + count - 1 )
-    
+
         new_rows   = [ MethodModel.MINIMAL.copy() for _ in range(count) ]
         data       = self._data
         data       = data[:row] + new_rows + data[row:]
@@ -211,7 +211,7 @@ class MethodModel( QAbstractTableModel ):
         if self.rowCount() > 1:
             # parent , first , last
             self.beginRemoveRows( parent , row , row + count - 1 )
-        
+
             data       = self._data
             data       = data[:row] + data[row+count:]
             self._data = data
@@ -296,4 +296,3 @@ class MethodWidget( QTableView ):
 
     def getData( self ):
         return self.model().getData().copy()
-

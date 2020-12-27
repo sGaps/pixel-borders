@@ -48,6 +48,12 @@ class AnimPage( MenuPage ):
         # Minimal time connections:
         self.start.valueChanged.connect ( self.finish.setMinimum )
         self.finish.valueChanged.connect( self.start.setMaximum  )
+        self.tryAnim.toggled.connect    ( self.setTimeEnabled    )
+
+    @pyqtSlot( bool )
+    def setTimeEnabled( self , boolean_value ):
+        self.start.setEnabled( boolean_value )
+        self.finish.setEnabled( boolean_value )
 
     @pyqtSlot( bool )
     def setOverride( self , boolean_value ):
@@ -70,7 +76,8 @@ class AnimPage( MenuPage ):
     def getData( self ):
         if KRITA_AVAILABLE and self.override:
             return { "animation"   : self.defValue ,            # [Start, Finish]
-                     "try-animate" : self.tryAnim.isChecked() }
+                     "try-animate" : True }                     # Always try animate
+                    #"try-animate" : self.tryAnim.isChecked() } TODO: DELETE THIS LINE
         else:
             return { "animation" : [ self.start.value()  ,      # Start
                                      self.finish.value() ]    , # Finish

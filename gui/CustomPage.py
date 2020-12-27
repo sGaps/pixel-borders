@@ -4,7 +4,7 @@ from PyQt5.QtWidgets    import QHBoxLayout , QPushButton
 from MenuPage           import MenuPage
 from MethodDisplay      import MethodWidget
 
-# TODO: Specialize getData(...) Method!
+# TODO: 'table' must show its scroll bar everytime. It's difficult use it without that thing.
 class CustomPage( MenuPage ):
     def __init__( self , backP = None , nextP = None , parent = None ):
         super().__init__( backP    = backP  ,
@@ -25,6 +25,23 @@ class CustomPage( MenuPage ):
         # Layout Setup:
         self.layout.addWidget( self.table    )
         self.layout.addLayout( self.bottom   )
+
+        # Connections:
+        self.add.released.connect( self.addMethodIntoRecipe )
+        self.clr.released.connect( self.clearRecipe         )
+        self.rem.released.connect( self.removeFromRecipe    )
+
+    @pyqtSlot()
+    def clearRecipe( self ):
+        self.table.setRecipe( self.table.getUnsafeData()[:1] )
+
+    @pyqtSlot()
+    def addMethodIntoRecipe( self ):
+        self.table.addMethod()
+
+    @pyqtSlot()
+    def removeFromRecipe( self ):
+        self.table.removeMethod()
 
     def getData( self ):
         return { "methoddsc" : self.table.getData() }
