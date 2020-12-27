@@ -90,32 +90,41 @@ if __name__ == "__main__":
     from QuickPage  import QuickPage
     from CustomPage import CustomPage
     from WaitPage   import WaitPage
+    from TdscPage   import TdscPage
+    from AnimPage   import AnimPage
 
     main = QApplication([])
     menu = Menu()
     menu.show()
 
     namep   = NamePage  ()
-    typep   = TypePage  ( namep  )
-    colorp  = ColorPage ( typep  )
-    quickp  = QuickPage ( colorp )
-    customp = CustomPage( colorp )
+    typep   = TypePage  ( namep   )
+    colorp  = ColorPage ( typep   )
+    quickp  = QuickPage ( colorp  )
+    customp = CustomPage( colorp  )
+    tdscp   = TdscPage  ( customp )
+    animp   = AnimPage  ( tdscp   )
     waitp   = WaitPage  ()
     # Next Connections:
     namep.next   = typep      # (1 -> 2)
     typep.next   = colorp     # (2 -> 3)
     colorp.next , colorp.altn = quickp , customp    # (3 -> 4.a | 4.b)
     quickp.next  = waitp
-    customp.next = waitp
+    customp.next = tdscp
+    tdscp.next   = animp
+    animp.next   = waitp
 
     # Granular Connections:
     typep.type_changed.connect( colorp.serve_negated_alternative_request )
+    typep.type_changed.connect( animp.setOverride )
 
     menu.addPage( namep   , "name"   )
     menu.addPage( typep   , "type"   )
     menu.addPage( colorp  , "color"  )
     menu.addPage( quickp  , "quick"  )
     menu.addPage( customp , "custom" )
+    menu.addPage( tdscp   , "transp" )
+    menu.addPage( animp   , "anim"   )
     menu.addPage( waitp   , "wait"   )
 
     menu.setupDefaultConnections()

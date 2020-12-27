@@ -1,9 +1,10 @@
 from PyQt5.QtCore       import pyqtSlot , pyqtSignal
-from PyQt5.QtWidgets    import QVBoxLayout , QHBoxLayout , QLabel , QPushButton
+from PyQt5.QtWidgets    import QHBoxLayout , QPushButton
 
 from MenuPage           import MenuPage
 from MethodDisplay      import MethodWidget
 
+# TODO: Specialize getData(...) Method!
 class CustomPage( MenuPage ):
     def __init__( self , backP = None , nextP = None , parent = None ):
         super().__init__( backP    = backP  ,
