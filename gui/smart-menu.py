@@ -5,6 +5,19 @@ from PyQt5.QtWidgets  import ( QDialog , QToolButton , QStackedWidget ,
 # TODO: Remove
 #from MenuPage import *
 #from NamePage import NamePage
+def dirButton( text = "" , arrow_type = Qt.LeftArrow ):
+        bttn = QToolButton()
+        szPolicy = QSizePolicy( QSizePolicy.Preferred , QSizePolicy.Preferred )
+        szPolicy.setHorizontalStretch( 0 )
+        szPolicy.setVerticalStretch  ( 0 )
+        szPolicy.setHeightForWidth( bttn.sizePolicy().hasHeightForWidth() )
+
+        bttn.setSizePolicy( szPolicy )
+        bttn.setCheckable( False )
+        bttn.setAutoRaise( False )
+        bttn.setArrowType( arrow_type )
+        bttn.setText( text )
+        return bttn
 
 class Menu( QDialog ):
     def __init__( self , parent = None ):
@@ -16,31 +29,15 @@ class Menu( QDialog ):
 
         # Main Body ---------------
         self.layout = QGridLayout()
+        self.layout.setColumnMinimumWidth( 0 , 75  )
+        self.layout.setColumnMinimumWidth( 2 , 75  )
+        self.layout.setRowMinimumHeight  ( 0 , 200 )
 
         # Left (Next Button) ----->
-        self.next   = QToolButton()
-        # Config (Next)
-        szPolicy    = QSizePolicy( QSizePolicy.Preferred , QSizePolicy.Preferred )
-        szPolicy.setHorizontalStretch( 0 )
-        szPolicy.setVerticalStretch  ( 0 )
-        szPolicy.setHeightForWidth( self.next.sizePolicy().hasHeightForWidth() )
-        self.next.setSizePolicy( szPolicy )
-        self.next.setCheckable( False )
-        self.next.setAutoRaise( False )
-        self.next.setArrowType( Qt.RightArrow )
-        # TODO: Delete later
-        self.next.setText( ">" )
+        self.next   = dirButton( ">" , Qt.LeftArrow )
 
         # Right (Back Button) <----
-        self.back   = QToolButton()
-        # Config (Next)
-        self.back.setSizePolicy( szPolicy )
-        self.back.setCheckable( False )
-        self.back.setAutoRaise( False )
-        self.back.setArrowType( Qt.LeftArrow )
-        # TODO: Delete later
-        self.back.setText( "<" )
-
+        self.back   = dirButton( "<" , Qt.LeftArrow )
 
         # Center (Page Body) -----
         self.pageBag = QStackedWidget()
@@ -50,6 +47,10 @@ class Menu( QDialog ):
         self.layout.addWidget( self.next    , 0 , 2 , 1 , 1 )
         self.layout.addWidget( self.back    , 0 , 0 , 1 , 1 )
         self.layout.addWidget( self.pageBag , 0 , 1 , 1 , 1 )
+
+        # Tab Order:
+        self.setTabOrder( self.next , self.back    )
+        self.setTabOrder( self.back , self.pageBag )
 
     def addPage( self , page , name ):
         if name not in self.pages:
@@ -85,10 +86,12 @@ class Menu( QDialog ):
 
 if __name__ == "__main__":
     from PyQt5.QtWidgets import QApplication , QVBoxLayout , QLabel
-    from MenuPage  import MenuPage
-    from NamePage  import NamePage
-    from TypePage  import TypePage
-    from ColorPage import ColorPage
+    from MenuPage   import MenuPage
+    from NamePage   import NamePage
+    from TypePage   import TypePage
+    from ColorPage  import ColorPage
+    from QuickPage  import QuickPage
+    from CustomPage import CustomPage
 
     main = QApplication([])
     menu = Menu()
@@ -105,22 +108,15 @@ if __name__ == "__main__":
     typep.type_changed.connect( colorp.serve_negated_alternative_request )
 
 
-    # TODO: DELETE LATER. DUMMY VALUE!
-    dummy1 = MenuPage( colorp )
-    dummy1.layout = QVBoxLayout( dummy1 )
-    dummy1.layout.addWidget(QLabel( "Option 1 <>" ))
-    dummy2 = MenuPage( colorp )
-    dummy2.layout = QVBoxLayout( dummy2 )
-    dummy2.layout.addWidget(QLabel( "Option 2 []" ))
-    colorp.next , colorp.altn = dummy1 , dummy2
+    quickp  = QuickPage ( colorp )
+    customp = CustomPage( colorp )
+    colorp.next , colorp.altn = quickp , customp
 
-    menu.addPage( namep  , "name"  )
-    menu.addPage( typep  , "type"  )
-    menu.addPage( colorp , "color" )
-
-    # TODO: DELETE LATER. DUMMY VALUE!
-    menu.addPage( dummy1 , "dm1" )
-    menu.addPage( dummy2 , "dm2" )
+    menu.addPage( namep   , "name"   )
+    menu.addPage( typep   , "type"   )
+    menu.addPage( colorp  , "color"  )
+    menu.addPage( quickp  , "quick"  )
+    menu.addPage( customp , "custom" )
 
     menu.setupDefaultConnections()
     main.exec_()

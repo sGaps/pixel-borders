@@ -2,7 +2,7 @@ from PyQt5.QtCore     import Qt , pyqtSignal , pyqtSlot
 from PyQt5.QtWidgets  import QWidget , QLabel
 from PyQt5.QtGui      import QFont
 
-DEFAULT_PAGE_SIZE = (400 , 200)
+DEFAULT_PAGE_SIZE = (400 , 300)
 
 DEFAULT_FONT      = QFont()
 DEFAULT_FONT.setFamily( u"Cantarell" )
