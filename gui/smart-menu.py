@@ -2,9 +2,6 @@ from PyQt5.QtCore     import Qt , pyqtSignal , pyqtSlot
 from PyQt5.QtWidgets  import ( QDialog , QToolButton , QStackedWidget ,
                                QGridLayout , QSizePolicy )
 
-# TODO: Remove
-#from MenuPage import *
-#from NamePage import NamePage
 def dirButton( text = "" , arrow_type = Qt.LeftArrow ):
         bttn = QToolButton()
         szPolicy = QSizePolicy( QSizePolicy.Preferred , QSizePolicy.Preferred )

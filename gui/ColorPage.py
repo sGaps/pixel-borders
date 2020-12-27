@@ -9,10 +9,7 @@ class ColorPage( AlternativePage ):
                           nextP    = nextP  ,
                           parent   = parent ,
                           subTitle = "Step 3: Take color from" )
-        #self.layout = QVBoxLayout( self )
         self.color  = "FG"
-
-        #self.subTitle = subTitleLabel( "Step 3: Take color from" )
 
         font = QFont()
         font.setBold  ( True )
@@ -27,7 +24,6 @@ class ColorPage( AlternativePage ):
         self.bg.setCheckable ( True )
 
         # Layout Setup:
-        #self.layout.addWidget( self.subTitle )
         self.layout.addWidget( self.fg       )
         self.layout.addWidget( self.bg       )
 

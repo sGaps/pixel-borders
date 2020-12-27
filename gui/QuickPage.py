@@ -10,11 +10,6 @@ class QuickPage( MenuPage ):
                           nextP    = nextP  ,
                           parent   = parent ,
                           subTitle = "Step 4: Border Type" )
-        #self.layout   = QVBoxLayout( self )
-
-        #self.subTitle = subTitleLabel( "Step 4: Border Type" )
         self.table  = MethodWidget()
-
         # Layout Setup:
-        #self.layout.addWidget( self.subTitle )
-        self.layout.addWidget( self.table    )
+        self.layout.addWidget( self.table )

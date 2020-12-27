@@ -10,9 +10,6 @@ class CustomPage( MenuPage ):
                           nextP    = nextP  ,
                           parent   = parent ,
                           subTitle = "Step 4: Border Type" )
-        #self.layout   = QVBoxLayout( self )
-
-        #self.subTitle = subTitleLabel( "Step 4: Border Type" )
 
         self.table  = MethodWidget()
         self.bottom = QHBoxLayout()
@@ -25,6 +22,5 @@ class CustomPage( MenuPage ):
         self.bottom.addWidget( self.add )
 
         # Layout Setup:
-        #self.layout.addWidget( self.subTitle )
         self.layout.addWidget( self.table    )
         self.layout.addLayout( self.bottom   )

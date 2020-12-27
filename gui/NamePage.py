@@ -10,10 +10,7 @@ class NamePage( MenuPage ):
                           nextP    = nextP  ,
                           parent   = parent ,
                           subTitle = "Step 1: Choose a Name" )
-        #self.layout = QVBoxLayout( self )
-
-        #self.subTitle = subTitleLabel( "Step 1: Choose a Name" )
-
+                          
         # Middle (Label)
         self.nameWidg  = QWidget()
         self.nameForm  = QFormLayout( self.nameWidg )

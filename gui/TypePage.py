@@ -11,10 +11,7 @@ class TypePage( MenuPage ):
                           nextP    = nextP  ,
                           parent   = parent ,
                           subTitle = "Step 2: Which method would you like?" )
-        #self.layout   = QVBoxLayout( self )
         self.is_quick = True
-
-        #self.subTitle = subTitleLabel( "Step 2: Which method would you like?" )
 
         font = QFont()
         font.setBold  ( True )
