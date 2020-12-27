@@ -25,3 +25,6 @@ class CustomPage( MenuPage ):
         # Layout Setup:
         self.layout.addWidget( self.table    )
         self.layout.addLayout( self.bottom   )
+
+    def getData( self ):
+        return { "methoddsc" : self.table.getData() }

@@ -2,6 +2,11 @@ from PyQt5.QtCore     import Qt , pyqtSignal , pyqtSlot
 from PyQt5.QtWidgets  import ( QDialog , QToolButton , QStackedWidget ,
                                QGridLayout , QSizePolicy )
 
+from sys              import stderr
+from krita_connection.Lookup import KRITA_AVAILABLE , dprint
+if KRITA_AVAILABLE:
+    from krita import Krita
+
 def dirButton( text = "" , arrow_type = Qt.LeftArrow ):
         bttn = QToolButton()
         szPolicy = QSizePolicy( QSizePolicy.Preferred , QSizePolicy.Preferred )
@@ -76,10 +81,38 @@ class Menu( QDialog ):
             if now and now in self.pages:
                 self.pageBag.setCurrentWidget( now )
 
+    @pyqtSlot()
     def setupDefaultConnections( self ):
         self.next.released.connect( self.loadNextPage )
         self.back.released.connect( self.loadBackPage )
 
+    def collectDataFromPages( self ):
+        sum = {}
+        for page in self.pages:
+            sum.update( page.getData() )
+        return sum
+
+    def reportData( self , data ):
+        print( "[PxGUI] Data Sent: {" , file = stderr )
+        for k , v in data.items():
+            print( f"{' ':4}{k}: {v}" , file = stderr )
+        print( "}" , file = stderr )
+
+    @pyqtSlot()
+    def sendBorderRequest( self ):
+        data = self.collectDataFromPages()
+        if KRITA_AVAILABLE:
+            # Add krita-dependent information here:
+            kis  = Krita.instance()
+            doc  = kis.activeDocument()
+            node = doc.activeNode()
+            data["kis"]  = kis
+            data["doc"]  = doc
+            data["node"] = node
+            self.reportData( data )
+            # TODO: Add calculation here in a secondary thread:
+        else:
+            self.reportData( data )
 
 if __name__ == "__main__":
     from PyQt5.QtWidgets import QApplication , QVBoxLayout , QLabel
@@ -129,3 +162,4 @@ if __name__ == "__main__":
 
     menu.setupDefaultConnections()
     main.exec_()
+    menu.sendBorderRequest()

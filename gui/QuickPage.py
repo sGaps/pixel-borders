@@ -13,3 +13,6 @@ class QuickPage( MenuPage ):
         self.table  = MethodWidget()
         # Layout Setup:
         self.layout.addWidget( self.table )
+
+    def getData( self ):
+        return { "methoddsc" : self.table.getData() }

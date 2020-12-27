@@ -49,6 +49,7 @@ class AnimPage( MenuPage ):
         self.start.valueChanged.connect ( self.finish.setMinimum )
         self.finish.valueChanged.connect( self.start.setMaximum  )
 
+    @pyqtSlot( bool )
     def setOverride( self , boolean_value ):
         self.override = boolean_value
 
