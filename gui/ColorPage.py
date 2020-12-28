@@ -1,4 +1,4 @@
-from MenuPage           import AlternativePage
+from .MenuPage          import AlternativePage
 from PyQt5.QtCore       import pyqtSlot , pyqtSignal
 from PyQt5.QtWidgets    import QPushButton
 from PyQt5.QtGui        import QFont

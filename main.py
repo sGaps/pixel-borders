@@ -25,7 +25,8 @@
 
 
 from .Context     import CONTEXT , RUN , Extension
-from .gui.PxGUI   import GUI
+#from .gui.PxGUI   import GUI
+from .SetupGUI import GUI
 
 if CONTEXT == "INSIDE_KRITA": from .core.Borderizer import Borderizer
 
@@ -62,13 +63,13 @@ class PixelExtension( Extension ):
         if CONTEXT == "OUTSIDE_KRITA":
             self.ext = GUI( parent = None , title = METADATA["TITLE"] )
             self.ext.run()
-            self.setWindowTitle( "Pixel Border - GUI test" )
-            self.resize( *DEFAULTSIZE["test-body"] )
+            #self.setWindowTitle( "Pixel Border - GUI test" )
+            #self.resize( *DEFAULTSIZE["test-body"] )
             self.show()
             RUN()
         else:
             self.ext   = GUI( parent = None , title = METADATA["TITLE"] )
-            borderizer = Borderizer( cleanUpAtFinish = False )
-            self.ext.setup_borderizer_connection( borderizer )
+            #borderizer = Borderizer( cleanUpAtFinish = False )
+            #self.ext.setup_borderizer_connection( borderizer )
             self.ext.run()
 

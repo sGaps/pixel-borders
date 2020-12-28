@@ -1,7 +1,7 @@
 from PyQt5.QtCore       import pyqtSlot , pyqtSignal
 
-from MenuPage           import MenuPage
-from MethodDisplay      import MethodWidget
+from .MenuPage          import MenuPage
+from .MethodDisplay     import MethodWidget
 
 # TODO: Specialize getData(...) Method!
 class QuickPage( MenuPage ):

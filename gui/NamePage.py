@@ -1,4 +1,4 @@
-from MenuPage           import MenuPage
+from .MenuPage          import MenuPage
 from PyQt5.QtCore       import Qt
 from PyQt5.QtWidgets    import ( QLabel , QPushButton , QFrame , QSizePolicy ,
                                  QFormLayout , QHBoxLayout , QLineEdit , QWidget )

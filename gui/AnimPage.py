@@ -2,10 +2,10 @@ from PyQt5.QtCore       import pyqtSlot , pyqtSignal
 from PyQt5.QtWidgets    import ( QWidget , QCheckBox , QSpinBox ,
                                  QLabel , QFormLayout )
 
-from MenuPage           import MenuPage
-from MethodDisplay      import MethodWidget
+from .MenuPage          import MenuPage
+from .MethodDisplay     import MethodWidget
 
-from krita_connection.Lookup import KRITA_AVAILABLE , dprint
+from .krita_connection.Lookup import KRITA_AVAILABLE , dprint
 if KRITA_AVAILABLE:
     from krita import Krita
 

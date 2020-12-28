@@ -1,4 +1,4 @@
-from MenuPage           import SinkPage
+from .MenuPage          import SinkPage
 from PyQt5.QtCore       import Qt , pyqtSlot , pyqtSignal
 from PyQt5.QtWidgets    import QPushButton , QProgressBar , QVBoxLayout
 

@@ -2,9 +2,11 @@ from PyQt5.QtCore     import Qt , pyqtSignal , pyqtSlot
 from PyQt5.QtWidgets  import ( QDialog , QToolButton , QStackedWidget ,
                                QMessageBox , QGridLayout , QSizePolicy )
 
-from About            import About
 from sys              import stderr
-from krita_connection.Lookup import KRITA_AVAILABLE , dprint
+from .About           import About
+
+# Krita-dependent Code:
+from .krita_connection.Lookup import KRITA_AVAILABLE , dprint
 if KRITA_AVAILABLE:
     from krita import Krita
 
@@ -70,7 +72,7 @@ class Menu( QDialog ):
             self.pageBag.addWidget( page )
 
     def loadPage( self , name ):
-        page = self.name.get( name , None )
+        page = self.names.get( name , None )
         if page:
             self.pageBag.setCurrentWidget( page )
 
@@ -123,8 +125,8 @@ class Menu( QDialog ):
         if KRITA_AVAILABLE:
             # Add krita-dependent information here:
             kis  = Krita.instance()
-            doc  = kis.activeDocument()
-            node = doc.activeNode()
+            doc  = kis.activeDocument() if kis else None
+            node = doc.activeNode()     if doc else None
             data["kis"]  = kis
             data["doc"]  = doc
             data["node"] = node

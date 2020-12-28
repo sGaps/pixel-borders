@@ -1,8 +1,8 @@
 from PyQt5.QtCore       import pyqtSlot , pyqtSignal
 from PyQt5.QtWidgets    import QHBoxLayout , QPushButton
 
-from MenuPage           import MenuPage
-from MethodDisplay      import MethodWidget
+from .MenuPage          import MenuPage
+from .MethodDisplay     import MethodWidget
 
 # TODO: 'table' must show its scroll bar everytime. It's difficult use it without that thing.
 class CustomPage( MenuPage ):

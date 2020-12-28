@@ -2,7 +2,7 @@ from PyQt5.QtCore       import Qt , pyqtSlot , pyqtSignal
 from PyQt5.QtWidgets    import ( QSpinBox , QCheckBox , QLabel ,
                                  QWidget , QFormLayout )
 
-from MenuPage           import MenuPage
+from .MenuPage          import MenuPage
 
 class TdscPage( MenuPage ):
     def __init__( self , backP = None , nextP = None , parent = None ):

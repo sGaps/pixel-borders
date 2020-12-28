@@ -2,7 +2,7 @@ from PyQt5.QtCore     import Qt , pyqtSignal , pyqtSlot , QUrl
 from PyQt5.QtWidgets  import ( QDialog , QPushButton , QLabel , QWidget ,
                                QVBoxLayout , QFormLayout )
 from PyQt5.QtGui      import QDesktopServices
-from MenuPage         import subTitleLabel
+from .MenuPage        import subTitleLabel
 
 
 class ButtonWithUrl( QPushButton ):
