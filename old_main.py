@@ -10,7 +10,7 @@
 
     [:] Defined in this module
     --------------------------
-
+    
     PixelExtension  :: class
         Used for manage the gui as a Krita Extension.
 
@@ -18,17 +18,20 @@
         Holds relevant information about the module, the path
         and the name of the plugin inside Krita.
 
-    [*] Created By
+    [*] Created By 
      |- Gaps : sGaps : ArtGaps
 """
 
 
 
-from .Context     import CONTEXT , RUN , Extension
-#from .gui.PxGUI   import GUI
-from .SetupGUI import GUI
-
-if CONTEXT == "INSIDE_KRITA": from .core.Borderizer import Borderizer
+try:
+    from .Context     import CONTEXT , RUN , Extension
+    from .gui.PxGUI   import GUI
+    if CONTEXT == "INSIDE_KRITA": from .core.Borderizer import Borderizer
+except:
+    from pixel_borders.Context     import CONTEXT , RUN , Extension
+    from pixel_borders.gui.PxGUI   import GUI
+    if CONTEXT == "INSIDE_KRITA": from pixel_borders.core.Borderizer import Borderizer
 
 METADATA = { "SYS_ID"    : "pykrita_pixel_border" ,
              "NAM_ID"    : "Pixel Borders"        ,
@@ -49,7 +52,7 @@ class PixelExtension( Extension ):
     def createActions( self , window ):
         """ Used by krita. This makes a valid entry for the plugin in the 'scripts'
             button of Krita"""
-        action = window.createAction( METADATA["SYS_ID"]    ,
+        action = window.createAction( METADATA["SYS_ID"]    , 
                                       METADATA["NAM_ID"]    ,
                                       METADATA["TOOL_PATH"] )
         action.triggered.connect( self.run )
@@ -64,10 +67,15 @@ class PixelExtension( Extension ):
             self.ext = GUI( parent = None , title = METADATA["TITLE"] )
             self.ext.run()
             self.setWindowTitle( "Pixel Border - GUI test" )
+            self.resize( *DEFAULTSIZE["test-body"] )
             self.show()
             RUN()
         else:
             self.ext   = GUI( parent = None , title = METADATA["TITLE"] )
             borderizer = Borderizer( cleanUpAtFinish = False )
-            self.ext.connectWithBorderizer( borderizer ) #self.ext.setup_borderizer_connection( borderizer )
+            self.ext.setup_borderizer_connection( borderizer )
             self.ext.run()
+
+if __name__ == "__main__":
+    PX = PixelExtension( None )
+    PX.run()

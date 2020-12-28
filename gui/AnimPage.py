@@ -63,15 +63,19 @@ class AnimPage( MenuPage ):
         if KRITA_AVAILABLE:
             # Take the current Document:
             doc = Krita.instance().activeDocument()
-            # Take the whole timeline:
-            self.defValue = [ doc.fullClipRangeStartTime() ,    # Max Start Time
-                              doc.fullClipRangeEndTime  () ]    # Max End Time
-            # Update the bounds:
-            self.start.setMinimum ( self.defValue[0] )
-            self.finish.setMaximum( self.defValue[1] )
+            if not doc:
+                dprint( "[Pixel Anim.Page]: There isn't any document." )
+                self.defValue = [ self.start.minimum()  ,
+                                  self.finish.maximum() ]
+            else:
+                # Take the whole timeline:
+                self.defValue = [ doc.fullClipRangeStartTime() ,    # Max Start Time
+                                  doc.fullClipRangeEndTime  () ]    # Max End Time
+                # Update the bounds:
+                self.start.setMinimum ( self.defValue[0] )
+                self.finish.setMaximum( self.defValue[1] )
         else:
-            dprint( "[Anim Page]: Unable to connect with Krita." )
-
+            dprint( "[Pixel Anim.Page]: Unable to connect with Krita." )
 
     def getData( self ):
         if KRITA_AVAILABLE and self.override:

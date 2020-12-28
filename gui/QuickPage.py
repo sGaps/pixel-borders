@@ -14,5 +14,6 @@ class QuickPage( MenuPage ):
         # Layout Setup:
         self.layout.addWidget( self.table )
 
+    # BUG: recipedsc will be overwritten by the quick page
     def getData( self ):
-        return { "methoddsc" : self.table.getData() }
+        return { "q-recipedsc" : self.table.getData() }

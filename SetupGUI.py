@@ -77,15 +77,19 @@ class GUI( object ):
         tdscp.next   = animp
         animp.next   = waitp
 
+        # Krita-Dependent Code:
+        animp.connect_with_krita()
+
         # Connections between Pages:
         typep.type_changed.connect( colorp.serve_negated_alternative_request )
         typep.type_changed.connect( animp.setOverride )
 
         # Connections between Pages and Menu:
-        namep.cancel.released.connect( menu.reject      )
-        namep.info.released.connect  ( menu.displayInfo )
-        waitp.cancel.released.connect( menu.tryRollBack )
-        waitp.info.released.connect  ( menu.displayInfo )
+        namep.cancel.released.connect  ( menu.reject          )
+        namep.info.released.connect    ( menu.displayInfo     )
+        waitp.cancel.released.connect  ( menu.tryRollBack     )
+        waitp.info.released.connect    ( menu.displayInfo     )
+        namep.previous.released.connect( menu.usePreviousData )
 
         menu.addPage( namep   , "name"   )
         menu.addPage( typep   , "type"   )
@@ -106,6 +110,9 @@ class GUI( object ):
 
         if outsideKRITA:
             main.exec_()
+
+    def connectWithBorderizer( self , borderizer ):
+        self.menu.connectWithBorderizer( borderizer )
 
 # NOTE: I had some issues trying to run the kritarunner of Krita 4.4.x. It seems that it requires
 #       a function with type (f :: a -> () ). So, I use for test this safely...

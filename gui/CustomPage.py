@@ -43,5 +43,6 @@ class CustomPage( MenuPage ):
     def removeFromRecipe( self ):
         self.table.removeMethod()
 
+    # BUG: recipedsc will be overwritten by the quick page
     def getData( self ):
-        return { "methoddsc" : self.table.getData() }
+        return { "c-recipedsc" : self.table.getData() }

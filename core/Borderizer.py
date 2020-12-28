@@ -1,7 +1,7 @@
 # Module:      core.Borderizer.py | [ Language Python ]
 # Created by: ( Gaps | sGaps | ArtGaps )
 # -----------------------------------------------------
-""" 
+"""
     Defines a Borderizer object to add pixel borders to a krita node.
 
     [:] Defined in this module
@@ -40,7 +40,7 @@
     DEPTHS          :: dict
         Holds relevant information about the color Depth, like cast type and max limits.
 
-    [*] Created By 
+    [*] Created By
      |- Gaps : sGaps : ArtGaps
 """
 
@@ -66,24 +66,51 @@ METHODS = { "force"             : Grow.force_grow             ,
             "strict-horizontal" : Grow.strict_horizontal_grow ,
             "strict-vertical"   : Grow.strict_vertical_grow   }
 
+COLOR_TYPES = { "FG" , "BG" , "CS" }
 # Keys used in the data structure passed by the GUI
-KEYS = {  "methoddsc" , # [[method,thickness]] where method is
-          "colordsc"  , # [ color_type , components ]
-                        # where color_type = "FG" | "BG" , "CS"
-                        #       components = [UInt]
-          "trdesc"    , # Transparency descriptor = [ transparency_value , threshold ]
-          "node"      , # Krita Node
-          "doc"       , # Krita Document
-          "kis"       , # Krita Instance
-          "animation" , # None if it hasn't animation. Else ( start , finish ) -> start , finish are Ints in [UInt]
-          "name"      , # String
+KEYS = {  "q-recipedsc" , # Quick Recipe Descriptor.
+          "c-recipedsc" , # Custom Recipe Descriptor.
+          "is-quick"    , # If true, Use q-recipedsc instead of c-recipedsc.
+          "colordsc"    , # Color Descriptor.
+          "trdesc"      , # Transparency Descriptor.
+          "node"        , # Current Node.
+          "doc"         , # Current Document.
+          "kis"         , # Current Krita instance.
+          "animation"   , # Animation bounds.
+          "try-animate" , # Make animated border when it's possible.
+          "name"        , # Border name.
           }
+#KEYS = {  "methoddsc" , # [[method,thickness]] where method is
+#          "colordsc"  , # [ color_type , components ]
+#                        # where color_type = "FG" | "BG" , "CS"
+#                        #       components = [UInt]
+#          "trdesc"    , # Transparency descriptor = [ transparency_value , threshold ]
+#          "node"      , # Krita Node
+#          "doc"       , # Krita Document
+#          "kis"       , # Krita Instance
+#          "animation" , # None if it hasn't animation. Else ( start , finish ) -> start , finish are Ints in [UInt]
+#          "name"      , # String
+#          }
 
 # Support for krita color depths. Key -> ( Read_Write_Pattern , Max_Value )
 DEPTHS = { "U8"  : ("B" , 2**8  - 1 ) ,
            "U16" : ("H" , 2**16 - 1 ) ,
            "F16" : ("e" , 1.0       ) ,
            "F32" : ("f" , 1.0       ) }
+
+# New Keys
+# [PxGUI] Data Sent: {
+#     name: Border
+#     is-quick: True
+#     colordsc: ('FG', None)
+#     methoddsc: [['any-neighbor', 1]]
+#     trdesc: [False, 0]
+#     animation: []
+#     try-animate: True
+#     kis: <PyKrita.krita.Krita object at 0x7fc5336fb040>
+#     doc: None
+#     node: None
+# }
 
 class Borderizer( object ):
     """
@@ -97,12 +124,16 @@ class Borderizer( object ):
                 info(krita.InfoObject): Specify some special arguments to export files.
                 cleanUpAtFinish(bool):  Indicates if is totally required to remove all exported files.
         """
-        self.info = info
+        self.info            = info
         self.cleanUpAtFinish = cleanUpAtFinish
+
+        # GUI Connections -------------------------------
+        self.gui   = None   # Menu or any GUI compatible.
+        self.waitp = None   # Wait Page of that Menu
 
     @staticmethod
     def __get_true_color__( managedcolor ):
-        """ 
+        """
             ARGUMENTS
                 managedcolor(krita.ManagedColor): source normalized color from krita.
             RETURNS
@@ -113,10 +144,10 @@ class Borderizer( object ):
                   min alpha value  ,
                   max alpha value  )
         """
-                
+
         depth = managedcolor.colorDepth()
         cmps  = managedcolor.components()
-        
+
         bsize = int(depth[1:])
         ncmps = len(cmps)
         color = bytearray()
@@ -136,7 +167,7 @@ class Borderizer( object ):
 
     @staticmethod
     def fillWith( target , pxdata , bounds ):
-        """ 
+        """
             ARGUMENTS
                 target(krita.Node):         target node.
                 pxdata(bytearray):          pixel data.
@@ -146,7 +177,7 @@ class Borderizer( object ):
 
     @staticmethod
     def makePxDataWithColor( colorbytes , repeat_times ):
-        """ 
+        """
             ARGUMENTS
                 colorbytes(bytearray):  color to repeat
                 repeat_times(int):      how many times that color repeats
@@ -180,7 +211,7 @@ class Borderizer( object ):
 
             start = pos * step + offset
 
-            if alpha[pos]: 
+            if alpha[pos]:
                 new_contents[ start : start + item_size ] = opaque
             # Update!
             pos  += 1
@@ -188,7 +219,7 @@ class Borderizer( object ):
 
     @staticmethod
     def applyMethodRecipe( grow , recipe ):
-        """ 
+        """
             ARGUMENTS
                 grow(AlphaGrow.Grow):               object that describes how the alpha will grow.
                 recipe([AlphaGrow.Grow.method()):   list of methods from a AlphaGrow.Grow object
@@ -202,7 +233,7 @@ class Borderizer( object ):
 
     @staticmethod
     def getTrueBounds( node ):
-        """ 
+        """
             ARGUMENTS
                 node(krita.Node):   source node
             RETURNS
@@ -220,7 +251,7 @@ class Borderizer( object ):
 
     @staticmethod
     def getBounds( node , document_bounds , thickness ):
-        """ 
+        """
             ARGUMENTS
                 node(krita.Node):                       source node.
                 document_bounds(PyQt5.QtCore.QRect):    Bounds of the document.
@@ -235,7 +266,7 @@ class Borderizer( object ):
         return document_bounds.intersected( pBounds )
 
     def run( self , **data_from_gui ):
-        """ 
+        """
             ARGUMENTS
                 data_from_gui(dict):    must have the keys of KEYS
             RETURNS
@@ -244,18 +275,21 @@ class Borderizer( object ):
 
             See also: KEYS
         """
+        data = data_from_gui
 
-        if set(data_from_gui.keys()) != KEYS:
+        # If it doesn't have all the information:
+        if KEYS.difference( set(data.keys()) ):
             print( f"[Borderizer] Couldn't match the keys of:\n{data_from_gui}, with the required keys: {KEYS}" , file = stderr )
             return False
 
-
-        # [@] Initialization
-        node = data_from_gui["node"]
-        doc  = data_from_gui["doc"]
-        kis  = data_from_gui["kis"]
-
-        if not ( node and kis and doc ):
+        #node = data_from_gui["node"]
+        #doc  = data_from_gui["doc"]
+        #kis  = data_from_gui["kis"]
+        # [@] Initialization:
+        node = data.get( "node" , None )
+        doc  = data.get( "doc"  , None )
+        kis  = data.get( "kis"  , None )
+        if not ( node and doc and kis ):
             print( f"[Borderizer] Couldn't run with incomplete information: node = {node} , krita = {kis} , document = {doc}" , file = stderr )
             return False
 
@@ -264,12 +298,22 @@ class Borderizer( object ):
         # Method parse:
         methodRecipe = []
         thickness    = 0
-        for mdesc in data_from_gui["methoddsc"]:
-            methodRecipe.append( (METHODS[ mdesc[0] ] , mdesc[1]) )
-            thickness += mdesc[1]
+
+        if data["is-quick"]:
+            protoRecipe = data["q-recipedsc"]
+        else:
+            protoRecipe = data["c-recipedsc"]
+
+        for method_name , method_thck in protoRecipe:
+            method = METHODS.get( method_name , None )
+            if not method:
+                print( f"[Borderizer] Unknow method {method_name}" , file = stderr )
+                return
+            methodRecipe.append( (method,method_thck) )
+            thickness += method_thck
 
         # Color selection:
-        colorType , components = data_from_gui["colordsc"]
+        colorType , components = data["colordsc"]
         if   colorType == "FG":
             mcolor = view.foregroundColor()
         elif colorType == "BG":
@@ -277,7 +321,7 @@ class Borderizer( object ):
         else:
             mcolor = ManagedColor( node.colorModel() , node.colorDepth() , node.colorProfile() )
             mcolor.setComponents( components )
-        # This explicit conversion is totally required because the krita. View objects sometimes don't 
+        # This explicit conversion is totally required because Krita's View objects sometimes don't
         # update the color space of user's color (foreground and background colors)
         mcolor.setColorSpace( node.colorModel() , node.colorDepth() , node.colorProfile() )
         nocolor , color , trBytes , opBytes = Borderizer.__get_true_color__( mcolor )
@@ -285,8 +329,13 @@ class Borderizer( object ):
         dbounds     = doc.bounds()
 
         # Misc & Time:
-        name          = data_from_gui["name"]
-        transparency , threshold = data_from_gui["trdesc"]
+        name          = data["name"]
+        #transparency , threshold = data["trdesc"]
+        useOpaqueAsTransparency , threshold_percent = data["trdesc"]
+        dmax         = DEPTHS[ node.colorDepth() ][1] # Takes the maximun value for the current depth.
+        transparency = dmax if useOpaqueAsTransparency else 0
+        # BUG: Threshold has a big error interval.
+        threshold    = int( dmax * (threshold_percent/100) ) if node.colorDepth() in {"U8","U16"} else dmax * (threshold_percent/100)
 
         # They're used for the writing proccess
 
@@ -311,22 +360,40 @@ class Borderizer( object ):
         frameH = FrameHandler( doc , kis , debug = False )
         # Builds the color data
 
+
+        # [*] PROGRESS BAR:
+        progress = self.waitp.progress
+        progress.setMinimum( 0 )
+        progress.reset()
+
         # [T] Time Selection:
-        protoTimeline = data_from_gui["animation"]
-        if protoTimeline:
+        if data["try-animate"]:
+            # BUG: repeated frames when start = finish
+            protoTimeline  = data["animation"]
             start , finish = protoTimeline
             timeline       = frameH.get_animation_range( source , start , finish )
         else:
             timeline       = None
-        
+
         if timeline:
+            # [*] PROGRESS BAR:
+            progress.setMaximum( len(timeline) )
+        else:
+            # [*] PROGRESS BAR:
+            progress.setMaximum( 1 )
+
+        # BUG: Distorted images with depth = "U16"
+        if timeline:
+            # [|>] Animation.
             canvasSize    = dbounds.width() * dbounds.height()
             grow          = Grow.singleton( amount_of_items_on_search = canvasSize )
             anim_length   = len( str( len( timeline ) ) )
             original_time = doc.currentTime()
+            # Makes a new directory for the animation frames when it's possible.
             if not frameH.build_directory():
                 target.remove()
                 del target
+                # TODO: Notify when something goes wrong!
                 return False
 
             colordata = None
@@ -365,6 +432,9 @@ class Borderizer( object ):
 
                 frameH.exportFrame( f"frame{t:0{anim_length}}.png" , target )
 
+                # [*] PROGRESS BAR:
+                progress.setValue( progress.value() + 1 )
+
             # Exit:
             frameH.importFrames( start , frameH.get_exported_files() )
             border = doc.topLevelNodes()[Borderizer.ANIMATION_IMPORT_DEFAULT_INDEX]
@@ -381,9 +451,13 @@ class Borderizer( object ):
             if self.cleanUpAtFinish:
                 frameH.removeExportedFiles( removeSubFolder = True )
 
+            # DONE:
+            progress.setValue( progress.value() + 1 )
             doc.setCurrentTime( original_time )
             done = True
         else:
+            # [||] Static Layer.
+
             # [X] Bounds Update:
             bounds = Borderizer.getBounds( source , dbounds , thickness )
 
@@ -405,10 +479,12 @@ class Borderizer( object ):
             border = target
             border.setName( name )
 
+
+            # DONE:
+            progress.setValue( progress.maximum() )
             done = True
 
         doc.refreshProjection()
         kis.setBatchmode( batchK )
         doc.setBatchmode( batchD )
         return done
-
