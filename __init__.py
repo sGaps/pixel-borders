@@ -15,5 +15,4 @@ else:
     kis = Krita.instance()
     ext = PixelExtension( parent = kis )
 
-    #kis.addExtension     ( ext )
     Scripter.addExtension( ext )    # Scripter is defined in the global krita's dictionary

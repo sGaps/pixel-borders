@@ -25,9 +25,11 @@ class AnimPage( MenuPage ):
 
         self.start   = QSpinBox()
         self.start.setMinimum( 0 )
+        self.start.setValue ( self.start.minimum() )
 
         self.finish  = QSpinBox()
         self.finish.setMinimum( 0 )
+        self.finish.setValue( self.finish.maximum() )
 
         self.tname   = QLabel( "Try Animate" )
         self.sname   = QLabel( "Start Time" )
@@ -76,12 +78,13 @@ class AnimPage( MenuPage ):
                 self.finish.setMaximum( self.defValue[1] )
         else:
             dprint( "[Pixel Anim.Page]: Unable to connect with Krita." )
+        self.start.setValue ( self.start.minimum() )
+        self.finish.setValue( self.finish.maximum() )
 
     def getData( self ):
         if KRITA_AVAILABLE and self.override:
             return { "animation"   : self.defValue ,            # [Start, Finish]
                      "try-animate" : True }                     # Always try animate
-                    #"try-animate" : self.tryAnim.isChecked() } TODO: DELETE THIS LINE
         else:
             return { "animation" : [ self.start.value()  ,      # Start
                                      self.finish.value() ]    , # Finish

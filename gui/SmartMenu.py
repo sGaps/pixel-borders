@@ -3,6 +3,7 @@ from PyQt5.QtWidgets  import ( QDialog , QToolButton , QStackedWidget ,
                                QMessageBox , QGridLayout , QSizePolicy )
 
 from sys              import stderr
+from threading        import Thread
 from .About           import About
 
 # Krita-dependent Code:
@@ -40,6 +41,8 @@ class Menu( QDialog ):
         self.infoON = False         # Marks when the about dialog is active
         self.infoDG = About( self ) # About dialog box.
         self.engine = None          # Future Borderizer object.
+        self.worker = None          # Worker Thread (based in engine).
+        self.cancel = False         # Cancel operations (and try rollback)
 
         # Main Body ---------------
         self.layout = QGridLayout()
@@ -147,7 +150,21 @@ class Menu( QDialog ):
 
             # TODO: Move border process to a secondary thread:
             # Borderizer-dependent (engine) code here:
-            self.engine.run( **data )
+
+            # Builds a new Thread object (python 3.6+)
+            # TODO: use QThreads instead the beautiful threading package...
+            #       it seems QObject::startTimer cannot be used by threads else
+            #       than QThreads... Nice Qt, Good one!
+            #self.worker = Thread( target = self.engine.run ,
+            #                      args   = ( data , )      )
+            #self.worker.start()
+            #self.engine.run( **data )
+
+            # QT again...
+            #self.worker = QThread()
+            #self.engine.moveToThread( self.worker )
+
+
         else:
             self.reportData( data )
 

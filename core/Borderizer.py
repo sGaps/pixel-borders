@@ -112,6 +112,7 @@ DEPTHS = { "U8"  : ("B" , 2**8  - 1 ) ,
 #     node: None
 # }
 
+# TODO: Convert Borderizer into a QObject subclass...
 class Borderizer( object ):
     """
         Object used to make borders to regular, group or animated nodes.
@@ -128,8 +129,9 @@ class Borderizer( object ):
         self.cleanUpAtFinish = cleanUpAtFinish
 
         # GUI Connections -------------------------------
-        self.gui   = None   # Menu or any GUI compatible.
-        self.waitp = None   # Wait Page of that Menu
+        self.gui      = None   # Menu or any GUI compatible.
+        self.waitp    = None   # Wait Page of that Menu
+        self.progress = None   # Progress Bar
 
     @staticmethod
     def __get_true_color__( managedcolor ):
@@ -265,7 +267,28 @@ class Borderizer( object ):
                          nBounds.height() + 2*thickness )
         return document_bounds.intersected( pBounds )
 
-    def run( self , **data_from_gui ):
+    def doNothing( self ):
+        pass
+
+    def setCompleteProgressBar( self ):
+        self.progress.setValue( self.progress.maximum() )
+
+    def incrementProgressBar( self ):
+        self.progress.setValue( self.progress.value() + 1 )
+
+    def resetProgressBar( self , minimum , maximum ):
+        if not self.waitp:
+            return ( self.doNothing , self.doNothing )
+
+        self.progress = self.waitp.progress
+        self.progress.setMinimum( 0 )
+        self.progress.reset()
+        self.progress.setMaximum( maximum )
+
+        return ( self.incrementProgressBar   ,
+                 self.setCompleteProgressBar )
+
+    def run( self , data_from_gui ):
         """
             ARGUMENTS
                 data_from_gui(dict):    must have the keys of KEYS
@@ -279,12 +302,9 @@ class Borderizer( object ):
 
         # If it doesn't have all the information:
         if KEYS.difference( set(data.keys()) ):
-            print( f"[Borderizer] Couldn't match the keys of:\n{data_from_gui}, with the required keys: {KEYS}" , file = stderr )
+            print( f"[Borderizer] Couldn't match the keys of:\n{data}, with the required keys: {KEYS}" , file = stderr )
             return False
 
-        #node = data_from_gui["node"]
-        #doc  = data_from_gui["doc"]
-        #kis  = data_from_gui["kis"]
         # [@] Initialization:
         node = data.get( "node" , None )
         doc  = data.get( "doc"  , None )
@@ -350,7 +370,7 @@ class Borderizer( object ):
         # [N] Node actions:
         source = node
 
-        # TODO: Add the Border-node using an action to add it to the Undo-Stack
+        # NOTE: Now, Krita add these operations into the undo stack!
         target = doc.createNode( ".target" , "paintlayer" )
         # Link the target with the document: (Just above the node)
         source.parentNode().addChildNode( target , source )
@@ -359,12 +379,6 @@ class Borderizer( object ):
         scrap  = Scrapper()
         frameH = FrameHandler( doc , kis , debug = False )
         # Builds the color data
-
-
-        # [*] PROGRESS BAR:
-        progress = self.waitp.progress
-        progress.setMinimum( 0 )
-        progress.reset()
 
         # [T] Time Selection:
         if data["try-animate"]:
@@ -377,10 +391,10 @@ class Borderizer( object ):
 
         if timeline:
             # [*] PROGRESS BAR:
-            progress.setMaximum( len(timeline) )
+            increment , complete = self.resetProgressBar( 0 , len(timeline) )
         else:
             # [*] PROGRESS BAR:
-            progress.setMaximum( 1 )
+            increment , complete = self.resetProgressBar( 0 , 1 )
 
         # BUG: Distorted images with depth = "U16"
         if timeline:
@@ -433,7 +447,7 @@ class Borderizer( object ):
                 frameH.exportFrame( f"frame{t:0{anim_length}}.png" , target )
 
                 # [*] PROGRESS BAR:
-                progress.setValue( progress.value() + 1 )
+                increment()
 
             # Exit:
             frameH.importFrames( start , frameH.get_exported_files() )
@@ -452,7 +466,7 @@ class Borderizer( object ):
                 frameH.removeExportedFiles( removeSubFolder = True )
 
             # DONE:
-            progress.setValue( progress.value() + 1 )
+            increment()
             doc.setCurrentTime( original_time )
             done = True
         else:
@@ -481,10 +495,12 @@ class Borderizer( object ):
 
 
             # DONE:
-            progress.setValue( progress.maximum() )
+            complete()
             done = True
 
         doc.refreshProjection()
         kis.setBatchmode( batchK )
         doc.setBatchmode( batchD )
+        if self.gui:    # TODO: Add final steps here (for the gui).
+            pass
         return done
