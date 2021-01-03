@@ -5,6 +5,7 @@ from PyQt5.QtWidgets  import ( QDialog , QToolButton , QStackedWidget ,
 from sys              import stderr
 from threading        import Thread
 from .About           import About
+#from .core.Borderizer import Borderizer
 
 # Krita-dependent Code:
 from .krita_connection.Lookup import KRITA_AVAILABLE , dprint
@@ -29,6 +30,8 @@ def dirButton( text = "" , arrow_type = Qt.LeftArrow ):
     return bttn
 
 class Menu( QDialog ):
+    isOnSinkPage = pyqtSignal()
+
     def __init__( self , parent = None ):
         """ Returns a new Menu object which can be connected
             with a Borderizer object. """
@@ -71,6 +74,9 @@ class Menu( QDialog ):
 
         # Dialog Popup:
         self.infoDG.finished.connect( self.catchDisplayedInfo )
+
+    def page( self , name ):
+        return self.names.get( name , None )
 
     def addPage( self , page , name ):
         """ Add a page into the Menu. the name must be unique. """
@@ -129,56 +135,69 @@ class Menu( QDialog ):
         """ Sends the border request when there's a sink page in the Menu. """
         if not self.sinkIX:           return
         if page_index != self.sinkIX: return
-        self.sendBorderRequest()
+        #self.sendBorderRequest()
+        self.isOnSinkPage.emit()
 
-    @pyqtSlot()
-    def sendBorderRequest( self ):
-        """ Prints the current data on stderr and sends the current
-            data to an available borderizer. """
-        data = self.collectDataFromPages()
-        # TODO: Save the current data here (as JSON)
-        # ------------------------------------------
-        if KRITA_AVAILABLE and self.engine:
-            # krita-dependent code here:
-            kis  = Krita.instance()
-            doc  = kis.activeDocument() if kis else None
-            node = doc.activeNode()     if doc else None
-            data["kis"]  = kis
-            data["doc"]  = doc
-            data["node"] = node
-            self.reportData( data )
+    #@pyqtSlot()
+    #def sendBorderRequest( self ):
+    #    """ Prints the current data on stderr and sends the current
+    #        data to an available borderizer. """
+    #    data = self.collectDataFromPages()
+    #    # TODO: Save the current data here (as JSON)
+    #    # ------------------------------------------
+    #    if KRITA_AVAILABLE and self.engine:
+    #        # krita-dependent code here:
+    #        kis  = Krita.instance()
+    #        doc  = kis.activeDocument() if kis else None
+    #        node = doc.activeNode()     if doc else None
+    #        data["kis"]  = kis
+    #        data["doc"]  = doc
+    #        data["node"] = node
+    #        self.reportData( data )
 
-            # TODO: Move border process to a secondary thread:
-            # Borderizer-dependent (engine) code here:
+    #        # TODO: Move border process to a secondary thread:
+    #        # Borderizer-dependent (engine) code here:
 
-            # Builds a new Thread object (python 3.6+)
-            # TODO: use QThreads instead the beautiful threading package...
-            #       it seems QObject::startTimer cannot be used by threads else
-            #       than QThreads... Nice Qt, Good one!
-            #self.worker = Thread( target = self.engine.run ,
-            #                      args   = ( data , )      )
-            #self.worker.start()
-            #self.engine.run( **data )
+    #        # Builds a new Thread object (python 3.6+)
+    #        # TODO: use QThreads instead the beautiful threading package...
+    #        #       it seems QObject::startTimer cannot be used by threads else
+    #        #       than QThreads... Nice Qt, Good one!
+    #        #self.worker = Thread( target = self.engine.run ,
+    #        #                      args   = ( data , )      )
+    #        #self.worker.start()
+    #        #self.engine.run( **data )
 
-            # QT again...
-            #self.worker = QThread()
-            #self.engine.moveToThread( self.worker )
+    #        # QT again...
+    #        self.worker = QThread()
+    #        # TODO: Consider use self.worker.setPriority( QThread.TimeCritialPriority )
+    #        #       or Consider use self.worker.setPriority( QThread.HighPriority )
+    #        self.engine = Borderizer( data )
+    #        self.engine.moveToThread( self.worker )
+    #        self.worker.started.connect( self.engine.run )
+    #        self.engine.finished.connect( self.worker.quit        )
+    #        self.engine.finished.connect( self.engine.deleteLater )
+    #        self.worker.finished.connect( self.worker.deleteLater )
 
+    #        # TODO: This is very ugly! Fix Later
+    #        if self.sinkIX.dir().get( "progress" , None ):
+    #            self.engine.progress.connect( self.pageBag.widget(self.sinkIX).setValue )
 
-        else:
-            self.reportData( data )
+    #        self.worker.start()
 
-    @pyqtSlot()
-    def usePreviousData( self ):
-        """ Loads the previous data used in this Menu. Else it does nothing. """
-        # TODO: Load the previous JSON. Verify if it exists. Notify if it doesn't
+    #    else:
+    #        self.reportData( data )
 
-        # Loads the sink page:
-        if self.sinkIX:
-            self.pageBag.setCurrentIndex( self.sinkIX )
+    #@pyqtSlot()
+    #def usePreviousData( self ):
+    #    """ Loads the previous data used in this Menu. Else it does nothing. """
+    #    # TODO: Load the previous JSON. Verify if it exists. Notify if it doesn't
+
+    #    # Loads the sink page:
+    #    if self.sinkIX:
+    #        self.pageBag.setCurrentIndex( self.sinkIX )
 
     @pyqtSlot( str )
-    def sendRequestWhenCurrentPageIs( self , name ):
+    def notifyForSinkPage( self , name ):
         """ Setup a page as Sink Page. When the Menu loads that page, it will
             run 'sendBorderRequest' method."""
         page = self.names.get( name , None )
@@ -186,17 +205,17 @@ class Menu( QDialog ):
             self.sinkIX = self.pageBag.indexOf( page )
 
 
-    def connectWithBorderizer( self , borderizer ):
-        if self.sinkIX:
-            self.engine       = borderizer
-            self.engine.gui   = self
-            self.engine.waitp = self.pageBag.widget( self.sinkIX )
+    #def connectWithBorderizer( self , borderizer ):
+    #    if self.sinkIX:
+    #        self.engine       = borderizer
+    #        self.engine.gui   = self
+    #        self.engine.waitp = self.pageBag.widget( self.sinkIX )
 
-    @pyqtSlot()
-    def tryRollBack( self ):
-        """ Cancel all operations when is possible """
-        # TODO: Add rollback steps here:
-        self.reject()
+    #@pyqtSlot()
+    #def tryRollBack( self ):
+    #    """ Cancel all operations when is possible """
+    #    # TODO: Add rollback steps here:
+    #    self.reject()
 
     @pyqtSlot()
     def displayInfo( self ):

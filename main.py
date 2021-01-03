@@ -68,6 +68,6 @@ class PixelExtension( Extension ):
             RUN()
         else:
             self.ext   = GUI( parent = None , title = METADATA["TITLE"] )
-            borderizer = Borderizer( cleanUpAtFinish = False )
-            self.ext.connectWithBorderizer( borderizer ) #self.ext.setup_borderizer_connection( borderizer )
+            #borderizer = Borderizer( cleanUpAtFinish = False )
+            #self.ext.connectWithBorderizer( borderizer ) #self.ext.setup_borderizer_connection( borderizer )
             self.ext.run()

@@ -43,17 +43,18 @@
     [*] Created By
      |- Gaps : sGaps : ArtGaps
 """
-
-
-
-
-from krita              import Selection , Krita , ManagedColor
+try:
+    from krita              import Selection , Krita , ManagedColor
+except:
+    print( "[Borderizer] Krita Not available" )
 from struct             import pack , unpack
-from PyQt5.QtCore       import QRect
+from PyQt5.QtCore       import QRect , QObject , pyqtSlot , pyqtSignal
+from PyQt5.QtCore       import QThread , QMutex
 from sys                import stderr
 from collections        import deque
 
 from .AlphaGrow         import Grow
+from .Arguments         import KisData
 from .AlphaScrapperSafe import Scrapper
 from .FrameHandler      import FrameHandler
 
@@ -80,17 +81,6 @@ KEYS = {  "q-recipedsc" , # Quick Recipe Descriptor.
           "try-animate" , # Make animated border when it's possible.
           "name"        , # Border name.
           }
-#KEYS = {  "methoddsc" , # [[method,thickness]] where method is
-#          "colordsc"  , # [ color_type , components ]
-#                        # where color_type = "FG" | "BG" , "CS"
-#                        #       components = [UInt]
-#          "trdesc"    , # Transparency descriptor = [ transparency_value , threshold ]
-#          "node"      , # Krita Node
-#          "doc"       , # Krita Document
-#          "kis"       , # Krita Instance
-#          "animation" , # None if it hasn't animation. Else ( start , finish ) -> start , finish are Ints in [UInt]
-#          "name"      , # String
-#          }
 
 # Support for krita color depths. Key -> ( Read_Write_Pattern , Max_Value )
 DEPTHS = { "U8"  : ("B" , 2**8  - 1 ) ,
@@ -98,40 +88,84 @@ DEPTHS = { "U8"  : ("B" , 2**8  - 1 ) ,
            "F16" : ("e" , 1.0       ) ,
            "F32" : ("f" , 1.0       ) }
 
-# New Keys
-# [PxGUI] Data Sent: {
-#     name: Border
-#     is-quick: True
-#     colordsc: ('FG', None)
-#     methoddsc: [['any-neighbor', 1]]
-#     trdesc: [False, 0]
-#     animation: []
-#     try-animate: True
-#     kis: <PyKrita.krita.Krita object at 0x7fc5336fb040>
-#     doc: None
-#     node: None
-# }
-
-# TODO: Convert Borderizer into a QObject subclass...
-class Borderizer( object ):
+#class Borderizer( QObject ):
+# BUG: QObject::starttimer cannot start from another thread
+class Borderizer( QThread ):
     """
         Object used to make borders to regular, group or animated nodes.
         This will search into the sub node hiearchy to make the borders correctly.
     """
+    progress        = pyqtSignal( int )
+    error           = pyqtSignal( str )
+    rollbackRequest = pyqtSignal()
+
     ANIMATION_IMPORT_DEFAULT_INDEX = -1
-    def __init__( self , info = None , cleanUpAtFinish = False ):
+    def __init__( self , arguments = KisData() , thread_name = "Border-Thread" , info = None , cleanUpAtFinish = False , parent = None ):
         """
             ARGUMENTS
                 info(krita.InfoObject): Specify some special arguments to export files.
                 cleanUpAtFinish(bool):  Indicates if is totally required to remove all exported files.
         """
+        super().__init__( parent )
+        self.arguments = arguments
+
+        self.arguments       = arguments
         self.info            = info
+        # TODO: Useless (?)
         self.cleanUpAtFinish = cleanUpAtFinish
 
-        # GUI Connections -------------------------------
-        self.gui      = None   # Menu or any GUI compatible.
-        self.waitp    = None   # Wait Page of that Menu
-        self.progress = None   # Progress Bar
+        self.setObjectName( thread_name )
+        self.critical        = QMutex()
+        self.keepRunning     = True
+        #self.setObjectName( "Borderizer" )
+        #self.stoppable       = QMutex()
+        #self.keepRunning     = True
+
+        # Default connections:
+        self.rollbackList = []
+        #self.failure.connect( self.terminate )
+
+    @pyqtSlot()
+    def stopRequest( self ):
+        print( "Trying to stop" )
+        self.enterCriticalRegion()
+        self.keepRunning = False
+        self.exitCriticalRegion()
+
+    @pyqtSlot()
+    def enterCriticalRegion( self ):
+        self.critical.lock()
+
+    @pyqtSlot()
+    def exitCriticalRegion( self ):
+        self.critical.unlock()
+
+    @pyqtSlot()
+    def rollback( self ):
+        [ step() for step in self.getRollbackSteps() ]
+
+    def getRollbackSteps( self ):
+        return self.rollbackList
+
+    def submitRollbackStep( self , rollback_step ):
+        self.getRollbackSteps().append( rollback_step )
+
+    def keepRunningNormally( self ):
+        # | CRITICAL >-----------------------
+        self.enterCriticalRegion()
+        print( "*** On critical region" )
+        keepItUp = self.keepRunning
+        if keepItUp:
+            self.exitCriticalRegion()
+            # < CRITICAL |-----------------------
+        else:
+            # < CRITICAL |-----------------------
+            # Cancel request accepted
+            self.exitCriticalRegion()
+            self.error.emit( "Canceled by user" )
+            self.rollbackRequest.emit()
+            #self.finished.emit()
+        return keepItUp
 
     @staticmethod
     def __get_true_color__( managedcolor ):
@@ -188,6 +222,7 @@ class Borderizer( object ):
         """
         return colorbytes * repeat_times
 
+    # TODO: See what I did here, lol
     @staticmethod
     def makePxDataUsingAlpha( maxval , nocolor , opaque , alpha , length , nchans ):
         """
@@ -200,6 +235,8 @@ class Borderizer( object ):
                 nchans(int):        How many channels has the color space.
             RETURNS
                 bytearray
+
+                Colored version of the node's pixel data
         """
         item_size    = len( maxval )                # Channel Size
         new_contents = nocolor * length             # Pixel data
@@ -228,28 +265,14 @@ class Borderizer( object ):
             RETURNS
                 AlphaGrow.Grow
             Apply the grow recipe to the grow object. """
-        for task , steps in recipe:
-            for i in range(steps):
-                task( grow )
+        [   
+            [ task(grow) for i in range(steps) ]
+            for task , steps in recipe 
+        ]
+        #for task , steps in recipe:
+        #    for i in range(steps):
+        #        task( grow )
         return grow
-
-    @staticmethod
-    def getTrueBounds( node ):
-        """
-            ARGUMENTS
-                node(krita.Node):   source node
-            RETURNS
-                PyQt5.QtCore.QRect
-            Accumulate the union of bounds of each element of the node hierarchy defined by 'node'. """
-        greatest = node.bounds()
-        search   = deque( node.childNodes() )
-        while search:
-            n = search.pop()
-            greatest = greatest.united( n.bounds() )
-
-            for c in n.childNodes():
-                search.append(c)
-        return greatest
 
     @staticmethod
     def getBounds( node , document_bounds , thickness ):
@@ -267,151 +290,103 @@ class Borderizer( object ):
                          nBounds.height() + 2*thickness )
         return document_bounds.intersected( pBounds )
 
-    def doNothing( self ):
-        pass
-
-    def setCompleteProgressBar( self ):
-        self.progress.setValue( self.progress.maximum() )
-
-    def incrementProgressBar( self ):
-        self.progress.setValue( self.progress.value() + 1 )
-
-    def resetProgressBar( self , minimum , maximum ):
-        if not self.waitp:
-            return ( self.doNothing , self.doNothing )
-
-        self.progress = self.waitp.progress
-        self.progress.setMinimum( 0 )
-        self.progress.reset()
-        self.progress.setMaximum( maximum )
-
-        return ( self.incrementProgressBar   ,
-                 self.setCompleteProgressBar )
-
-    def run( self , data_from_gui ):
+    @pyqtSlot()
+    def run( self ):
         """
             ARGUMENTS
-                data_from_gui(dict):    must have the keys of KEYS
+                ** implicit **
+                self.arguments(KisData):
             RETURNS
                 bool
             Make borders to the given krita's node, using the keys defined in the global variable KEYS.
 
             See also: KEYS
         """
-        data = data_from_gui
+        a = self.arguments
+        if not a:
+            self.error.emit( "Not valid arguments" )
+            #self.finished.emit()
+            return
 
-        # If it doesn't have all the information:
-        if KEYS.difference( set(data.keys()) ):
-            print( f"[Borderizer] Couldn't match the keys of:\n{data}, with the required keys: {KEYS}" , file = stderr )
-            return False
+        # Part Zero:
+        name   = a.name
 
-        # [@] Initialization:
-        node = data.get( "node" , None )
-        doc  = data.get( "doc"  , None )
-        kis  = data.get( "kis"  , None )
-        if not ( node and doc and kis ):
-            print( f"[Borderizer] Couldn't run with incomplete information: node = {node} , krita = {kis} , document = {doc}" , file = stderr )
-            return False
+        # Part One:
+        kis    = a.kis
+        doc    = a.doc
+        source = a.node
+        parent = a.parent
 
-        view = kis.activeWindow().activeView()
+        # Part Two:
+        methodRecipe = a.recipe
+        thickness    = sum( map(lambda tup: tup[1] , a.recipe) )
+        nocolor , color , trBytes , opBytes = a.trPixel , a.opPixel , a.trBytes , a.opBytes
+        transparency = a.transparency
+        threshold    = a.threshold
 
-        # Method parse:
-        methodRecipe = []
-        thickness    = 0
+        # Part Three:
+        # | ROLLBACK >-----------------------
+        self.enterCriticalRegion()   # |> -->
+        batchK , batchD = a.batchK , a.batchD
+        chans  = a.channels
+        nchans = a.nchans
 
-        if data["is-quick"]:
-            protoRecipe = data["q-recipedsc"]
-        else:
-            protoRecipe = data["c-recipedsc"]
+        self.submitRollbackStep( lambda: doc.refreshProjection()  )
+        self.submitRollbackStep( lambda: kis.setBatchmode(batchK) )
+        self.submitRollbackStep( lambda: doc.setBatchmode(batchD) )
+        self.exitCriticalRegion()    # <-- <|
+        # < ROLLBACK |-----------------------
+        
+        # Part Four 
+        # | ROLLBACK >-----------------------
+        self.enterCriticalRegion()   # |> -->
+        source = a.node
+        parent = a.parent
+        target = doc.createNode( ".target" , "paintlayer")
+        parent.addChildNode( target , source )
 
-        for method_name , method_thck in protoRecipe:
-            method = METHODS.get( method_name , None )
-            if not method:
-                print( f"[Borderizer] Unknow method {method_name}" , file = stderr )
-                return
-            methodRecipe.append( (method,method_thck) )
-            thickness += method_thck
+        self.submitRollbackStep( lambda: target.remove() )
+        self.exitCriticalRegion()    # <-- <|
+        # < ROLLBACK |-----------------------
 
-        # Color selection:
-        colorType , components = data["colordsc"]
-        if   colorType == "FG":
-            mcolor = view.foregroundColor()
-        elif colorType == "BG":
-            mcolor = view.backgroundColor()
-        else:
-            mcolor = ManagedColor( node.colorModel() , node.colorDepth() , node.colorProfile() )
-            mcolor.setComponents( components )
-        # This explicit conversion is totally required because Krita's View objects sometimes don't
-        # update the color space of user's color (foreground and background colors)
-        mcolor.setColorSpace( node.colorModel() , node.colorDepth() , node.colorProfile() )
-        nocolor , color , trBytes , opBytes = Borderizer.__get_true_color__( mcolor )
-
-        dbounds     = doc.bounds()
-
-        # Misc & Time:
-        name          = data["name"]
-        #transparency , threshold = data["trdesc"]
-        useOpaqueAsTransparency , threshold_percent = data["trdesc"]
-        dmax         = DEPTHS[ node.colorDepth() ][1] # Takes the maximun value for the current depth.
-        transparency = dmax if useOpaqueAsTransparency else 0
-        # BUG: Threshold has a big error interval.
-        threshold    = int( dmax * (threshold_percent/100) ) if node.colorDepth() in {"U8","U16"} else dmax * (threshold_percent/100)
-
-        # They're used for the writing proccess
-
-        batchK , batchD = kis.batchmode() , doc.batchmode()
-        kis.setBatchmode( True )
-        doc.setBatchmode( True )
-
-        # [!] Run method:
-        chans  = node.channels()
-        nchans = len(chans)
-
-        # [N] Node actions:
-        source = node
-
-        # NOTE: Now, Krita add these operations into the undo stack!
-        target = doc.createNode( ".target" , "paintlayer" )
-        # Link the target with the document: (Just above the node)
-        source.parentNode().addChildNode( target , source )
-
-        # First Abstractions
-        scrap  = Scrapper()
-        frameH = FrameHandler( doc , kis , debug = False )
-        # Builds the color data
-
-        # [T] Time Selection:
-        if data["try-animate"]:
-            # BUG: repeated frames when start = finish
-            protoTimeline  = data["animation"]
-            start , finish = protoTimeline
-            timeline       = frameH.get_animation_range( source , start , finish )
-        else:
-            timeline       = None
-
-        if timeline:
-            # [*] PROGRESS BAR:
-            increment , complete = self.resetProgressBar( 0 , len(timeline) )
-        else:
-            # [*] PROGRESS BAR:
-            increment , complete = self.resetProgressBar( 0 , 1 )
+        # Part Five:
+        dbounds  = doc.bounds()
+        scrap    = a.scrapper
+        frameH   = a.frameHandler
+        timeline = a.timeline
+        start    = a.start
+        finish   = a.finish
 
         # BUG: Distorted images with depth = "U16"
+        currentStep = 1
         if timeline:
             # [|>] Animation.
             canvasSize    = dbounds.width() * dbounds.height()
             grow          = Grow.singleton( amount_of_items_on_search = canvasSize )
             anim_length   = len( str( len( timeline ) ) )
+
+            
+            # | ROLLBACK >-----------------------
+            self.enterCriticalRegion()   # |> -->
             original_time = doc.currentTime()
+
             # Makes a new directory for the animation frames when it's possible.
             if not frameH.build_directory():
-                target.remove()
-                del target
-                # TODO: Notify when something goes wrong!
-                return False
+                self.exitCriticalRegion()    # <-- <|
+                # < ROLLBACK |-----------------------
+                return
+            else:
+                self.submitRollbackStep( lambda: frameH.removeExportedFiles(removeSubFolder = True) )
+                self.exitCriticalRegion()    # <-- <|
+                # < ROLLBACK |-----------------------
 
             colordata = None
             for t in timeline:
+                # [!!] ----------------..
+                # Polling
+                if not self.keepRunningNormally():
+                    return
+
                 # Update the current time and wait in synchronous mode:
                 doc.setCurrentTime(t)
                 doc.refreshProjection()
@@ -447,16 +422,22 @@ class Borderizer( object ):
                 frameH.exportFrame( f"frame{t:0{anim_length}}.png" , target )
 
                 # [*] PROGRESS BAR:
-                increment()
+                self.progress.emit( currentStep )
+                currentStep += 1
 
             # Exit:
+            # | ROLLBACK >-----------------------
+            self.enterCriticalRegion()   # |> -->
             frameH.importFrames( start , frameH.get_exported_files() )
             border = doc.topLevelNodes()[Borderizer.ANIMATION_IMPORT_DEFAULT_INDEX]
-            border.remove()
-            source.parentNode().addChildNode( border , source )
+            border.remove() # Remove the border from its parent 'slot'
+            parent.addChildNode( border , source )
             border.setName( name )
             border.enableAnimation()
 
+            self.submitRollbackStep( lambda: border.remove() )
+            self.exitCriticalRegion()    # <-- <|
+            # < ROLLBACK |-----------------------
 
             # Explicit Cleaning:
             target.remove()
@@ -464,11 +445,8 @@ class Borderizer( object ):
 
             if self.cleanUpAtFinish:
                 frameH.removeExportedFiles( removeSubFolder = True )
-
             # DONE:
-            increment()
             doc.setCurrentTime( original_time )
-            done = True
         else:
             # [||] Static Layer.
 
@@ -493,14 +471,15 @@ class Borderizer( object ):
             border = target
             border.setName( name )
 
-
+            self.progress.emit( currentStep )
             # DONE:
-            complete()
-            done = True
+
+        if not self.keepRunningNormally():
+            return
 
         doc.refreshProjection()
         kis.setBatchmode( batchK )
         doc.setBatchmode( batchD )
-        if self.gui:    # TODO: Add final steps here (for the gui).
-            pass
-        return done
+
+        #self.finished.emit()
+        return

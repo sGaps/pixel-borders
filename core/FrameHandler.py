@@ -1,7 +1,7 @@
 # Module:      core.FrameHandler.py | [ Language Python ]
 # Created by: ( Gaps | sGaps | ArtGaps )
 # -----------------------------------------------------
-""" 
+"""
     Defines a FrameHandler object to manage few special operations like
     import animations and export krita nodes as files.
 
@@ -13,12 +13,16 @@
     DEFAULT_OUTPUT_DIR :: str
         default output dir for export operation made by a FrameHandler instance.
 
-    [*] Created By 
+    [*] Created By
      |- Gaps : sGaps : ArtGaps
     """
 from   collections import deque
 from   sys         import stderr
-import krita
+try:
+    import krita
+except:
+    print( "[Frame Handler]: Krita not available" )
+
 import os
 
 DEFAULT_OUTPUT_DIR = ".output"
@@ -59,7 +63,7 @@ class FrameHandler( object ):
 
     @staticmethod
     def __default_info__():
-        """ 
+        """
             RETURNS
                 krita.InfoObject
             Returns a singleton InfoObject. """
@@ -82,7 +86,7 @@ class FrameHandler( object ):
         self.info = info
 
     def setRes( self, xRes , yRes ):
-        """ 
+        """
             ARGUMENTS
                 xRes(float):                    x Resolution
                 yRes(float):                    y Resolution
@@ -108,7 +112,7 @@ class FrameHandler( object ):
         return False
 
     def __get_first_frame_index__( self , node , start , finish ):
-        """ 
+        """
             ARGUMENTS
                 node(krita.Node):   source node.
                 start(int):         start time index.
@@ -128,7 +132,7 @@ class FrameHandler( object ):
         return t
 
     def __get_last_frame_index__( self , node , start , finish ):
-        """ 
+        """
             ARGUMENTS
                 node(krita.Node):   source node.
                 start(int):         start time index.
@@ -147,7 +151,7 @@ class FrameHandler( object ):
         return t
 
     def __get_frame_limits_( self , node , start , length ):
-        """ 
+        """
             ARGUMENTS
                 node(krita.Node):   source node.
                 start(int):         start time index.
@@ -170,7 +174,7 @@ class FrameHandler( object ):
 
     # Returns all the animated subnodes and the minimum first frame-index
     def __exhaustive_take_animated_nodes__( self , node , start , length ):
-        """ 
+        """
             ARGUMENTS
                 node(krita.Node):   source node.
                 start(int):         start time index.
@@ -225,7 +229,7 @@ class FrameHandler( object ):
         return __exhaustive_take_animated_nodes__( node , start , length )
 
     def get_animation_range( self , node , start , finish ):
-        """ 
+        """
             ARGUMENTS
                 node(krita.Node):   source node.
                 start(int):         start time index.
@@ -240,7 +244,7 @@ class FrameHandler( object ):
         return self.__exhaustive_take_animated_nodes__( node , start , length )[1]
 
     def get_animated_subnodes( self , node , start , finish ):
-        """ 
+        """
             ARGUMENTS
                 node(krita.Node):   source node.
                 start(int):         start time index.
@@ -314,7 +318,7 @@ class FrameHandler( object ):
             return False
 
     def exportFrame( self , filename , node ):
-        """ 
+        """
             ARGUMENTS
                 filename(str):      name of the file with image extension (.png, jpeg, ...)
                 node(krita.Node):   source node.
@@ -323,7 +327,7 @@ class FrameHandler( object ):
             RETURNS
                 bool
             Export the node data of the current time to a file and records the file path into )
-            the object. 
+            the object.
             if info object wasn't defined. then filename must have the suffix of png files."""
         if self.exportReady:
             filepath = f"{self.exportdirpath}/{filename}"
@@ -351,7 +355,7 @@ class FrameHandler( object ):
         return result
 
     def importFrames( self , startframe , files = [] ):
-        """ 
+        """
             ARGUMENTS
                 startframe(int):    start keyframe index to add the animation.
                 files([str]):       which files will be used as animation.
@@ -388,4 +392,3 @@ class FrameHandler( object ):
         self.doc.setBatchmode( batchmodeD )
         self.kis.setBatchmode( batchmode )
         return done
-
