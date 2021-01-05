@@ -12,6 +12,7 @@ from collections        import deque
 from .AlphaGrow         import Grow
 from .AlphaScrapperSafe import Scrapper
 from .FrameHandler      import FrameHandler
+from .Service           import Service , Client
 
 METHODS = { "force"             : Grow.force_grow             ,
             "any-neighbor"      : Grow.any_neighbor_grow      ,
@@ -110,6 +111,9 @@ class KisData( object ):
         if method: return ( method , rawMethodDesc[1] )
         raise AttributeError( f"{method} is not a valid method name." )
 
+    def addResult( self , result ):
+        self.result = result
+
     def updateAttributes( self , data ):
         """ data(dict):"""
         dataset = set( data.keys() )
@@ -165,8 +169,9 @@ class KisData( object ):
         self.threshold = int( self.maxVal * (threshold_percent/100) ) if self.node.colorDepth() in {"U8","U16"} else self.maxVal * (threshold_percent/100)
 
         # [*] Method (it can raise an exception inside the list comprension)
-        primRecipe  = data["q-recipedsc"] if data["is-quick"] else data["c-recipedsc"]
-        self.recipe = [ KisData.pairToMethod(desc) for desc in primRecipe ]
+        primRecipe      = data["q-recipedsc"] if data["is-quick"] else data["c-recipedsc"]
+        self.recipe     = [ KisData.pairToMethod(desc) for desc in primRecipe ]
+        self.thickness  = sum( map(lambda tupl: tupl[1] , self.recipe) )
 
         # [<] Rollback state:
         self.batchK , self.batchD = self.kis.batchmode() , self.kis.batchmode()
@@ -186,10 +191,17 @@ class KisData( object ):
         # BUG: Timeline is not correctly defined
         if data["try-animate"]:
             primTimeline = data["animation"]
-            self.start , self.finish = primTimeline
-            self.timeline = self.frameHandler.get_animation_range( self.node , self.start , self.finish )
+            self.timeline            = self.frameHandler.get_animation_range( self.node , *primTimeline ) # [start, finish]
+            if self.timeline:
+                self.start , self.finish = self.timeline.start , self.timeline.stop - 1
+            else:
+                self.start , self.finish = 0 , 1
         else:
             self.timeline = None
+
+        # UPDATE: Service and Client built for manage concurrent requests.
+        self.service = Service()
+        self.client  = Client( self.service )
 
         # [OK] All done:
         self.valid = True

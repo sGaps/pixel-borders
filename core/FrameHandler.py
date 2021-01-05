@@ -25,6 +25,8 @@ except:
 
 import os
 
+import time
+
 DEFAULT_OUTPUT_DIR = ".output"
 class FrameHandler( object ):
     """
@@ -368,7 +370,6 @@ class FrameHandler( object ):
             NOTE: export directory must exist, else does nothing. """
         searchpath = self.exportdirpath
 
-        # I
         if not files:
             files = self.exported
 
@@ -381,8 +382,9 @@ class FrameHandler( object ):
         batchmode  = self.kis.batchmode()
         batchmodeD = self.doc.batchmode()
         self.doc.setBatchmode( True )
+
         try:
-            if not self.doc.importAnimation( frames , startframe , 1 ):
+            if not self.doc.importAnimation( frames , startframe , 1 ): # files([str]) , firstframe(int) , step(int)
                 raise ImportError( f"Unable to export animation frames from {self.exportdirpath}" )
             done = True
         except ImportError as error:

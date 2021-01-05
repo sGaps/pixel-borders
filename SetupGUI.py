@@ -24,6 +24,7 @@ try:
     import pixel_borders.gui.AnimPage   as AP
     import pixel_borders.core.Borderizer as BD
     import pixel_borders.core.Arguments  as AR
+    import pixel_borders.core.Service    as SV
     outsideKRITA = False
 except:
     import gui.SmartMenu  as SM
@@ -38,6 +39,7 @@ except:
     import gui.AnimPage   as AP
     import core.Borderizer as BD
     import core.Arguments  as AR
+    import core.Service    as SV
     outsideKRITA = True
 
 # TODO: Delete later
@@ -54,6 +56,7 @@ reload( TP )
 reload( AP )
 reload( BD )
 reload( AR )
+reload( SV )
 
 Menu       = SM.Menu
 MenuPage   = MP.MenuPage
@@ -67,26 +70,43 @@ TdscPage   = TP.TdscPage
 AnimPage   = AP.AnimPage
 Borderizer = BD.Borderizer
 KisData    = AR.KisData
+Service    = SV.Service
+Client     = SV.Client
 
 if outsideKRITA:
     main = QApplication([])
 
+# TODO: DELETE THIS APPROACH. DOESN'T WORK
 class BorderThread( QThread ):
-    def __init__( self , worker , name = "Border-Thread" , parent = None ):
+    error    = pyqtSignal( str )
+    progress = pyqtSignal( int )
+    workDone = pyqtSignal()
+    stopRequest = pyqtSignal()
+    def __init__( self , arguments = KisData() , name = "Border-Thread" , parent = None ):
         super().__init__( parent )
-        self.worker = worker
-        self.worker.moveToThread( self )
-        self.setObjectName( name )
+        self.setObjectName( "Border-Thread" )
+        self.arguments = arguments
+    def run( self ):
+        # Expensive calculation
+        border = Borderizer( self.arguments )
+        border.moveToThread( self )
+        border.workDone.connect( self.workDone.emit )
+        border.progress.connect( self.progress.emit )
+        border.error.connect( self.error.emit )
+        border.rollbackRequest.connect( border.rollback )
+
+        self.stopRequest.connect( lambda: border.stopRequest() )
+        border.run()
+
 
 class GUI( QObject ):
     userCanceled = pyqtSignal( str )
     def __init__( self , title = "Pixel Borders" , parent = None ):
         super().__init__( parent )
 
-        self.childThread = None
-        self.borderizer  = None
         self.data        = {}
         self.menu        = Menu()
+        self.borderizer  = None
 
         menu = self.menu
 
@@ -118,7 +138,6 @@ class GUI( QObject ):
         # Connections between Pages and Menu:
         namep.cancel.released.connect  ( menu.reject          )
         namep.info.released.connect    ( menu.displayInfo     )
-        #waitp.cancel.released.connect  ( self.tryRollBack     )
         waitp.info.released.connect    ( menu.displayInfo     )
         namep.previous.released.connect( self.usePreviousData )
 
@@ -150,6 +169,10 @@ class GUI( QObject ):
         self.menu.loadPage( "wait" )
 
     @pyqtSlot()
+    def sendStopRequest( self ):
+        self.borderizer.stopRequest()
+
+    @pyqtSlot()
     def sendBorderRequest( self ):
         menu      = self.menu
         self.data = self.data if self.data else menu.collectDataFromPages()
@@ -173,15 +196,69 @@ class GUI( QObject ):
         waitp.progress.setRange( self.arguments.start , self.arguments.finish )
         waitp.progress.reset()
 
-        self.borderizer = Borderizer  ( self.arguments , parent = self ) # It's a thread with a custom run() method
+        self.borderizer = Borderizer( self.arguments )
         border          = self.borderizer
+
+        # Setup Connections:
+        border.debug.connect( self.reportMessage )
+
+        # Visual:
+        border.progress.connect( waitp.progress.setValue )
+        border.workDone.connect( waitp.raiseAccept       )
+
+        # Cancel:
+        waitp.cancel.released.connect ( self.sendStopRequest ) # Execute the shared code in the main thread
+        border.rollbackRequest.connect( border.rollback      ) # Oh ye' once again...
+        border.rollbackDone.connect   ( self.onRollback      )
+        border.rollbackDone.connect   ( waitp.raiseAccept    )
+
+        # Finishing all:
+        border.workDone.connect( self.onFinish      ) # NOTE: (finished -> thread execution end) != (workDone -> task done successfully )
+        border.finished.connect( border.quit        )
+        border.finished.connect( border.deleteLater )
+
+        # Run:
+        border.start()
+
+    @pyqtSlot()
+    def V5sendBorderRequest( self ):
+        menu      = self.menu
+        self.data = self.data if self.data else menu.collectDataFromPages()
+        cdata     = self.data.copy()
+        if KRITA_AVAILABLE:
+            # krita-dependent code here:
+            kis  = Krita.instance()
+            doc  = kis.activeDocument() if kis else None
+            node = doc.activeNode()     if doc else None
+            cdata["kis"]  = kis
+            cdata["doc"]  = doc
+            cdata["node"] = node
+        try:
+            self.arguments = KisData( cdata )
+        except AttributeError as e:
+            # TODO: Add a fancy error report here
+            print( f"Invalid arguments: {e.args}" )
+            return
+
+        waitp = menu.page( "wait" )
+        waitp.progress.setRange( self.arguments.start , self.arguments.finish )
+        waitp.progress.reset()
+
+        #self.borderizer = Borderizer  ( self.arguments , parent = self ) # It's a thread with a custom run() method
+        self.thread     = QThread()
+        self.borderizer = Borderizer( self.arguments )
+        #self.borderizer.setArguments( self.arguments )
+        border          = self.borderizer
+        thread          = self.thread
+        border.moveToThread( self.thread )
 
         # Setup Connections:
         border.error.connect  ( self.reportError )
 
         # Visual:
         border.progress.connect( waitp.progress.setValue )
-        border.finished.connect( waitp.raiseAccept       )
+        #border.finished.connect( waitp.raiseAccept       )
+        border.workDone.connect( waitp.raiseAccept       )
 
         # Cancel:
         waitp.cancel.released.connect ( self.sendStopRequest ) # Execute the shared code in the main thread
@@ -189,10 +266,14 @@ class GUI( QObject ):
 
         # Finishing all:
         # NOTE: This had lots of issues when deleteLater was called after finished signal emission. Now, there's no problem
-        border.finished.connect( self.onFinish )
+        #border.finished.connect( self.onFinish )
+        border.workDone.connect( self.onFinish )
+        thread.started.connect( border.run )
 
         # Run:
-        border.start()
+        #border.start()
+        border.workDone.connect( thread.quit )
+        thread.start()
 
     @pyqtSlot()
     def V4sendBorderRequest( self ):
@@ -249,13 +330,19 @@ class GUI( QObject ):
         self.saveConfig()
         pass
 
-    @pyqtSlot()
-    def sendStopRequest( self ):
-        self.borderizer.stopRequest()
+    def onRollback( self ):
+        print( "Work Canceled" )
+        self.saveConfig()
+        pass
+
+    #@pyqtSlot()
+    #def sendStopRequest( self ):
+    #    self.borderizer.stopRequest()
 
     @pyqtSlot( str )
-    def reportError( self , err ):
-        print( f"[Borderizer]: {err}" )
+    def reportMessage( self , msg ):
+        print( f"[Borderizer]: {msg}" )
+        #self.menu.page( "wait" ).raiseAccept()
 
     @pyqtSlot()
     def run( self ):

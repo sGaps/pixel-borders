@@ -88,16 +88,22 @@ DEPTHS = { "U8"  : ("B" , 2**8  - 1 ) ,
            "F16" : ("e" , 1.0       ) ,
            "F32" : ("f" , 1.0       ) }
 
-#class Borderizer( QObject ):
-# BUG: QObject::starttimer cannot start from another thread
+class KritaNotifier( QObject ):
+    updateCurrentTimeRequest = pyqtSignal( int )
+    def __init__( self , parent = None ):
+        super().__init__( parent )
+
+
 class Borderizer( QThread ):
     """
         Object used to make borders to regular, group or animated nodes.
         This will search into the sub node hiearchy to make the borders correctly.
     """
     progress        = pyqtSignal( int )
-    error           = pyqtSignal( str )
+    debug           = pyqtSignal( str )
     rollbackRequest = pyqtSignal()
+    workDone        = pyqtSignal()
+    rollbackDone    = pyqtSignal()
 
     ANIMATION_IMPORT_DEFAULT_INDEX = -1
     def __init__( self , arguments = KisData() , thread_name = "Border-Thread" , info = None , cleanUpAtFinish = False , parent = None ):
@@ -107,9 +113,7 @@ class Borderizer( QThread ):
                 cleanUpAtFinish(bool):  Indicates if is totally required to remove all exported files.
         """
         super().__init__( parent )
-        self.arguments = arguments
-
-        self.arguments       = arguments
+        self.setArguments( arguments )
         self.info            = info
         # TODO: Useless (?)
         self.cleanUpAtFinish = cleanUpAtFinish
@@ -117,17 +121,21 @@ class Borderizer( QThread ):
         self.setObjectName( thread_name )
         self.critical        = QMutex()
         self.keepRunning     = True
-        #self.setObjectName( "Borderizer" )
-        #self.stoppable       = QMutex()
-        #self.keepRunning     = True
 
-        # Default connections:
+        # Actions to perform if something goes wrong:
         self.rollbackList = []
-        #self.failure.connect( self.terminate )
+
+    # TODO: Delete later
+    def __report_object_destroyed__( self ):
+        self.debug.emit( f"Debug \\> QObject destroyed." )
+
+    def setArguments( self , arguments ):
+        self.arguments = arguments
 
     @pyqtSlot()
     def stopRequest( self ):
-        print( "Trying to stop" )
+        self.debug.emit( "Trying to stop" )
+        # Force to Stop. No matters what!
         self.enterCriticalRegion()
         self.keepRunning = False
         self.exitCriticalRegion()
@@ -142,7 +150,10 @@ class Borderizer( QThread ):
 
     @pyqtSlot()
     def rollback( self ):
-        [ step() for step in self.getRollbackSteps() ]
+        steps = self.getRollbackSteps()
+        steps.reverse()
+        [ step() for step in steps ]
+        self.rollbackDone.emit()
 
     def getRollbackSteps( self ):
         return self.rollbackList
@@ -153,7 +164,6 @@ class Borderizer( QThread ):
     def keepRunningNormally( self ):
         # | CRITICAL >-----------------------
         self.enterCriticalRegion()
-        print( "*** On critical region" )
         keepItUp = self.keepRunning
         if keepItUp:
             self.exitCriticalRegion()
@@ -162,7 +172,7 @@ class Borderizer( QThread ):
             # < CRITICAL |-----------------------
             # Cancel request accepted
             self.exitCriticalRegion()
-            self.error.emit( "Canceled by user" )
+            self.debug.emit( "Canceled by user" )
             self.rollbackRequest.emit()
             #self.finished.emit()
         return keepItUp
@@ -172,7 +182,7 @@ class Borderizer( QThread ):
         """
             ARGUMENTS
                 managedcolor(krita.ManagedColor): source normalized color from krita.
-            RETURNS
+           u
                 ( bytearray , bytearray , bytearray , bytearray )
             Takes a krita.ManagedColor and returns four relevant bytearrays:
                 ( color transparent,
@@ -303,13 +313,21 @@ class Borderizer( QThread ):
             See also: KEYS
         """
         a = self.arguments
+
+        if not self.keepRunningNormally():
+            self.debug.emit( "Cannot Work with disabled Borderizer" )
+            self.rollbackRequest.emit()
+            return
+
         if not a:
-            self.error.emit( "Not valid arguments" )
-            #self.finished.emit()
+            self.debug.emit( "Not valid arguments" )
+            self.rollbackRequest.emit()
             return
 
         # Part Zero:
-        name   = a.name
+        name    = a.name
+        service = a.service # 
+        client  = a.client  # Used to make synchronous calls to krita from a different thread
 
         # Part One:
         kis    = a.kis
@@ -319,35 +337,26 @@ class Borderizer( QThread ):
 
         # Part Two:
         methodRecipe = a.recipe
-        thickness    = sum( map(lambda tup: tup[1] , a.recipe) )
+        thickness    = a.thickness
         nocolor , color , trBytes , opBytes = a.trPixel , a.opPixel , a.trBytes , a.opBytes
         transparency = a.transparency
         threshold    = a.threshold
 
         # Part Three:
         # | ROLLBACK >-----------------------
-        self.enterCriticalRegion()   # |> -->
         batchK , batchD = a.batchK , a.batchD
         chans  = a.channels
         nchans = a.nchans
 
-        self.submitRollbackStep( lambda: doc.refreshProjection()  )
         self.submitRollbackStep( lambda: kis.setBatchmode(batchK) )
         self.submitRollbackStep( lambda: doc.setBatchmode(batchD) )
-        self.exitCriticalRegion()    # <-- <|
+        self.submitRollbackStep( lambda: client.serviceRequest( doc.waitForDone       ) )
+        self.submitRollbackStep( lambda: client.serviceRequest( doc.refreshProjection ) )
         # < ROLLBACK |-----------------------
         
         # Part Four 
-        # | ROLLBACK >-----------------------
-        self.enterCriticalRegion()   # |> -->
         source = a.node
         parent = a.parent
-        target = doc.createNode( ".target" , "paintlayer")
-        parent.addChildNode( target , source )
-
-        self.submitRollbackStep( lambda: target.remove() )
-        self.exitCriticalRegion()    # <-- <|
-        # < ROLLBACK |-----------------------
 
         # Part Five:
         dbounds  = doc.bounds()
@@ -360,37 +369,39 @@ class Borderizer( QThread ):
         # BUG: Distorted images with depth = "U16"
         currentStep = 1
         if timeline:
-            # [|>] Animation.
+            # Part Six:
+            target = doc.createNode( ".target" , "paintlayer" ) # Can be deleted here
+            parent.addChildNode( target , source )
+            self.submitRollbackStep( lambda: target.remove() )
+
+            # [|>] Animation. BUG: There's a random QObject that is built here and it's causing a lot of problems. (maybe it's the border-node)
             canvasSize    = dbounds.width() * dbounds.height()
             grow          = Grow.singleton( amount_of_items_on_search = canvasSize )
             anim_length   = len( str( len( timeline ) ) )
 
-            
             # | ROLLBACK >-----------------------
-            self.enterCriticalRegion()   # |> -->
             original_time = doc.currentTime()
 
             # Makes a new directory for the animation frames when it's possible.
             if not frameH.build_directory():
-                self.exitCriticalRegion()    # <-- <|
                 # < ROLLBACK |-----------------------
                 return
             else:
                 self.submitRollbackStep( lambda: frameH.removeExportedFiles(removeSubFolder = True) )
-                self.exitCriticalRegion()    # <-- <|
                 # < ROLLBACK |-----------------------
 
             colordata = None
             for t in timeline:
-                # [!!] ----------------..
-                # Polling
+                # Polling ------------------------
                 if not self.keepRunningNormally():
                     return
 
                 # Update the current time and wait in synchronous mode:
-                doc.setCurrentTime(t)
-                doc.refreshProjection()
-                doc.waitForDone()
+                # NOTE: users will notices a moderate LAG in the GUI because this sends a request to run these functons
+                #       in the GUI thread and wait for them.
+                client.serviceRequest( doc.setCurrentTime , t )
+                client.serviceRequest( doc.refreshProjection )
+                client.serviceRequest( doc.waitForDone       )
 
                 # [C] Clean Previous influence
                 if colordata:
@@ -420,28 +431,30 @@ class Borderizer( QThread ):
                 doc.waitForDone()
 
                 frameH.exportFrame( f"frame{t:0{anim_length}}.png" , target )
+                self.debug.emit( "finished export" )
 
                 # [*] PROGRESS BAR:
                 self.progress.emit( currentStep )
                 currentStep += 1
 
+            self.debug.emit( "Wake up!" )   # Nothing weird until here.
             # Exit:
             # | ROLLBACK >-----------------------
-            self.enterCriticalRegion()   # |> -->
-            frameH.importFrames( start , frameH.get_exported_files() )
+            self.debug.emit( "Now in critical Region!" )   # Here passed someting weird. Program freezes and got killed.
+            importResult = client.serviceRequest( frameH.importFrames , start , frameH.get_exported_files() )
+            self.debug.emit( "After import frames!" )   # Here passed someting weird. Program freezes and got killed.
             border = doc.topLevelNodes()[Borderizer.ANIMATION_IMPORT_DEFAULT_INDEX]
-            border.remove() # Remove the border from its parent 'slot'
+            # Remove the border from its parent 'slot'
+            border.remove()
             parent.addChildNode( border , source )
             border.setName( name )
             border.enableAnimation()
 
             self.submitRollbackStep( lambda: border.remove() )
-            self.exitCriticalRegion()    # <-- <|
             # < ROLLBACK |-----------------------
 
-            # Explicit Cleaning:
+            # Explicit Cleaning (this can be delete in the current thread)
             target.remove()
-            del target
 
             if self.cleanUpAtFinish:
                 frameH.removeExportedFiles( removeSubFolder = True )
@@ -449,6 +462,9 @@ class Borderizer( QThread ):
             doc.setCurrentTime( original_time )
         else:
             # [||] Static Layer.
+            target = client.serviceRequest( doc.createNode , ".target" , "paintlayer" ) # Cannot be deleted in the current thread.
+            parent.addChildNode( target , source )
+            self.submitRollbackStep( lambda: target.remove() )
 
             # [X] Bounds Update:
             bounds = Borderizer.getBounds( source , dbounds , thickness )
@@ -475,11 +491,15 @@ class Borderizer( QThread ):
             # DONE:
 
         if not self.keepRunningNormally():
+            self.debug.emit( "Process done. But it has been canceled by user." )
             return
 
+        # FINISH
+        a.addResult( border )
         doc.refreshProjection()
         kis.setBatchmode( batchK )
         doc.setBatchmode( batchD )
 
-        #self.finished.emit()
+        # Non-thread event:
+        self.workDone.emit()
         return
