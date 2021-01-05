@@ -57,6 +57,7 @@ from .AlphaGrow         import Grow
 from .Arguments         import KisData
 from .AlphaScrapperSafe import Scrapper
 from .FrameHandler      import FrameHandler
+import cProfile
 
 INDEX_METHODS = ["force","any-neighbor","corners","not-corners","strict-horizontal","strict-vertical"]
 
@@ -106,7 +107,7 @@ class Borderizer( QThread ):
     rollbackDone    = pyqtSignal()
 
     ANIMATION_IMPORT_DEFAULT_INDEX = -1
-    def __init__( self , arguments = KisData() , thread_name = "Border-Thread" , info = None , cleanUpAtFinish = False , parent = None ):
+    def __init__( self , arguments = KisData() , thread_name = "Border-Thread" , info = None , cleanUpAtFinish = False , profiler = True , parent = None ):
         """
             ARGUMENTS
                 info(krita.InfoObject): Specify some special arguments to export files.
@@ -121,6 +122,9 @@ class Borderizer( QThread ):
         self.setObjectName( thread_name )
         self.critical        = QMutex()
         self.keepRunning     = True
+
+        # Profiler
+        self.profiler = profiler
 
         # Actions to perform if something goes wrong:
         self.rollbackList = []
@@ -302,6 +306,13 @@ class Borderizer( QThread ):
 
     @pyqtSlot()
     def run( self ):
+        if self.profiler:
+            cProfile.runctx( "self.runBorderizer()" , globals() , locals() )
+        else:
+            self.runBorderizer()
+
+    @pyqtSlot()
+    def runBorderizer( self ):
         """
             ARGUMENTS
                 ** implicit **
