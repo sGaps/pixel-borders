@@ -1,6 +1,6 @@
-# Module:      core.AlphaScrapperSafe.py | [ Language Python ]
+# Module:      core.AlphaScrapper.py | [ Language Python ]
 # Created by: ( Gaps | sGaps | ArtGaps )
-# ------------------------------------------------------------
+# --------------------------------------------------------
 """ 
     Defines an Scrapper object to extract the alpha
     data of a krita's node. It accepts a transparent
@@ -21,7 +21,6 @@
     [*] Created By 
      |- Gaps : sGaps : ArtGaps
     """
-
 
 
 from PyQt5.QtCore  import QRect

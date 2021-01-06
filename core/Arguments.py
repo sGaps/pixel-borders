@@ -1,18 +1,18 @@
 try:
-    from krita              import Selection , Krita , ManagedColor
+    from krita      import Selection , Krita , ManagedColor
 except:
     print( "[Arguments] Krita Not available" )
 
 # Debug module
-from sys                import stderr
+from sys            import stderr
 # Critical built-in modules
-from struct             import pack , unpack
-from collections        import deque
+from struct         import pack , unpack
+from collections    import deque
 # Critical custom modules
-from .AlphaGrow         import Grow
-from .AlphaScrapperSafe import Scrapper
-from .FrameHandler      import FrameHandler
-from .Service           import Service , Client
+from .AlphaGrow     import Grow
+from .AlphaScrapper import Scrapper
+from .FrameHandler  import FrameHandler
+from .Service       import Service , Client
 
 METHODS = { "force"             : Grow.force_grow             ,
             "any-neighbor"      : Grow.any_neighbor_grow      ,
@@ -128,13 +128,13 @@ class KisData( object ):
         self.doc  = data.get( "doc"  , None )
         self.kis  = data.get( "kis"  , None )
         if not ( self.node and self.doc and self.kis ):
-            raise AttributeError( "Couldn't run with incomplete information: node = {self.node}, krita = {self.kis}, document = {self.doc}" )
+            raise AttributeError( f"Couldn't run with incomplete information: node = {self.node}, krita = {self.kis}, document = {self.doc}" )
 
         # [@] Color:
         self.win  = self.kis.activeWindow()
         self.view = self.win.activeView() if self.win else None
         if not ( self.win and self.view ):
-            raise AttributeError( "Couldn't run with incomplete information: window = {self.win}, view = {self.view}" )
+            raise AttributeError( f"Couldn't run with incomplete information: window = {self.win}, view = {self.view}" )
 
         colorType , components = data["colordsc"]
         if colorType == "FG":

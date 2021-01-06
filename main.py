@@ -23,9 +23,7 @@
 """
 
 
-
-from .Context     import CONTEXT , RUN , Extension
-#from .gui.PxGUI   import GUI
+from .Context  import CONTEXT , RUN , Extension
 from .SetupGUI import GUI
 
 if CONTEXT == "INSIDE_KRITA": from .core.Borderizer import Borderizer
@@ -68,6 +66,4 @@ class PixelExtension( Extension ):
             RUN()
         else:
             self.ext   = GUI( parent = None , title = METADATA["TITLE"] )
-            #borderizer = Borderizer( cleanUpAtFinish = False )
-            #self.ext.connectWithBorderizer( borderizer ) #self.ext.setup_borderizer_connection( borderizer )
             self.ext.run()

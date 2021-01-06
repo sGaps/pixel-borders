@@ -20,3 +20,4 @@ test_gui/
 
 # Special testing files
 *__test__*
+*__performance*

@@ -1,6 +1,6 @@
 from .MenuPage          import SinkPage
 from PyQt5.QtCore       import Qt , pyqtSlot , pyqtSignal
-from PyQt5.QtWidgets    import QPushButton , QProgressBar , QVBoxLayout , QStackedWidget
+from PyQt5.QtWidgets    import QPushButton , QProgressBar , QLabel , QStackedWidget , QVBoxLayout
 from PyQt5.QtGui        import QFont
 
 class WaitPage( SinkPage ):
@@ -15,6 +15,7 @@ class WaitPage( SinkPage ):
         font.setBold  ( True )
         font.setItalic( True )
 
+        self.dbgMSG   = QLabel()
         self.accept   = QPushButton( "Ok" )
         self.bottom   = QStackedWidget()
         self.accept.setFont( font )
@@ -24,6 +25,7 @@ class WaitPage( SinkPage ):
         self.raiseCancel()
 
         self.layout.addWidget( self.progress , 1 , Qt.AlignTop )
+        self.layout.addWidget( self.dbgMSG )
         self.layout.addWidget( self.info   )
         self.layout.addWidget( self.bottom )
 

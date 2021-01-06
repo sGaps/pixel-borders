@@ -44,56 +44,19 @@
      |- Gaps : sGaps : ArtGaps
 """
 try:
-    from krita              import Selection , Krita , ManagedColor
+    from krita          import Selection , Krita , ManagedColor
 except:
     print( "[Borderizer] Krita Not available" )
-from struct             import pack , unpack
 from PyQt5.QtCore       import QRect , QObject , pyqtSlot , pyqtSignal
 from PyQt5.QtCore       import QThread , QMutex
+from struct             import pack , unpack
 from sys                import stderr
-from collections        import deque
 
 from .AlphaGrow         import Grow
 from .Arguments         import KisData
-from .AlphaScrapperSafe import Scrapper
+from .AlphaScrapper     import Scrapper
 from .FrameHandler      import FrameHandler
 import cProfile
-
-INDEX_METHODS = ["force","any-neighbor","corners","not-corners","strict-horizontal","strict-vertical"]
-
-METHODS = { "force"             : Grow.force_grow             ,
-            "any-neighbor"      : Grow.any_neighbor_grow      ,
-            "corners"           : Grow.corners_grow           ,
-            "not-corners"       : Grow.not_corners_grow       ,
-            "strict-horizontal" : Grow.strict_horizontal_grow ,
-            "strict-vertical"   : Grow.strict_vertical_grow   }
-
-COLOR_TYPES = { "FG" , "BG" , "CS" }
-# Keys used in the data structure passed by the GUI
-KEYS = {  "q-recipedsc" , # Quick Recipe Descriptor.
-          "c-recipedsc" , # Custom Recipe Descriptor.
-          "is-quick"    , # If true, Use q-recipedsc instead of c-recipedsc.
-          "colordsc"    , # Color Descriptor.
-          "trdesc"      , # Transparency Descriptor.
-          "node"        , # Current Node.
-          "doc"         , # Current Document.
-          "kis"         , # Current Krita instance.
-          "animation"   , # Animation bounds.
-          "try-animate" , # Make animated border when it's possible.
-          "name"        , # Border name.
-          }
-
-# Support for krita color depths. Key -> ( Read_Write_Pattern , Max_Value )
-DEPTHS = { "U8"  : ("B" , 2**8  - 1 ) ,
-           "U16" : ("H" , 2**16 - 1 ) ,
-           "F16" : ("e" , 1.0       ) ,
-           "F32" : ("f" , 1.0       ) }
-
-class KritaNotifier( QObject ):
-    updateCurrentTimeRequest = pyqtSignal( int )
-    def __init__( self , parent = None ):
-        super().__init__( parent )
-
 
 class Borderizer( QThread ):
     """
@@ -116,7 +79,7 @@ class Borderizer( QThread ):
         super().__init__( parent )
         self.setArguments( arguments )
         self.info            = info
-        # TODO: Useless (?)
+
         self.cleanUpAtFinish = cleanUpAtFinish
 
         self.setObjectName( thread_name )
@@ -128,10 +91,6 @@ class Borderizer( QThread ):
 
         # Actions to perform if something goes wrong:
         self.rollbackList = []
-
-    # TODO: Delete later
-    def __report_object_destroyed__( self ):
-        self.debug.emit( f"Debug \\> QObject destroyed." )
 
     def setArguments( self , arguments ):
         self.arguments = arguments
@@ -178,7 +137,6 @@ class Borderizer( QThread ):
             self.exitCriticalRegion()
             self.debug.emit( "Canceled by user" )
             self.rollbackRequest.emit()
-            #self.finished.emit()
         return keepItUp
 
     @staticmethod
@@ -283,9 +241,6 @@ class Borderizer( QThread ):
             [ task(grow) for i in range(steps) ]
             for task , steps in recipe 
         ]
-        #for task , steps in recipe:
-        #    for i in range(steps):
-        #        task( grow )
         return grow
 
     @staticmethod
@@ -326,7 +281,6 @@ class Borderizer( QThread ):
         a = self.arguments
 
         if not self.keepRunningNormally():
-            self.debug.emit( "Cannot Work with disabled Borderizer" )
             self.rollbackRequest.emit()
             return
 
@@ -380,6 +334,7 @@ class Borderizer( QThread ):
         # BUG: Distorted images with depth = "U16"
         currentStep = 1
         if timeline:
+            self.debug.emit( "Setup animation data..." )
             # Part Six:
             target = doc.createNode( ".target" , "paintlayer" ) # Can be deleted here
             parent.addChildNode( target , source )
@@ -395,12 +350,18 @@ class Borderizer( QThread ):
 
             # Makes a new directory for the animation frames when it's possible.
             if not frameH.build_directory():
+                self.debug.emit( "Cannot create a directory for the animation frames.\n"  +
+                                 "try save the file before apply this plugin or verify\n" +
+                                 "if krita has permissions over the current directory."   )
+                self.rollbackRequest.emit()
                 # < ROLLBACK |-----------------------
                 return
             else:
+                self.submitRollbackStep( lambda: doc.setCurrentTime(original_time) )
                 self.submitRollbackStep( lambda: frameH.removeExportedFiles(removeSubFolder = True) )
                 # < ROLLBACK |-----------------------
 
+            self.debug.emit( "Exporting frames" )
             colordata = None
             for t in timeline:
                 # Polling ------------------------
@@ -408,11 +369,10 @@ class Borderizer( QThread ):
                     return
 
                 # Update the current time and wait in synchronous mode:
-                # NOTE: users will notices a moderate LAG in the GUI because this sends a request to run these functons
-                #       in the GUI thread and wait for them.
-                client.serviceRequest( doc.setCurrentTime , t )
+                # NOTE: Using this scheme, the user can cancel the process. but this add a big overhead
+                doc.setCurrentTime( t )
                 client.serviceRequest( doc.refreshProjection )
-                client.serviceRequest( doc.waitForDone       )
+                doc.waitForDone()
 
                 # [C] Clean Previous influence
                 if colordata:
@@ -441,19 +401,19 @@ class Borderizer( QThread ):
                 doc.refreshProjection()
                 doc.waitForDone()
 
-                frameH.exportFrame( f"frame{t:0{anim_length}}.png" , target )
-                self.debug.emit( "finished export" )
+                if not frameH.exportFrame( f"frame{t:0{anim_length}}.png" , target ):
+                    self.debug.emit( f"Error while trying to export the frame {t}" )
+                    self.rollbackRequest.emit()
+                    return
 
                 # [*] PROGRESS BAR:
                 self.progress.emit( currentStep )
                 currentStep += 1
 
-            self.debug.emit( "Wake up!" )   # Nothing weird until here.
             # Exit:
             # | ROLLBACK >-----------------------
-            self.debug.emit( "Now in critical Region!" )   # Here passed someting weird. Program freezes and got killed.
             importResult = client.serviceRequest( frameH.importFrames , start , frameH.get_exported_files() )
-            self.debug.emit( "After import frames!" )   # Here passed someting weird. Program freezes and got killed.
+            self.debug.emit( "Frames imported" )   # Here passed someting weird. Program freezes and got killed.
             border = doc.topLevelNodes()[Borderizer.ANIMATION_IMPORT_DEFAULT_INDEX]
             # Remove the border from its parent 'slot'
             border.remove()
@@ -473,6 +433,7 @@ class Borderizer( QThread ):
             doc.setCurrentTime( original_time )
         else:
             # [||] Static Layer.
+            self.debug.emit( "Setup layer data..." )
             target = client.serviceRequest( doc.createNode , ".target" , "paintlayer" ) # Cannot be deleted in the current thread.
             parent.addChildNode( target , source )
             self.submitRollbackStep( lambda: target.remove() )
@@ -502,7 +463,6 @@ class Borderizer( QThread ):
             # DONE:
 
         if not self.keepRunningNormally():
-            self.debug.emit( "Process done. But it has been canceled by user." )
             return
 
         # FINISH
@@ -513,4 +473,5 @@ class Borderizer( QThread ):
 
         # Non-thread event:
         self.workDone.emit()
+        self.debug.emit( "Done" )
         return

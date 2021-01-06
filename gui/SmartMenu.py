@@ -5,7 +5,6 @@ from PyQt5.QtWidgets  import ( QDialog , QToolButton , QStackedWidget ,
 from sys              import stderr
 from threading        import Thread
 from .About           import About
-#from .core.Borderizer import Borderizer
 
 # Krita-dependent Code:
 from .krita_connection.Lookup import KRITA_AVAILABLE , dprint
@@ -135,66 +134,7 @@ class Menu( QDialog ):
         """ Sends the border request when there's a sink page in the Menu. """
         if not self.sinkIX:           return
         if page_index != self.sinkIX: return
-        #self.sendBorderRequest()
         self.isOnSinkPage.emit()
-
-    #@pyqtSlot()
-    #def sendBorderRequest( self ):
-    #    """ Prints the current data on stderr and sends the current
-    #        data to an available borderizer. """
-    #    data = self.collectDataFromPages()
-    #    # TODO: Save the current data here (as JSON)
-    #    # ------------------------------------------
-    #    if KRITA_AVAILABLE and self.engine:
-    #        # krita-dependent code here:
-    #        kis  = Krita.instance()
-    #        doc  = kis.activeDocument() if kis else None
-    #        node = doc.activeNode()     if doc else None
-    #        data["kis"]  = kis
-    #        data["doc"]  = doc
-    #        data["node"] = node
-    #        self.reportData( data )
-
-    #        # TODO: Move border process to a secondary thread:
-    #        # Borderizer-dependent (engine) code here:
-
-    #        # Builds a new Thread object (python 3.6+)
-    #        # TODO: use QThreads instead the beautiful threading package...
-    #        #       it seems QObject::startTimer cannot be used by threads else
-    #        #       than QThreads... Nice Qt, Good one!
-    #        #self.worker = Thread( target = self.engine.run ,
-    #        #                      args   = ( data , )      )
-    #        #self.worker.start()
-    #        #self.engine.run( **data )
-
-    #        # QT again...
-    #        self.worker = QThread()
-    #        # TODO: Consider use self.worker.setPriority( QThread.TimeCritialPriority )
-    #        #       or Consider use self.worker.setPriority( QThread.HighPriority )
-    #        self.engine = Borderizer( data )
-    #        self.engine.moveToThread( self.worker )
-    #        self.worker.started.connect( self.engine.run )
-    #        self.engine.finished.connect( self.worker.quit        )
-    #        self.engine.finished.connect( self.engine.deleteLater )
-    #        self.worker.finished.connect( self.worker.deleteLater )
-
-    #        # TODO: This is very ugly! Fix Later
-    #        if self.sinkIX.dir().get( "progress" , None ):
-    #            self.engine.progress.connect( self.pageBag.widget(self.sinkIX).setValue )
-
-    #        self.worker.start()
-
-    #    else:
-    #        self.reportData( data )
-
-    #@pyqtSlot()
-    #def usePreviousData( self ):
-    #    """ Loads the previous data used in this Menu. Else it does nothing. """
-    #    # TODO: Load the previous JSON. Verify if it exists. Notify if it doesn't
-
-    #    # Loads the sink page:
-    #    if self.sinkIX:
-    #        self.pageBag.setCurrentIndex( self.sinkIX )
 
     @pyqtSlot( str )
     def notifyForSinkPage( self , name ):
@@ -203,19 +143,6 @@ class Menu( QDialog ):
         page = self.names.get( name , None )
         if page:
             self.sinkIX = self.pageBag.indexOf( page )
-
-
-    #def connectWithBorderizer( self , borderizer ):
-    #    if self.sinkIX:
-    #        self.engine       = borderizer
-    #        self.engine.gui   = self
-    #        self.engine.waitp = self.pageBag.widget( self.sinkIX )
-
-    #@pyqtSlot()
-    #def tryRollBack( self ):
-    #    """ Cancel all operations when is possible """
-    #    # TODO: Add rollback steps here:
-    #    self.reject()
 
     @pyqtSlot()
     def displayInfo( self ):
@@ -240,60 +167,3 @@ class Menu( QDialog ):
         """ Serve the close event. """
         event.accept()
 
-
-if __name__ == "__main__":
-    from PyQt5.QtWidgets import QApplication , QVBoxLayout , QLabel
-    from MenuPage   import MenuPage
-    from NamePage   import NamePage
-    from TypePage   import TypePage
-    from ColorPage  import ColorPage
-    from QuickPage  import QuickPage
-    from CustomPage import CustomPage
-    from WaitPage   import WaitPage
-    from TdscPage   import TdscPage
-    from AnimPage   import AnimPage
-
-    main = QApplication([])
-    menu = Menu()
-    menu.show()
-
-    namep   = NamePage  ()
-    typep   = TypePage  ( namep   )
-    colorp  = ColorPage ( typep   )
-    quickp  = QuickPage ( colorp  )
-    customp = CustomPage( colorp  )
-    tdscp   = TdscPage  ( customp )
-    animp   = AnimPage  ( tdscp   )
-    waitp   = WaitPage  ()
-    # Next Connections:
-    namep.next   = typep      # (1 -> 2)
-    typep.next   = colorp     # (2 -> 3)
-    colorp.next , colorp.altn = quickp , customp    # (3 -> 4.a | 4.b)
-    quickp.next  = waitp
-    customp.next = tdscp
-    tdscp.next   = animp
-    animp.next   = waitp
-
-    # Connections between Pages:
-    typep.type_changed.connect( colorp.serve_negated_alternative_request )
-    typep.type_changed.connect( animp.setOverride )
-
-    # Connections between Pages and Menu:
-    namep.cancel.released.connect  ( menu.reject          )
-    namep.info.released.connect    ( menu.displayInfo     )
-    waitp.cancel.released.connect  ( menu.tryRollBack     )
-    waitp.info.released.connect    ( menu.displayInfo     )
-    namep.previous.released.connect( menu.usePreviousData )
-
-    menu.addPage( namep   , "name"   )
-    menu.addPage( typep   , "type"   )
-    menu.addPage( colorp  , "color"  )
-    menu.addPage( quickp  , "quick"  )
-    menu.addPage( customp , "custom" )
-    menu.addPage( tdscp   , "transp" )
-    menu.addPage( animp   , "anim"   )
-    menu.addPage( waitp   , "wait"   )
-
-    menu.setupDefaultConnections()
-    menu.sendRequestWhenCurrentPageIs( "wait" )
-    main.exec_()
