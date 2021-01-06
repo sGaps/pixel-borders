@@ -22,11 +22,8 @@
      |- Gaps : sGaps : ArtGaps
 """
 
-
-from .Context  import CONTEXT , RUN , Extension
+from .Context  import CONTEXT , Extension
 from .SetupGUI import GUI
-
-if CONTEXT == "INSIDE_KRITA": from .core.Borderizer import Borderizer
 
 METADATA = { "SYS_ID"    : "pykrita_pixel_border" ,
              "NAM_ID"    : "Pixel Borders"        ,
@@ -52,18 +49,9 @@ class PixelExtension( Extension ):
                                       METADATA["TOOL_PATH"] )
         action.triggered.connect( self.run )
 
-    # TODO: This function is called twice everytime the action connected to run. Fix it.
     def run( self ):
-        """ Performs all the required actions to build the GUI itself and the Borderizer object
-            when Krita is available. Else, This only builds a GUI for testing purposes.
+        """ perform the required actions to run the script in krita. """
+        self.ext   = GUI( parent = None , title = METADATA["TITLE"] )
+        self.ext.run()
 
-            NOTE: This requires that you have installed PyQt5 module on your system. """
-        if CONTEXT == "OUTSIDE_KRITA":
-            self.ext = GUI( parent = None , title = METADATA["TITLE"] )
-            self.ext.run()
-            self.setWindowTitle( "Pixel Border - GUI test" )
-            self.show()
-            RUN()
-        else:
-            self.ext   = GUI( parent = None , title = METADATA["TITLE"] )
-            self.ext.run()
+

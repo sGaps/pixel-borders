@@ -118,7 +118,7 @@ class KisData( object ):
         """ data(dict):"""
         dataset = set( data.keys() )
         if KEYS.difference( dataset ):
-            raise AttributeError( "provided keys: {dataset} don't match with the required keys {KEYS}" )
+            raise AttributeError( f"provided keys: {dataset} don't match with the required keys {KEYS}" )
         
         # [ ] Trivial:
         self.name = data["name"]

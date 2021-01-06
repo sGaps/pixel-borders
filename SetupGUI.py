@@ -8,74 +8,19 @@ try:
 except:
     KRITA_AVAILABLE = False
 
-# TODO: Clean this sequence
-from importlib import reload
-
-try:
-    # Krita has some problems with module paths (why? idk)
-    import pixel_borders.gui.SmartMenu  as SM
-    import pixel_borders.gui.MenuPage   as MP
-    import pixel_borders.gui.NamePage   as NP
-    import pixel_borders.gui.TypePage   as YP
-    import pixel_borders.gui.ColorPage  as KP
-    import pixel_borders.gui.QuickPage  as QP
-    import pixel_borders.gui.CustomPage as CP
-    import pixel_borders.gui.WaitPage   as WP
-    import pixel_borders.gui.TdscPage   as TP
-    import pixel_borders.gui.AnimPage   as AP
-    import pixel_borders.core.Borderizer as BD
-    import pixel_borders.core.Arguments  as AR
-    import pixel_borders.core.Service    as SV
-    outsideKRITA = False
-except:
-    import gui.SmartMenu  as SM
-    import gui.MenuPage   as MP
-    import gui.NamePage   as NP
-    import gui.TypePage   as YP
-    import gui.ColorPage  as KP
-    import gui.QuickPage  as QP
-    import gui.CustomPage as CP
-    import gui.WaitPage   as WP
-    import gui.TdscPage   as TP
-    import gui.AnimPage   as AP
-    import core.Borderizer as BD
-    import core.Arguments  as AR
-    import core.Service    as SV
-    outsideKRITA = True
-
-# TODO: Delete later
-# NOTE: I'm able to use this with
-reload( SM )
-reload( MP )
-reload( NP )
-reload( YP )
-reload( KP )
-reload( QP )
-reload( CP )
-reload( WP )
-reload( TP )
-reload( AP )
-reload( BD )
-reload( AR )
-reload( SV )
-
-Menu       = SM.Menu
-MenuPage   = MP.MenuPage
-NamePage   = NP.NamePage
-TypePage   = YP.TypePage
-ColorPage  = KP.ColorPage
-QuickPage  = QP.QuickPage
-CustomPage = CP.CustomPage
-WaitPage   = WP.WaitPage
-TdscPage   = TP.TdscPage
-AnimPage   = AP.AnimPage
-Borderizer = BD.Borderizer
-KisData    = AR.KisData
-Service    = SV.Service
-Client     = SV.Client
-
-if outsideKRITA:
-    main = QApplication([])
+from .gui.SmartMenu     import Menu      
+from .gui.MenuPage      import MenuPage  
+from .gui.NamePage      import NamePage  
+from .gui.TypePage      import TypePage  
+from .gui.ColorPage     import ColorPage 
+from .gui.QuickPage     import QuickPage 
+from .gui.CustomPage    import CustomPage
+from .gui.WaitPage      import WaitPage  
+from .gui.TdscPage      import TdscPage  
+from .gui.AnimPage      import AnimPage  
+from .core.Borderizer   import Borderizer
+from .core.Arguments    import KisData   
+from .core.Service      import Service , Client
 
 class GUI( QObject ):
     userCanceled = pyqtSignal( str )
@@ -178,9 +123,11 @@ class GUI( QObject ):
                                   "Krita in a terminal for get more information." )
             waitp.cancel.released.connect( menu.reject )
             return
+        # Visual:
         waitp.progress.setRange( self.arguments.start , self.arguments.finish )
         waitp.progress.reset()
 
+        # Worker Thread:
         self.borderizer = Borderizer( self.arguments )
         border          = self.borderizer
 
@@ -222,16 +169,21 @@ class GUI( QObject ):
     def run( self ):
         self.menu.show()
 
-        if outsideKRITA:
-            main.exec_()
+        #if not KRITA_AVAILABLE:
+        #    main.exec_()
 
 # NOTE: I had some issues trying to run the kritarunner of Krita 4.4.x. It seems that it requires
 #       a function with type (f :: a -> () ). So, I use for test this safely...
 #       >>>     $ kritarunner -s SetupGUI -f test
 def test( _ ):
-    gui = GUI( "Pixel Borders - Test" )
+    gui  = GUI( "Pixel Borders - Test" )
     gui.run()
 
-if __name__ == "__main__":
-    gui = GUI( "Pixel Borders - Test" )
+def main():
+    platform = QApplication([])
+    gui  = GUI( "Pixel Borders - Test" )
     gui.run()
+    platform.exec_()
+
+if __name__ == "__main__":
+    main()

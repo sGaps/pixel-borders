@@ -4,7 +4,6 @@ try:
     from krita import Krita
     from .main import PixelExtension
 except ImportError as error:
-    # TODO: A PyQT instance keeps running after close the actual Gui. Fix this later.
     from .main import PixelExtension
     for e in error.args:
         print( "[Pixel Border] Warning:" , e , file = stderr )
