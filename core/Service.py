@@ -1,7 +1,5 @@
 from PyQt5.QtCore       import QObject , pyqtSignal , pyqtSlot , QMutex , QSemaphore
-
-semWait   = QSemaphore.acquire
-semSignal = QSemaphore.release
+from queue              import SimpleQueue
 
 class Service( QObject ):
     """ Must be connected to a Client """
@@ -11,14 +9,14 @@ class Service( QObject ):
     def __init__( self , parent = None ):
         super().__init__( parent )
 
-        self.buffAccess    = QSemaphore( 1 )    # This can access.
-        self.buffExtract   = QSemaphore( 0 )    # Cannot Extract yet.
-        self.buffWithSpace =  QSemaphore( Service.BUFFERSIZE )
+        #self.buffAccess    = Semaphore( 1 )    # This can access.
+        #self.buffExtract   = Semaphore( 0 )    # Cannot Extract yet.
+        #self.buffWithSpace = Semaphore( Service.BUFFERSIZE )
+        # Server side:
+        self.buffer = SimpleQueue()
 
         self.service  = lambda: None
         self.arg_list = []
-        # Server side:
-        self.result   = None
 
         # Qt side:
         self.serviceRequest.connect( self.answerRequest ) # (service) <<= (client)
@@ -34,14 +32,9 @@ class Service( QObject ):
         product = self.service( *self.arg_list )
         # ------------------------------------------
 
-        self.buffWithSpace.acquire()    # <|    (E)
-        self.buffAccess.acquire()       # <|    (S) 
         # Add to 'Buffer' --------------------------
-        self.result = product
+        self.buffer.put( product , block = True )
         # ------------------------------------------
-
-        self.buffAccess.release()       # |>    (S)
-        self.buffExtract.release()      # |>    (N)
 
     def getResult( self ):
         return self.result
@@ -52,39 +45,21 @@ class Client( QObject ):
     def __init__( self , serv = Service() , parent = None ):
         super().__init__( parent )
         self.service       = serv
-        self.buffAccess    = serv.buffAccess
-        self.buffExtract   = serv.buffExtract
-        self.buffWithSpace = serv.buffWithSpace
 
         # Client side:
         self.result        = None
 
     def sendRequest( self ):
         self.service.serviceRequest.emit() # (client) =>> (service)
-
-        # Wait For Done ---------------------------
-        self.buffExtract.acquire()      # <|    (N)
-        self.buffAccess.acquire()       # <|    (S)
-        # ------------------------------------------
-
-        # Extract ----------------------------------
-        product = self.service.getResult()
-        # ------------------------------------------
-
-        self.buffAccess.release()       # |>    (S)
-        self.buffWithSpace.release()    # |>    (S)
-
-        # Use --------------------------------------
-        self.result = product
-        # ------------------------------------------
+        # Wait For Done -------------------------------------------
+        return self.service.buffer.get( block = True )
 
     def getResult( self ):
         return self.result
 
     def serviceRequest( self , func , *arg_list ):
         self.service.setService( func , *arg_list ) # Current Thread (Sync)
-        self.sendRequest()                          # (Force Sync)
-        return self.getResult()                     # (Sync)
+        return self.sendRequest()                          # (Force Sync)
 
 if __name__ == "__main__":
     from PyQt5.QtCore       import QThread
