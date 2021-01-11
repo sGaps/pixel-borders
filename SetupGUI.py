@@ -21,6 +21,7 @@ from .gui.AnimPage      import AnimPage
 from .core.Borderizer   import Borderizer
 from .core.Arguments    import KisData   
 from .core.Service      import Service , Client
+from .DataLoader        import loadData , writeData
 
 class GUI( QObject ):
     userCanceled = pyqtSignal( str )
@@ -46,13 +47,13 @@ class GUI( QObject ):
         waitp   = WaitPage  ()
 
         # Next Connections:
-        namep.next   = typep      # (1 -> 2)
-        typep.next   = colorp     # (2 -> 3)
+        namep.next   = typep        # (1 -> 2)
+        typep.next   = colorp       # (2 -> 3)
         colorp.next , colorp.altn = quickp , customp    # (3 -> 4.a | 4.b)
-        quickp.next  = waitp
-        customp.next = tdscp
-        tdscp.next   = animp
-        animp.next   = waitp
+        quickp.next  = waitp        # (4.a -> 5)
+        customp.next = tdscp        # (4.b -> 4+.b)
+        tdscp.next   = animp        # (4+.b -> 4++.b)
+        animp.next   = waitp        # (4++.b -> 5)
 
         # Krita-Dependent Code:
         animp.connect_with_krita()
@@ -86,20 +87,23 @@ class GUI( QObject ):
 
     @pyqtSlot()
     def saveConfig( self ):
-        pass
+        # TODO: Notify when something goes wrong
+        writeData( self.data , debug = True )
 
     @pyqtSlot()
     def usePreviousData( self ):
-        # TODO: Loads the data as JSON
-        self.data = {}
+        self.data = loadData( debug = True )
+        # TODO: load only if there's previous data (!={}), else notify to user that can't use previous data.
         self.menu.loadPage( "wait" )
 
     @pyqtSlot()
     def sendStopRequest( self ):
         if self.stop or self.done: return
+        self.menu.page( "wait" ).cancel.setEnabled( False )
         self.stop = True
         self.borderizer.stopRequest()
 
+    # TODO: Prevent a way to delete or close the document while the borderizer is running.
     @pyqtSlot()
     def sendBorderRequest( self ):
         menu      = self.menu
@@ -128,8 +132,14 @@ class GUI( QObject ):
         waitp.progress.reset()
 
         # Worker Thread:
+        self.thread     = QThread() # TODO: Be careful with this... Sometimes Qt delets c++ objects.
         self.borderizer = Borderizer( self.arguments )
         border          = self.borderizer
+        thread          = self.thread
+
+        # Concurrency:
+        border.moveToThread( thread )
+        thread.started.connect( border.run )
 
         # Setup Connections:
         border.debug.connect( waitp.dbgMSG.setText )
@@ -147,11 +157,13 @@ class GUI( QObject ):
 
         # Finishing all:
         border.workDone.connect( self.onFinish      ) # NOTE: (finished -> thread execution end) != (workDone -> task done successfully )
-        border.finished.connect( border.quit        )
-        border.finished.connect( border.deleteLater )
+        border.workDone.connect( thread.quit        )
+        border.rollbackDone.connect( thread.quit    ) # Similar to workDone
+        thread.finished.connect( border.deleteLater )
+        thread.finished.connect( thread.deleteLater )
 
         # Run:
-        border.start()
+        thread.start()
 
     def onFinish( self ):
         self.done = True
@@ -169,12 +181,6 @@ class GUI( QObject ):
     def run( self ):
         self.menu.show()
 
-        #if not KRITA_AVAILABLE:
-        #    main.exec_()
-
-# NOTE: I had some issues trying to run the kritarunner of Krita 4.4.x. It seems that it requires
-#       a function with type (f :: a -> () ). So, I use for test this safely...
-#       >>>     $ kritarunner -s SetupGUI -f test
 def test( _ ):
     gui  = GUI( "Pixel Borders - Test" )
     gui.run()

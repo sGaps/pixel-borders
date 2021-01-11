@@ -48,7 +48,7 @@ try:
 except:
     print( "[Borderizer] Krita Not available" )
 from PyQt5.QtCore       import QRect , QObject , pyqtSlot , pyqtSignal
-from PyQt5.QtCore       import QThread , QMutex
+from PyQt5.QtCore       import QMutex
 from struct             import pack , unpack
 from sys                import stderr
 
@@ -58,7 +58,7 @@ from .AlphaScrapper     import Scrapper
 from .FrameHandler      import FrameHandler
 import cProfile
 
-class Borderizer( QThread ):
+class Borderizer( QObject ):
     """
         Object used to make borders to regular, group or animated nodes.
         This will search into the sub node hiearchy to make the borders correctly.
@@ -335,8 +335,10 @@ class Borderizer( QThread ):
         currentStep = 1
         if timeline:
             self.debug.emit( "Setup animation data..." )
+
             # Part Six:
-            target = doc.createNode( ".target" , "paintlayer" ) # Can be deleted here
+            # As target must be deleted in this thread, we can create it just here.
+            target = doc.createNode( ".target" , "paintlayer" )
             parent.addChildNode( target , source )
             self.submitRollbackStep( lambda: target.remove() )
 
@@ -434,7 +436,11 @@ class Borderizer( QThread ):
         else:
             # [||] Static Layer.
             self.debug.emit( "Setup layer data..." )
-            target = client.serviceRequest( doc.createNode , ".target" , "paintlayer" ) # Cannot be deleted in the current thread.
+
+            # Part Six:
+            # Target must live outside, in krita. So, this layer cannot be created
+            # in the current thread. (or it will raise killTimer exceptions)
+            target = client.serviceRequest( doc.createNode , ".target" , "paintlayer" )
             parent.addChildNode( target , source )
             self.submitRollbackStep( lambda: target.remove() )
 
