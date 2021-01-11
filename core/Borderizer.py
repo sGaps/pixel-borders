@@ -215,40 +215,6 @@ class Borderizer( QObject ):
                 contents[ start : start + chsize ] = opBytes
         return contents 
 
-    # DEPRECATED
-    @staticmethod
-    def makePxDataUsingAlpha( maxval , nocolor , opaque , alpha , length , nchans ):
-        """
-            ARGUMENTS
-                maxval(bytearray):  max alpha value.
-                nocolor(bytearray): Transparent color.
-                opaque(bytearray):  Opaque color.
-                alpha(bytearray):   simplified version of pixel data. (returned by a Scrapper or Grow object)
-                length(int):        length of the alpha data.
-                nchans(int):        How many channels has the color space.
-            RETURNS
-                bytearray
-
-                Colored version of the node's pixel data
-        """
-        item_size    = len( maxval )                # Channel Size
-        new_contents = nocolor * length             # Pixel data
-        offset       = item_size * (nchans - 1)     # Local start position of the alpha channel
-        step         = item_size * nchans
-        pos          = 0
-        while True:
-            pos   = alpha.find( maxval , pos )
-            if pos < 0:
-                break
-
-            start = pos * step + offset
-
-            if alpha[pos]:
-                new_contents[ start : start + item_size ] = opaque
-            # Update!
-            pos  += 1
-        return new_contents
-
     @staticmethod
     def applyMethodRecipe( grow , recipe ):
         """
@@ -419,7 +385,6 @@ class Borderizer( QObject ):
                 Borderizer.applyMethodRecipe( grow , methodRecipe )
                 newAlpha = grow.difference_with( alpha )
 
-                #colordata = Borderizer.makePxDataUsingAlpha( b"\xff" , nocolor , opBytes , newAlpha , length , nchans )
                 colordata = Borderizer.makePxData( nocolor , opBytes , newAlpha , length , nchans , chsize )
 
                 Borderizer.fillWith( target , colordata , bounds )
@@ -462,8 +427,8 @@ class Borderizer( QObject ):
             self.debug.emit( "Setup layer data..." )
 
             # Part Six:
-            # Target must live outside, in krita. So, this layer cannot be created
-            # in the current thread. (or it will raise killTimer exceptions)
+            # Target must live outside (in krita). So, this layer cannot be created
+            # in the current thread, else it will raise killTimer exceptions. (krita.Node <- QObject)
             target = client.serviceRequest( doc.createNode , ".target" , "paintlayer" )
             parent.addChildNode( target , source )
             self.submitRollbackStep( lambda: target.remove() )
@@ -482,7 +447,6 @@ class Borderizer( QObject ):
             newAlpha = grow.difference_with( alpha )
 
             # Update and Write
-            #colordata = Borderizer.makePxDataUsingAlpha( b"\xff" , nocolor , opBytes , newAlpha , length , nchans )
             colordata = Borderizer.makePxData( nocolor , opBytes , newAlpha , length , nchans , chsize )
             Borderizer.fillWith( target , colordata , bounds )
 
