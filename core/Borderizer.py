@@ -194,7 +194,28 @@ class Borderizer( QObject ):
         """
         return colorbytes * repeat_times
 
-    # TODO: See what I did here, lol
+    # nocolor , opBytes , alphaData , length , nchans 
+    @staticmethod
+    def makePxData( nocolor , opBytes , minimalAlpha , length , nchans , chsize ):
+        # matchValue is the 'opaque' value an minimalAlpha object.
+        matchValue = 0xFF
+        contents = nocolor * length             # ex.:  [ Pixel1(ch1 , ch2 , ch3 , ch4) , Pixel2(...) , ... ]
+        offset   = chsize * (nchans - 1)        #                                ^    ^
+        step     = chsize * nchans              # --> --------------------------------|
+        pos      = -1
+        start    = 0
+        while True:
+            pos = minimalAlpha.find( matchValue , pos + 1 )
+            if pos < 0:
+                break
+
+            # Update.
+            start = pos * step + offset
+            if minimalAlpha[pos]:
+                contents[ start : start + chsize ] = opBytes
+        return contents 
+
+    # DEPRECATED
     @staticmethod
     def makePxDataUsingAlpha( maxval , nocolor , opaque , alpha , length , nchans ):
         """
@@ -312,6 +333,7 @@ class Borderizer( QObject ):
         batchK , batchD = a.batchK , a.batchD
         chans  = a.channels
         nchans = a.nchans
+        chsize = a.chsize
 
         self.submitRollbackStep( lambda: kis.setBatchmode(batchK) )
         self.submitRollbackStep( lambda: doc.setBatchmode(batchD) )
@@ -392,11 +414,13 @@ class Borderizer( QObject ):
                 alpha  = scrap.extractAlpha( source , bounds , transparency , threshold )
                 grow.setData( alpha , width , length )
 
+
                 # Make the borders and update the target data.
                 Borderizer.applyMethodRecipe( grow , methodRecipe )
                 newAlpha = grow.difference_with( alpha )
 
-                colordata = Borderizer.makePxDataUsingAlpha( b"\xff" , nocolor , opBytes , newAlpha , length , nchans )
+                #colordata = Borderizer.makePxDataUsingAlpha( b"\xff" , nocolor , opBytes , newAlpha , length , nchans )
+                colordata = Borderizer.makePxData( nocolor , opBytes , newAlpha , length , nchans , chsize )
 
                 Borderizer.fillWith( target , colordata , bounds )
 
@@ -458,7 +482,8 @@ class Borderizer( QObject ):
             newAlpha = grow.difference_with( alpha )
 
             # Update and Write
-            colordata = Borderizer.makePxDataUsingAlpha( b"\xff" , nocolor , opBytes , newAlpha , length , nchans )
+            #colordata = Borderizer.makePxDataUsingAlpha( b"\xff" , nocolor , opBytes , newAlpha , length , nchans )
+            colordata = Borderizer.makePxData( nocolor , opBytes , newAlpha , length , nchans , chsize )
             Borderizer.fillWith( target , colordata , bounds )
 
             # Exit:

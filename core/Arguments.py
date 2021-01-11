@@ -114,6 +114,43 @@ class KisData( object ):
     def addResult( self , result ):
         self.result = result
 
+    def show( self , file = stderr ):
+        report = lambda *msg: print( "[Kis Data]: " , *msg , file = file )
+        if not self.valid:
+            report( "Invalid Object" )
+            return
+
+        report( f"Name:             {self.name}" )
+        report( f"Document:         {self.doc }" )
+        report( f"Krita:            {self.kis }" )
+        report( f"Window:           {self.win }" )
+        report( f"View:             {self.view}" )
+        report( f"components:       {self.components}" )
+        report( f"depth:            {self.depth}" )
+        report( f"transp. Pixel:    {self.trPixel}" )
+        report( f"opaque. Pixel:    {self.opPixel}" )
+        report( f"bytes. Transp.:   {self.trBytes}" )
+        report( f"bytes. Opaque.:   {self.opBytes}" )
+        report( f"max Value:        {self.maxVal }" )
+        report( f"min Value:        {self.minVal }" )
+        report( f"transparency:     {self.transparency}" )
+        report( f"threshold:        {self.threshold}" )
+        report( f"recipe:           {self.recipe}" )
+        report( f"thickness:        {self.thickness}" )
+        report( f"batchmode Krita:  {self.batchK}" )
+        report( f"batchmode Doc.:   {self.batchD}" )
+        report( f"channels:         {self.channels}" )
+        report( f"nchans:           {self.nchans}" )
+        report( f"Current Node:     {self.node  }" )
+        report( f"Parent Node:      {self.parent}" )
+        report( f"Scrapper:         {self.scrapper}" )
+        report( f"Frame Handler:    {self.frameHandler}" )
+        report( f"Start Time:       {self.start}" )
+        report( f"Finish Time:      {self.finish}" )
+        report( f"Timeline Range:   {self.timeline}" )
+        report( f"Service:          {self.service}" )
+        report( f"Client:           {self.client}" )
+
     def updateAttributes( self , data ):
         """ data(dict):"""
         dataset = set( data.keys() )
@@ -179,6 +216,7 @@ class KisData( object ):
         # [C] Node's channels:
         self.channels = self.node.channels()
         self.nchans   = len( self.channels )
+        self.chsize   = len( self.opBytes ) # Alternative: use len( self.trBytes )
         
         # [P] Parent Node:
         self.parent   = self.node.parentNode()

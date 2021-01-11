@@ -5,6 +5,7 @@ from PyQt5.QtWidgets  import ( QDialog , QToolButton , QStackedWidget ,
 from sys              import stderr
 from threading        import Thread
 from .About           import About
+from .MenuPage        import MenuPage
 
 # Krita-dependent Code:
 from .krita_connection.Lookup import KRITA_AVAILABLE , dprint

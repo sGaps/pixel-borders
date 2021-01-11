@@ -32,9 +32,9 @@ def writeData( data = {} , filename = DEFAULT_FILENAME , debug = False ):
     try:
         with open( filename , 'w' ) as handle:
             json.dump( data , handle , indent = 4 )
-        if debug: print( f"[Pixel Border Extension]: written data into {path}" , file = sys.stderr )
+        if debug: print( f"[Pixel Border Extension]: data saved into {path}" , file = sys.stderr )
         return True
     except Exception as err:
-        if debug: print( f"[Pixel Border Extension]: Unable to write the current data into {path} ; err = {err.args}" , file = sys.stderr )
+        if debug: print( f"[Pixel Border Extension]: Unable to save the current data into {path} ; err = {err.args}" , file = sys.stderr )
         return False
 

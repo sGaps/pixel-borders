@@ -23,6 +23,8 @@ from .core.Arguments    import KisData
 from .core.Service      import Service , Client
 from .DataLoader        import loadData , writeData
 
+DEBUG = True
+
 class GUI( QObject ):
     userCanceled = pyqtSignal( str )
     def __init__( self , title = "Pixel Borders" , parent = None ):
@@ -127,6 +129,9 @@ class GUI( QObject ):
                                   "Krita in a terminal for get more information." )
             waitp.cancel.released.connect( menu.reject )
             return
+        if DEBUG:
+            self.arguments.show()
+
         # Visual:
         waitp.progress.setRange( self.arguments.start , self.arguments.finish )
         waitp.progress.reset()
