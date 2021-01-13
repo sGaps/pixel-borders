@@ -90,11 +90,11 @@ class GUI( QObject ):
     @pyqtSlot()
     def saveConfig( self ):
         # TODO: Notify when something goes wrong
-        writeData( self.data , debug = True )
+        writeData( self.data , debug = DEBUG )
 
     @pyqtSlot()
     def usePreviousData( self ):
-        self.data = loadData( debug = True )
+        self.data = loadData( debug = DEBUG )
         # TODO: load only if there's previous data (!={}), else notify to user that can't use previous data.
         self.menu.loadPage( "wait" )
 
@@ -105,10 +105,23 @@ class GUI( QObject ):
         self.stop = True
         self.borderizer.stopRequest()
 
-    # TODO: Prevent a way to delete or close the document while the borderizer is running.
+    @pyqtSlot( bool )
+    def changeMenuModal( self , modal ):
+        menu = self.menu
+        pos  = menu.pos()
+        menu.setModal( modal )
+        # Force evaluate new dialog's modal.
+        # | Qt's cuteness only supports this ugly way for update Window Modalities |
+        menu.hide()
+        menu.show()
+        menu.move( pos )
+
     @pyqtSlot()
     def sendBorderRequest( self ):
         menu      = self.menu
+        # Prevent document modification or deletion while this plugin is running.
+        self.changeMenuModal( True )
+
         self.data = self.data if self.data else menu.collectDataFromPages()
         cdata     = self.data.copy()
         if KRITA_AVAILABLE:
@@ -120,6 +133,7 @@ class GUI( QObject ):
             cdata["doc"]  = doc
             cdata["node"] = node
 
+
         waitp = menu.page( "wait" )
         try:
             self.arguments = KisData( cdata )
@@ -129,6 +143,7 @@ class GUI( QObject ):
                                   "Krita in a terminal for get more information." )
             waitp.cancel.released.connect( menu.reject )
             return
+
         if DEBUG:
             self.arguments.show()
 
@@ -137,7 +152,7 @@ class GUI( QObject ):
         waitp.progress.reset()
 
         # Worker Thread:
-        self.thread     = QThread() # TODO: Be careful with this... Sometimes Qt delets c++ objects.
+        self.thread     = QThread()
         self.borderizer = Borderizer( self.arguments )
         border          = self.borderizer
         thread          = self.thread
@@ -161,7 +176,8 @@ class GUI( QObject ):
         border.rollbackDone.connect   ( waitp.raiseAccept    )
 
         # Finishing all:
-        border.workDone.connect( self.onFinish      ) # NOTE: (finished -> thread execution end) != (workDone -> task done successfully )
+        # NOTE: (finished -> thread execution end) != (workDone -> task done successfully)
+        border.workDone.connect( self.onFinish      )
         border.workDone.connect( thread.quit        )
         border.rollbackDone.connect( thread.quit    ) # Similar to workDone
         thread.finished.connect( border.deleteLater )

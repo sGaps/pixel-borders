@@ -42,12 +42,16 @@ DEPTHS = { "U8"  : ("B" , 2**8  - 1 ) ,
            "F16" : ("e" , 1.0       ) ,
            "F32" : ("f" , 1.0       ) }
 
-class KisDepth( object ):
+#class KisDepth( object ):
+class KisColor( object ):
     """
-        Manages the krita depth
+        Manages the krita depth outside Qt's realm 
     """
-    def __init__( self , dname ):
+    #def __init__( self , dname ):
+    def __init__( self , managed_color ):
         """ dname(str): depth name """
+        mcolor = managed_color
+        dname  = mcolor.colorDepth()
         dstats = DEPTHS.get( dname , None )
         if dstats:
             # Get the number
@@ -59,6 +63,12 @@ class KisDepth( object ):
                 self.cast_fn = int
             else:
                 self.cast_fn = float
+
+            # Copy the color data
+            self.colorDepth   = dname
+            self.colorModel   = mcolor.colorModel()
+            self.colorProfile = mcolor.colorProfile()
+
             self.valid = True
         else:
             self.valid = False
@@ -93,7 +103,6 @@ class KisDepth( object ):
     def castMin( self ):
         return pack(self.cast_str , 0)
 
-# BUG: There's something here or in the Borderizer that is making some weird results with "F16"
 class KisData( object ):
     """ Parse an raw dict object for the borderizer.
         NOTE: This exists for avoid weird issues with Qt memory management
@@ -102,7 +111,7 @@ class KisData( object ):
         """ Implements parse logic. """
         self.valid = False
         self.err   = ""
-        if data:    # DO NOT RAISE EXCEPTIONS IF THERE'S NO DATA TO PARSE.
+        if data:    # Do not raise exceptions if there's no data to parse.
             self.updateAttributes( data )
 
     @staticmethod
@@ -126,7 +135,7 @@ class KisData( object ):
         report( f"Window:           {self.win }" )
         report( f"View:             {self.view}" )
         report( f"components:       {self.components}" )
-        report( f"depth:            {self.depth}" )
+        report( f"Kis Color:        {self.kiscolor}" )
         report( f"transp. Pixel:    {self.trPixel}" )
         report( f"opaque. Pixel:    {self.opPixel}" )
         report( f"bytes. Transp.:   {self.trBytes}" )
@@ -165,13 +174,15 @@ class KisData( object ):
         self.doc  = data.get( "doc"  , None )
         self.kis  = data.get( "kis"  , None )
         if not ( self.node and self.doc and self.kis ):
-            raise AttributeError( f"Couldn't run with incomplete information: node = {self.node}, krita = {self.kis}, document = {self.doc}" )
+            raise AttributeError( f"Couldn't run with incomplete information: " +
+                                  f"node = {self.node}, krita = {self.kis}, document = {self.doc}" )
 
         # [@] Color:
         self.win  = self.kis.activeWindow()
         self.view = self.win.activeView() if self.win else None
         if not ( self.win and self.view ):
-            raise AttributeError( f"Couldn't run with incomplete information: window = {self.win}, view = {self.view}" )
+            raise AttributeError( f"Couldn't run with incomplete information: " +
+                                  f"window = {self.win}, view = {self.view}" )
 
         colorType , components = data["colordsc"]
         if colorType == "FG":
@@ -186,23 +197,23 @@ class KisData( object ):
         mcolor.setColorSpace( self.node.colorModel() , self.node.colorDepth() , self.node.colorProfile() )
 
         # [B] Color to Bytes:
-        self.depth       = KisDepth( mcolor.colorDepth() )
+        self.kiscolor    = KisColor( mcolor )
         self.components  = mcolor.components()
+        kiscolor         = self.kiscolor
 
         # _Pixel and component_
         # NOTE: trPixel = nocolor , opPixel = color , trBytes = trBytes , opBytes = opBytes | after = before
-        self.trPixel = self.depth.componentCast( self.depth.getMin() , self.components )
-        self.opPixel = self.depth.componentCast( self.depth.getMax() , self.components )
-        self.trBytes = self.depth.castMin()
-        self.opBytes = self.depth.castMax()
+        self.trPixel = kiscolor.componentCast( kiscolor.getMin() , self.components )
+        self.opPixel = kiscolor.componentCast( kiscolor.getMax() , self.components )
+        self.trBytes = kiscolor.castMin()
+        self.opBytes = kiscolor.castMax()
         # _Int Values_
-        self.maxVal    = self.depth.getMax()
-        self.minVal    = self.depth.getMin()
+        self.maxVal    = kiscolor.getMax()
+        self.minVal    = kiscolor.getMin()
 
         # TODO: Fix the threshold error
         useOpaqueAsTransparency , threshold_percent = data["trdesc"]
         self.transparency = self.maxVal if useOpaqueAsTransparency else self.minVal
-        # BUG: Threshold has a big error interval.
         self.threshold = int( self.maxVal * (threshold_percent/100) ) if self.node.colorDepth() in {"U8","U16"} else self.maxVal * (threshold_percent/100)
 
         # [*] Method (it can raise an exception inside the list comprension)

@@ -139,6 +139,7 @@ class Borderizer( QObject ):
             self.rollbackRequest.emit()
         return keepItUp
 
+    # DEPRECATED
     @staticmethod
     def __get_true_color__( managedcolor ):
         """
@@ -308,8 +309,9 @@ class Borderizer( QObject ):
         # < ROLLBACK |-----------------------
         
         # Part Four 
-        source = a.node
-        parent = a.parent
+        source   = a.node
+        parent   = a.parent
+        kiscolor = a.kiscolor
 
         # Part Five:
         dbounds  = doc.bounds()
@@ -319,7 +321,7 @@ class Borderizer( QObject ):
         start    = a.start
         finish   = a.finish
 
-        # BUG: Distorted images with depth = "U16"
+
         currentStep = 1
         if timeline:
             self.debug.emit( "Setup animation data..." )
@@ -327,10 +329,12 @@ class Borderizer( QObject ):
             # Part Six:
             # As target must be deleted in this thread, we can create it just here.
             target = doc.createNode( ".target" , "paintlayer" )
+            target.setColorSpace( kiscolor.colorModel , kiscolor.colorDepth , kiscolor.colorProfile )
+
             parent.addChildNode( target , source )
             self.submitRollbackStep( lambda: target.remove() )
 
-            # [|>] Animation. BUG: There's a random QObject that is built here and it's causing a lot of problems. (maybe it's the border-node)
+            # [|>] Animation.
             canvasSize    = dbounds.width() * dbounds.height()
             grow          = Grow.singleton( amount_of_items_on_search = canvasSize )
             anim_length   = len( str( len( timeline ) ) )
@@ -359,7 +363,8 @@ class Borderizer( QObject ):
                     return
 
                 # Update the current time and wait in synchronous mode:
-                # NOTE: Using this scheme, the user can cancel the process. but this add a big overhead
+                # NOTE: the user is able to cancel the process whith this scheme,
+                #       but this has a little overhead (after some optimizations)
                 doc.setCurrentTime( t )
                 client.serviceRequest( doc.refreshProjection )
                 doc.waitForDone()
@@ -406,17 +411,20 @@ class Borderizer( QObject ):
             importResult = client.serviceRequest( frameH.importFrames , start , frameH.get_exported_files() )
             self.debug.emit( "Frames imported" )   # Here passed someting weird. Program freezes and got killed.
             border = doc.topLevelNodes()[Borderizer.ANIMATION_IMPORT_DEFAULT_INDEX]
-            # Remove the border from its parent 'slot'
+            # Remove the border from its parent 'slot' (context update)
             border.remove()
             parent.addChildNode( border , source )
             border.setName( name )
+            border.setColorSpace( kiscolor.colorModel , kiscolor.colorDepth , kiscolor.colorProfile )
             border.enableAnimation()
 
             self.submitRollbackStep( lambda: border.remove() )
             # < ROLLBACK |-----------------------
 
             # Explicit Cleaning (this can be delete in the current thread)
-            target.remove()
+            target.remove()         # Explicit Cleaning inside Krita.
+            target.deleteLater()    # Explicit Cleaning inside Qt.
+            del target              # Explicit Cleaning inside Python.
 
             if self.cleanUpAtFinish:
                 frameH.removeExportedFiles( removeSubFolder = True )
@@ -430,6 +438,7 @@ class Borderizer( QObject ):
             # Target must live outside (in krita). So, this layer cannot be created
             # in the current thread, else it will raise killTimer exceptions. (krita.Node <- QObject)
             target = client.serviceRequest( doc.createNode , ".target" , "paintlayer" )
+            target.setColorSpace( kiscolor.colorModel , kiscolor.colorDepth , kiscolor.colorProfile )
             parent.addChildNode( target , source )
             self.submitRollbackStep( lambda: target.remove() )
 
