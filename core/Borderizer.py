@@ -64,13 +64,17 @@ class Borderizer( QObject ):
         This will search into the sub node hiearchy to make the borders correctly.
     """
     progress        = pyqtSignal( int )
-    debug           = pyqtSignal( str )
+    report          = pyqtSignal( str )
     rollbackRequest = pyqtSignal()
     workDone        = pyqtSignal()
     rollbackDone    = pyqtSignal()
 
     ANIMATION_IMPORT_DEFAULT_INDEX = -1
-    def __init__( self , arguments = KisData() , thread_name = "Border-Thread" , info = None , cleanUpAtFinish = False , profiler = True , parent = None ):
+    def __init__( self , arguments = KisData()       ,
+                         obj_name  = "Border-Thread" ,
+                         cleanUpAtFinish = False     ,
+                         profiler  = True            ,
+                         parent    = None            ):
         """
             ARGUMENTS
                 info(krita.InfoObject): Specify some special arguments to export files.
@@ -78,26 +82,25 @@ class Borderizer( QObject ):
         """
         super().__init__( parent )
         self.setArguments( arguments )
-        self.info            = info
 
         self.cleanUpAtFinish = cleanUpAtFinish
 
-        self.setObjectName( thread_name )
+        self.setObjectName( obj_name )
         self.critical        = QMutex()
         self.keepRunning     = True
 
-        # Profiler
         self.profiler = profiler
 
         # Actions to perform if something goes wrong:
-        self.rollbackList = []
+        self.rollbackList  = []
+        self.targetRemoved = False
 
     def setArguments( self , arguments ):
         self.arguments = arguments
 
     @pyqtSlot()
     def stopRequest( self ):
-        self.debug.emit( "Trying to stop" )
+        self.report.emit( "Trying to stop" )
         # Force to Stop. No matters what!
         self.enterCriticalRegion()
         self.keepRunning = False
@@ -135,44 +138,9 @@ class Borderizer( QObject ):
             # < CRITICAL |-----------------------
             # Cancel request accepted
             self.exitCriticalRegion()
-            self.debug.emit( "Canceled by user" )
+            self.report.emit( "Canceled by user" )
             self.rollbackRequest.emit()
         return keepItUp
-
-    # DEPRECATED
-    @staticmethod
-    def __get_true_color__( managedcolor ):
-        """
-            ARGUMENTS
-                managedcolor(krita.ManagedColor): source normalized color from krita.
-           u
-                ( bytearray , bytearray , bytearray , bytearray )
-            Takes a krita.ManagedColor and returns four relevant bytearrays:
-                ( color transparent,
-                  color opaque     ,
-                  min alpha value  ,
-                  max alpha value  )
-        """
-
-        depth = managedcolor.colorDepth()
-        cmps  = managedcolor.components()
-
-        bsize = int(depth[1:])
-        ncmps = len(cmps)
-        color = bytearray()
-        dtype , dmax = DEPTHS[depth]
-
-        if depth[0] == "U":
-            cast = int
-        else:
-            cast = float
-
-        for i in range(ncmps - 1):
-            color += pack( dtype , cast(cmps[i] * dmax) )
-
-        maxvalue = pack(dtype , dmax)
-        minvalue = pack(dtype , 0)
-        return ( color + minvalue , color + maxvalue , minvalue , maxvalue )
 
     @staticmethod
     def fillWith( target , pxdata , bounds ):
@@ -184,6 +152,7 @@ class Borderizer( QObject ):
             Updates the node pixelData using a bytearray and a QRect """
         target.setPixelData( pxdata , bounds.x() , bounds.y() , bounds.width() , bounds.height() )
 
+    # DEPRECATED
     @staticmethod
     def makePxDataWithColor( colorbytes , repeat_times ):
         """
@@ -195,10 +164,9 @@ class Borderizer( QObject ):
         """
         return colorbytes * repeat_times
 
-    # nocolor , opBytes , alphaData , length , nchans 
     @staticmethod
     def makePxData( nocolor , opBytes , minimalAlpha , length , nchans , chsize ):
-        # matchValue is the 'opaque' value an minimalAlpha object.
+        # matchValue is the 'opaque' value of an minimalAlpha object.
         matchValue = 0xFF
         contents = nocolor * length             # ex.:  [ Pixel1(ch1 , ch2 , ch3 , ch4) , Pixel2(...) , ... ]
         offset   = chsize * (nchans - 1)        #                                ^    ^
@@ -214,7 +182,7 @@ class Borderizer( QObject ):
             start = pos * step + offset
             if minimalAlpha[pos]:
                 contents[ start : start + chsize ] = opBytes
-        return contents 
+        return contents
 
     @staticmethod
     def applyMethodRecipe( grow , recipe ):
@@ -225,9 +193,9 @@ class Borderizer( QObject ):
             RETURNS
                 AlphaGrow.Grow
             Apply the grow recipe to the grow object. """
-        [   
+        [
             [ task(grow) for i in range(steps) ]
-            for task , steps in recipe 
+            for task , steps in recipe
         ]
         return grow
 
@@ -239,8 +207,8 @@ class Borderizer( QObject ):
                 document_bounds(PyQt5.QtCore.QRect):    Bounds of the document.
                 thickness(int):                         how many pixels will be added to each side of the document_bounds
             Returns a QRect that represents the bounds of the target layer. """
-        nBounds = node.bounds() # NOTE: node.bounds() returns a QRect() that include the bounds of
-                                #       child nodes.
+        nBounds = node.bounds()
+
         pBounds = QRect( nBounds.x()      - thickness   ,
                          nBounds.y()      - thickness   ,
                          nBounds.width()  + 2*thickness ,
@@ -273,13 +241,13 @@ class Borderizer( QObject ):
             return
 
         if not a:
-            self.debug.emit( "Not valid arguments" )
+            self.report.emit( "Not valid arguments" )
             self.rollbackRequest.emit()
             return
 
         # Part Zero:
         name    = a.name
-        service = a.service # 
+        service = a.service #
         client  = a.client  # Used to make synchronous calls to krita from a different thread
 
         # Part One:
@@ -307,8 +275,8 @@ class Borderizer( QObject ):
         self.submitRollbackStep( lambda: client.serviceRequest( doc.waitForDone       ) )
         self.submitRollbackStep( lambda: client.serviceRequest( doc.refreshProjection ) )
         # < ROLLBACK |-----------------------
-        
-        # Part Four 
+
+        # Part Four
         source   = a.node
         parent   = a.parent
         kiscolor = a.kiscolor
@@ -324,7 +292,7 @@ class Borderizer( QObject ):
 
         currentStep = 1
         if timeline:
-            self.debug.emit( "Setup animation data..." )
+            self.report.emit( "Setup animation data..." )
 
             # Part Six:
             # As target must be deleted in this thread, we can create it just here.
@@ -332,7 +300,7 @@ class Borderizer( QObject ):
             target.setColorSpace( kiscolor.colorModel , kiscolor.colorDepth , kiscolor.colorProfile )
 
             parent.addChildNode( target , source )
-            self.submitRollbackStep( lambda: target.remove() )
+            self.submitRollbackStep( lambda: None if self.targetRemoved else target.remove() )
 
             # [|>] Animation.
             canvasSize    = dbounds.width() * dbounds.height()
@@ -344,7 +312,7 @@ class Borderizer( QObject ):
 
             # Makes a new directory for the animation frames when it's possible.
             if not frameH.build_directory():
-                self.debug.emit( "Cannot create a directory for the animation frames.\n"  +
+                self.report.emit( "Cannot create a directory for the animation frames.\n"  +
                                  "try save the file before apply this plugin or verify\n" +
                                  "if krita has permissions over the current directory."   )
                 self.rollbackRequest.emit()
@@ -355,7 +323,7 @@ class Borderizer( QObject ):
                 self.submitRollbackStep( lambda: frameH.removeExportedFiles(removeSubFolder = True) )
                 # < ROLLBACK |-----------------------
 
-            self.debug.emit( "Exporting frames" )
+            self.report.emit( "Exporting frames" )
             colordata = None
             for t in timeline:
                 # Polling ------------------------
@@ -371,7 +339,9 @@ class Borderizer( QObject ):
 
                 # [C] Clean Previous influence
                 if colordata:
-                    Borderizer.fillWith( target , Borderizer.makePxDataWithColor( nocolor , length ) , bounds )
+                    #Borderizer.fillWith( target , Borderizer.makePxDataWithColor( nocolor , length ) , bounds )
+                    # Pythonic way (with * operator). clean the previous pixel data.
+                    Borderizer.fillWith( target , nocolor * length , bounds )
 
                 # [X] Bounds Update:
                 bounds = Borderizer.getBounds( source , dbounds , thickness )
@@ -398,7 +368,7 @@ class Borderizer( QObject ):
                 doc.waitForDone()
 
                 if not frameH.exportFrame( f"frame{t:0{anim_length}}.png" , target ):
-                    self.debug.emit( f"Error while trying to export the frame {t}" )
+                    self.report.emit( f"Error while trying to export the frame {t}" )
                     self.rollbackRequest.emit()
                     return
 
@@ -409,7 +379,7 @@ class Borderizer( QObject ):
             # Exit:
             # | ROLLBACK >-----------------------
             importResult = client.serviceRequest( frameH.importFrames , start , frameH.get_exported_files() )
-            self.debug.emit( "Frames imported" )   # Here passed someting weird. Program freezes and got killed.
+            self.report.emit( "Frames imported" )   # Here passed someting weird. Program freezes and got killed.
             border = doc.topLevelNodes()[Borderizer.ANIMATION_IMPORT_DEFAULT_INDEX]
             # Remove the border from its parent 'slot' (context update)
             border.remove()
@@ -425,6 +395,7 @@ class Borderizer( QObject ):
             target.remove()         # Explicit Cleaning inside Krita.
             target.deleteLater()    # Explicit Cleaning inside Qt.
             del target              # Explicit Cleaning inside Python.
+            self.targetRemoved = True
 
             if self.cleanUpAtFinish:
                 frameH.removeExportedFiles( removeSubFolder = True )
@@ -432,7 +403,7 @@ class Borderizer( QObject ):
             doc.setCurrentTime( original_time )
         else:
             # [||] Static Layer.
-            self.debug.emit( "Setup layer data..." )
+            self.report.emit( "Setup layer data..." )
 
             # Part Six:
             # Target must live outside (in krita). So, this layer cannot be created
@@ -463,8 +434,8 @@ class Borderizer( QObject ):
             border = target
             border.setName( name )
 
-            self.progress.emit( currentStep )
             # DONE:
+            self.progress.emit( currentStep )
 
         if not self.keepRunningNormally():
             return
@@ -477,5 +448,5 @@ class Borderizer( QObject ):
 
         # Non-thread event:
         self.workDone.emit()
-        self.debug.emit( "Done" )
+        self.report.emit( "Done" )
         return

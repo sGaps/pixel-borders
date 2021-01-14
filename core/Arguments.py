@@ -45,7 +45,7 @@ DEPTHS = { "U8"  : ("B" , 2**8  - 1 ) ,
 #class KisDepth( object ):
 class KisColor( object ):
     """
-        Manages the krita depth outside Qt's realm 
+        Manages the krita depth outside Qt's realm
     """
     #def __init__( self , dname ):
     def __init__( self , managed_color ):
@@ -84,7 +84,7 @@ class KisColor( object ):
         return self.max_val
 
     def componentCast( self , opaqueValue , managed_components ):
-        """ 
+        """
             managed_components([float]): where each element is normalized between 0 and 1
         """
         color      = bytearray()
@@ -106,7 +106,7 @@ class KisColor( object ):
 class KisData( object ):
     """ Parse an raw dict object for the borderizer.
         NOTE: This exists for avoid weird issues with Qt memory management
-        Tries to put everything in the python realm! """
+        This tries to put everything in the python realm! """
     def __init__( self , data = {} ):
         """ Implements parse logic. """
         self.valid = False
@@ -165,7 +165,7 @@ class KisData( object ):
         dataset = set( data.keys() )
         if KEYS.difference( dataset ):
             raise AttributeError( f"provided keys: {dataset} don't match with the required keys {KEYS}" )
-        
+
         # [ ] Trivial:
         self.name = data["name"]
 
@@ -228,7 +228,7 @@ class KisData( object ):
         self.channels = self.node.channels()
         self.nchans   = len( self.channels )
         self.chsize   = len( self.opBytes ) # Alternative: use len( self.trBytes )
-        
+
         # [P] Parent Node:
         self.parent   = self.node.parentNode()
 
@@ -237,7 +237,6 @@ class KisData( object ):
         self.frameHandler = FrameHandler( self.doc , self.kis , debug = False )
 
         # [/] Timeline:
-        # BUG: Timeline is not correctly defined
         if data["try-animate"]:
             primTimeline = data["animation"]
             self.timeline            = self.frameHandler.get_animation_range( self.node , *primTimeline ) # [start, finish]
@@ -257,4 +256,3 @@ class KisData( object ):
 
     def __bool__( self ):
         return self.valid
-

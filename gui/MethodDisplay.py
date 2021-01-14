@@ -70,9 +70,6 @@ class MethodDelegate( QStyledItemDelegate ):
             editor.setMaximum( MethodDelegate.MAX )
         return editor
 
-    # NOTE: For now, this method only let you edit things with a spinbox.
-    #       If you wanna do more complex operations, then decide what you want to do
-    #       using the index argument.
     def setEditorData( self , editor , index ):
         """ Reads the data from the model and converts it to an integer value, so
             it can be used by the editor. """

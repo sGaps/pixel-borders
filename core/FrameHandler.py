@@ -306,8 +306,6 @@ class FrameHandler( object ):
         """
         try:
             for f in self.exported:
-                # TODO: Verify if I require to change this by:
-                #       os.remove( f"{self.exportdirpath}/{f}" )
                 os.remove( f )
             if removeSubFolder:
                 try:

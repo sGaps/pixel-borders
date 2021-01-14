@@ -15,7 +15,7 @@
         $Grow-State :: Abstraction
             bit field (int) made for model the grow data from a Grow object.
 
-    [*] Created By 
+    [*] Created By
      |- Gaps : sGaps : ArtGaps
 """
 TYPES = { 1 : "B" ,
@@ -24,10 +24,10 @@ TYPES = { 1 : "B" ,
           8 : "L" }
 
 class Grow( object ):
-    """ 
+    """
         It's an automata.
 
-        Utility object that takes a raw node's alpha data (from Scrapper object) 
+        Utility object that takes a raw node's alpha data (from Scrapper object)
         where each element has the value of 0x00 or 0xFF, and transform each
         into a bit field of the type [$Grow-State] defined below.
 
@@ -57,7 +57,7 @@ class Grow( object ):
         * Modified elements are these considered as opaques after a __run_automata__ step.
     """
     def __init__( self , data , width , size , amount_of_items_on_search = None ):
-        """ 
+        """
             ARGUMENTS
                 data(bytearray):                alpha data.
                 width(int):                     width of the canvas.
@@ -99,8 +99,8 @@ class Grow( object ):
         raise TypeError( f"Size uses too many bytes. Available bytes sizes: {set(TYPES.keys())}" )
 
     def setData( self , data , width , size , force_amount_of_items_on_search = None ):
-        """ 
-            ARGUMENTS 
+        """
+            ARGUMENTS
                 data(bytearray):                        alpha data.
                 width(int):                             width of the canvas.
                 size(int):                              size of the alpha data.
@@ -123,19 +123,19 @@ class Grow( object ):
             required_size    = force_amount_of_items_on_search * self.__indexSize
 
             if force_amount_of_items_on_search != self.__staticsize or not self.__searchView:
-                # Cast each bytearray into a static integer type, based in the size required for 
+                # Cast each bytearray into a static integer type, based in the size required for
                 # represent the maximum index-value of the canvas.
                 self.__searchView = memoryview( bytearray(required_size) ).cast( TYPES[self.__indexSize] )
                 self.__modified   = memoryview( bytearray(required_size) ).cast( TYPES[self.__indexSize] )
-                self.__preserved  = memoryview( bytearray(required_size) ).cast( TYPES[self.__indexSize] ) 
+                self.__preserved  = memoryview( bytearray(required_size) ).cast( TYPES[self.__indexSize] )
             self.__staticsize = force_amount_of_items_on_search
 
         elif not self.__staticsize and (not self.__searchView or len( self.__searchView ) != size):
-            # Cast each bytearray into a static integer type, based in the size required for 
+            # Cast each bytearray into a static integer type, based in the size required for
             # represent the maximum index-value of the canvas.
             self.__searchView = memoryview( bytearray(required_size) ).cast( TYPES[self.__indexSize] )
             self.__modified   = memoryview( bytearray(required_size) ).cast( TYPES[self.__indexSize] )
-            self.__preserved  = memoryview( bytearray(required_size) ).cast( TYPES[self.__indexSize] ) 
+            self.__preserved  = memoryview( bytearray(required_size) ).cast( TYPES[self.__indexSize] )
 
         # Always resets the indexes.
         self.__count  = 0
@@ -146,12 +146,9 @@ class Grow( object ):
         self.__lift_to_search_context__()
 
     def __lift_to_search_context__( self ):
-        """ 
+        """
             Add elements to modified context, and then updates into a fake step
             to lift the [$Grow-State] data into grow context.
-
-            NOTE: It's O(n**2). This doesn't modify any bit in the contained data.
-                  before call __context_update__.
             """
         # Search is not defined yet. We only have "modified elements" for now.
         states    = self.data
@@ -169,7 +166,7 @@ class Grow( object ):
         SEARCHRQ  = 1 << 2  # [$]
         OPAQUE    = 1       # [O]
         IGNORE    = OPAQUE
-        
+
         start     = 0
         while True:
             pos = states.find( OPAQUE , start )
@@ -278,7 +275,7 @@ class Grow( object ):
             search[newcount] = pos
             newcount        += 1
 
-        self.__count = newcount 
+        self.__count = newcount
 
     def getSearch(self):
         """ RETURNS
@@ -287,7 +284,7 @@ class Grow( object ):
         return (self.__searchView , self.__count)
 
     def __any_neighbor_policy__( self , environment ):
-        """ 
+        """
             ARGUMENTS
                 environment($Grow-State):   variable that represents the enviroment of the pixel.
             RETURNS
@@ -298,7 +295,7 @@ class Grow( object ):
         return environment & 0xF0
 
     def __is_corner_policy__( self , environment ):
-        """ 
+        """
             ARGUMENTS
                 environment($Grow-State):   variable that represents the enviroment of the pixel.
             RETURNS
@@ -329,7 +326,7 @@ class Grow( object ):
         return not self.__is_corner_policy__( environment )
 
     def __always_grow_policy__( self , _ ):
-        """ 
+        """
             ARGUMENTS
                 environment($Grow-State):   variable that represents the enviroment of the pixel.
             RETURNS
@@ -339,7 +336,7 @@ class Grow( object ):
         return 0x01
 
     def __strict_horizontal_policy__( self , environment ):
-        """ 
+        """
             ARGUMENTS
                 environment($Grow-State):   variable that represents the enviroment of the pixel.
             RETURNS
@@ -364,12 +361,12 @@ class Grow( object ):
             NORTH = 1 << 6  = 0x40
             SOUTH = 1 << 5  = 0x20
             EAST  = 1 << 4  = 0x10
-            """ 
+            """
         return ( 0x00 if environment & (0x80 | 0x10)
                       else environment & (0x40 | 0x20) )
 
     def __run_automata__( self , grow_policy ):
-        """ 
+        """
             ARGUMENTS
                 grow_policy(function :: $Grow-State -> int or bool):    Function that says when a pixel is considered opaque.
 
@@ -385,7 +382,7 @@ class Grow( object ):
         preserved   = self.__preserved
         modif_count = 0
         presv_count = 0
-        
+
         states      = self.data # States = Data + context
 
         # Relevant bounds:
@@ -454,7 +451,7 @@ class Grow( object ):
         return bytearray( 0xFF if p & 0x01 else 0x00 for p in self.data )
 
     def difference_with( self , external ):
-        """ 
+        """
             ARGUMENTS
                 external(bytearray): external to apply difference with it.
             RETURNS
@@ -467,7 +464,7 @@ class Grow( object ):
         return bytearray( 0xFF & ~external[i] if d[i] & 0x01 else 0x00 for i in range(self.size) )
 
     def xor_with( self , external ):
-        """ 
+        """
             ARGUMENTS
                 external(bytearray): external to apply xor with it.
             RETURNS
@@ -478,4 +475,3 @@ class Grow( object ):
         # Unlift the Grow context and apply XOR
         d = self.data
         return bytearray( external[i] ^ 0xFF if d[i] & 0x01 else external[i] ^ 0x00 for i in range(self.size) )
-

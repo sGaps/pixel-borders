@@ -121,6 +121,11 @@ class GUI( QObject ):
         menu      = self.menu
         # Prevent document modification or deletion while this plugin is running.
         self.changeMenuModal( True )
+        menu.raise_()
+
+        # Disable <left| and |right> buttons
+        menu.back.setEnabled( False )
+        menu.next.setEnabled( False )
 
         self.data = self.data if self.data else menu.collectDataFromPages()
         cdata     = self.data.copy()
@@ -139,7 +144,7 @@ class GUI( QObject ):
             self.arguments = KisData( cdata )
         except AttributeError as e:
             print( f"[Pixel Borders Extension] Invalid arguments: {e.args}" )
-            waitp.dbgMSG.setText( "Cannot run without a Krita's document.Try running \n" +
+            waitp.usrMSG.setText( "Cannot run without a Krita's document.Try running \n" +
                                   "Krita in a terminal for get more information." )
             waitp.cancel.released.connect( menu.reject )
             return
@@ -162,7 +167,7 @@ class GUI( QObject ):
         thread.started.connect( border.run )
 
         # Setup Connections:
-        border.debug.connect( waitp.dbgMSG.setText )
+        border.report.connect( waitp.usrMSG.setText )
 
         # Visual:
         border.progress.connect( waitp.progress.setValue )

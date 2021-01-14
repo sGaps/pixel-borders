@@ -9,9 +9,6 @@ class Service( QObject ):
     def __init__( self , parent = None ):
         super().__init__( parent )
 
-        #self.buffAccess    = Semaphore( 1 )    # This can access.
-        #self.buffExtract   = Semaphore( 0 )    # Cannot Extract yet.
-        #self.buffWithSpace = Semaphore( Service.BUFFERSIZE )
         # Server side:
         self.buffer = SimpleQueue()
 
@@ -38,7 +35,7 @@ class Service( QObject ):
 
     def getResult( self ):
         return self.result
-        
+
 
 class Client( QObject ):
     """ Must be connected to a Service """
@@ -67,7 +64,7 @@ if __name__ == "__main__":
 
     main = QApplication( [] )
 
-    server  = Service()    
+    server  = Service()
     client  = Client( server )
 
     tServer = QThread()
@@ -86,5 +83,3 @@ if __name__ == "__main__":
     print( f"Dummy:  {QObject().thread()}"  )
     client.serviceRequest( lambda a: print(a) , 'hello' )
     client.serviceRequest( lambda a , b , c: print(a+b+c) , 1 , 2 , 3 )
-
-

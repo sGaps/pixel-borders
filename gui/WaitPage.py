@@ -15,7 +15,7 @@ class WaitPage( SinkPage ):
         font.setBold  ( True )
         font.setItalic( True )
 
-        self.dbgMSG   = QLabel()
+        self.usrMSG   = QLabel()
         self.accept   = QPushButton( "Ok" )
         self.bottom   = QStackedWidget()
         self.accept.setFont( font )
@@ -25,9 +25,14 @@ class WaitPage( SinkPage ):
         self.raiseCancel()
 
         self.layout.addWidget( self.progress , 1 , Qt.AlignTop )
-        self.layout.addWidget( self.dbgMSG )
+        self.layout.addWidget( self.usrMSG )
         self.layout.addWidget( self.info   )
         self.layout.addWidget( self.bottom )
+
+        # Tab Order:
+        self.setTabOrder( self.accept , self.cancel )
+        self.setTabOrder( self.accept , self.info   )
+        self.setTabOrder( self.info   , self.cancel )
 
     def raiseCancel( self ):
         self.bottom.setCurrentWidget( self.cancel )

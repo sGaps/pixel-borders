@@ -1,7 +1,7 @@
 # Module:      core.AlphaScrapperSafe.py | [ Language Python ]
 # Created by: ( Gaps | sGaps | ArtGaps )
 # ------------------------------------------------------------
-""" 
+"""
     Defines an Scrapper object to extract the alpha
     data of a krita's node. It accepts a transparent
     value with threshold.
@@ -18,7 +18,7 @@
 
     DEPTHS      :: dict Holds relevant information about the depths supported by Krita.
 
-    [*] Created By 
+    [*] Created By
      |- Gaps : sGaps : ArtGaps
     """
 
@@ -30,7 +30,7 @@ DEPTHS = { "U8"  : "B" ,    # unsigned char
            "U16" : "H" ,    # unsigned short
            "F16" : "e" ,    # half float
            "F32" : "f" }    # float
-        
+
 class Scrapper( object ):
     """ Utility class for extract the alpha channel from a krita node. """
     TRANSPARENT = 0x00
@@ -40,7 +40,7 @@ class Scrapper( object ):
         pass
 
     def extractRelevantAlpha( self , node , extra_pixels = 0 , transparent = 0 , threshold = 0 ):
-        """ 
+        """
             ARGUMENTS
                 node (krita.Node):      The source node.
                 extra_pixels(int):      How many pixels it will be added to the bound size.
@@ -62,16 +62,16 @@ class Scrapper( object ):
                          bounds.y()      -   extra_pixels ,
                          bounds.width()  + 2*extra_pixels ,
                          bounds.height() + 2*extra_pixels )
-        return (Scrapper.__extract_alpha__( node            , 
+        return (Scrapper.__extract_alpha__( node            ,
                                             nbounds.x()     ,
                                             nbounds.y()     ,
                                             nbounds.width() ,
                                             nbounds.height(),
-                                            transparent     , 
+                                            transparent     ,
                                             threshold       ) , nbounds )
 
     def extractAlpha( self , node , bounds , transparent = 0 , threshold = 0 ):
-        """ 
+        """
             ARGUMENTS
                 node (krita.Node):          The source node.
                 bounds(PyQt5.QtCore.QRect): The bounds that will be used to extract the alpha values.
@@ -94,7 +94,7 @@ class Scrapper( object ):
 
     @classmethod
     def __extract_alpha__( cls , node , x , y , w , h , transparent = 0 , threshold = 0 ):
-        """ 
+        """
             ARGUMENTS
                 node (krita.Node):          The source node.
                 x(int):                     Top-left-x coordinate.
@@ -134,8 +134,8 @@ class Scrapper( object ):
             length = len(pxldata)
             tsize  = 2
             reader = memoryview( pxldata ).cast( 'B' )
-            # NOTE: this reads the values as Float16 using the struct.unpack interface, because this has
-            #       some troubles when tries to read them using the memoryview.cast( 'e' )
+            # NOTE: this reads the values as Float16 using the built-in struct.unpack interface,
+            #       because this has some troubles when tries to read them using the memoryview.cast( 'e' )
             return bytearray( wtransparent if low <= unpack( pattern , reader[i:i+tsize] )[0] <= high else
                               wopaque      for i in range(offset,length,step) )
         else:
@@ -155,4 +155,3 @@ class Scrapper( object ):
         """ Returns the number of channels inside the node. """
         chans = node.channels()
         return len(chans) if chans else 1
-
