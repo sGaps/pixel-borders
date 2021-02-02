@@ -19,7 +19,7 @@ DEFAULT_FILENAME  = "previous.json"
 def loadData( filename = DEFAULT_FILENAME , debug = False ):
     path = f"{CURRENT_DIRECTORY}/{filename}"
     try:
-        with open( f"{path}" , 'r' ) as handle:
+        with open( path  , 'r' ) as handle:
             data = json.load( handle )
         if debug: print( f"[Pixel Border Extension]: Data loaded successfully." , file = sys.stderr )
     except Exception as err:
@@ -30,7 +30,7 @@ def loadData( filename = DEFAULT_FILENAME , debug = False ):
 def writeData( data = {} , filename = DEFAULT_FILENAME , debug = False ):
     path = f"{CURRENT_DIRECTORY}/{filename}"
     try:
-        with open( filename , 'w' ) as handle:
+        with open( path , 'w' ) as handle:
             json.dump( data , handle , indent = 4 )
         if debug: print( f"[Pixel Border Extension]: data saved into {path}" , file = sys.stderr )
         return True

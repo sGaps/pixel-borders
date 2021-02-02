@@ -1,7 +1,9 @@
-from PyQt5.QtCore     import Qt , pyqtSignal , pyqtSlot
+from PyQt5.QtCore     import Qt , pyqtSignal , pyqtSlot , QSize
+from PyQt5.QtGui      import QIcon
 from PyQt5.QtWidgets  import ( QDialog , QToolButton , QStackedWidget ,
                                QMessageBox , QGridLayout , QSizePolicy )
 
+from os               import path
 from sys              import stderr
 from threading        import Thread
 from .About           import About
@@ -12,22 +14,43 @@ from .krita_connection.Lookup import KRITA_AVAILABLE , dprint
 if KRITA_AVAILABLE:
     from krita import Krita
 
-# TODO: Add custom icons for arrows!
-def dirButton( text = "" , arrow_type = Qt.LeftArrow ):
-    """ Returns a QToolButton with an arrow icon inside """
-    bttn = QToolButton()
-    szPolicy = QSizePolicy( QSizePolicy.Preferred , QSizePolicy.Preferred )
-    szPolicy.setHorizontalStretch( 0 )
-    szPolicy.setVerticalStretch  ( 0 )
-    szPolicy.setHeightForWidth( bttn.sizePolicy().hasHeightForWidth() )
+class DirButton( QToolButton ):
+    CDIR = path.dirname( path.abspath(__file__) )
+    NEXT = f"{CDIR}/images/arrow-next.svg"
+    BACK = f"{CDIR}/images/arrow-back.svg"
+    def __init__( self , text = "" , arrow_type = Qt.LeftArrow , parent = None  ):
+        super().__init__( parent )
+        # Size related:
+        szPolicy = QSizePolicy( QSizePolicy.Preferred , QSizePolicy.Preferred )
+        szPolicy.setHorizontalStretch( 0 )
+        szPolicy.setVerticalStretch  ( 0 )
 
-    bttn.setSizePolicy( szPolicy )
-    bttn.setCheckable( False )
-    bttn.setAutoRaise( True  )
-    bttn.setArrowType( arrow_type )
-    bttn.setText( text )
-    bttn.setToolButtonStyle( Qt.ToolButtonIconOnly )
-    return bttn
+        # Icon related:
+        self.setIcon( QIcon(DirButton.BACK if arrow_type == Qt.LeftArrow else DirButton.NEXT) )
+        self.icon().pixmap( self.size() ).fill( Qt.transparent )
+
+        self.setSizePolicy( szPolicy )
+        self.setCheckable( False )
+        self.setAutoRaise( True  )
+        self.setText( text )
+        self.setToolButtonStyle( Qt.ToolButtonIconOnly )
+
+        # Margins!
+        isize  = self.iconSize()
+        wsize  = self.size()
+        width  = abs( isize.width() - wsize.width()   )
+        height = abs( isize.height() - wsize.height() )
+        self.wmargins = wsize.width() - width
+        self.hmargins = wsize.height() - height
+
+    def updateIconSize( self ):
+        size = self.size()
+        self.setIconSize(QSize( abs(size.width()  - self.wmargins) / 2 ,
+                                abs(size.height() - self.hmargins) / 2 ))
+
+    def resizeEvent( self , event ):
+        self.updateIconSize()
+        super().resizeEvent( event )
 
 class Menu( QDialog ):
     isOnSinkPage = pyqtSignal()
@@ -54,10 +77,10 @@ class Menu( QDialog ):
         self.layout.setRowMinimumHeight  ( 0 , 200 )
 
         # Left (Next Button) ----->
-        self.next   = dirButton( ">" , Qt.RightArrow )
+        self.next   = DirButton( ">" , Qt.RightArrow )
 
         # Right (Back Button) <----
-        self.back   = dirButton( "<" , Qt.LeftArrow  )
+        self.back   = DirButton( "<" , Qt.LeftArrow  )
 
         # Center (Page Body) --||--
         self.pageBag = QStackedWidget()

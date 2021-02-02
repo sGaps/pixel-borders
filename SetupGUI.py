@@ -8,18 +8,18 @@ try:
 except:
     KRITA_AVAILABLE = False
 
-from .gui.SmartMenu     import Menu      
-from .gui.MenuPage      import MenuPage  
-from .gui.NamePage      import NamePage  
-from .gui.TypePage      import TypePage  
-from .gui.ColorPage     import ColorPage 
-from .gui.QuickPage     import QuickPage 
+from .gui.SmartMenu     import Menu
+from .gui.MenuPage      import MenuPage
+from .gui.NamePage      import NamePage
+from .gui.TypePage      import TypePage
+from .gui.ColorPage     import ColorPage
+from .gui.QuickPage     import QuickPage
 from .gui.CustomPage    import CustomPage
-from .gui.WaitPage      import WaitPage  
-from .gui.TdscPage      import TdscPage  
-from .gui.AnimPage      import AnimPage  
+from .gui.WaitPage      import WaitPage
+from .gui.TdscPage      import TdscPage
+from .gui.AnimPage      import AnimPage
 from .core.Borderizer   import Borderizer
-from .core.Arguments    import KisData   
+from .core.Arguments    import KisData
 from .core.Service      import Service , Client
 from .DataLoader        import loadData , writeData
 
