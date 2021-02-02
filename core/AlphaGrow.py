@@ -5,17 +5,18 @@
     [:] Defined in this module
     --------------------------
         Grow    :: class
-            Automata used for make grow the alpha data at similar way as a
+            Automata used to make grow the alpha data at similar way as a
             Selection's grow works.
 
         TYPES   :: dict
-            Holds relevant information about the size of the indexes.
-
+            Holds relevant information about the size of the indexes, like
+            the byte sizes and cast strings that can be used on memoryview
+            objects.
 
         $Grow-State :: Abstraction
             bit field (int) made for model the grow data from a Grow object.
 
-    [*] Created By
+    [*] Author
      |- Gaps : sGaps : ArtGaps
 """
 TYPES = { 1 : "B" ,
@@ -25,33 +26,36 @@ TYPES = { 1 : "B" ,
 
 class Grow( object ):
     """
-        It's an automata.
+        An Grow object is an automata. It takes the raw alpha data from a Node
+        (processed by an Scrapper) and apply grows operations like Krita's
+        Selection Layers.
 
-        Utility object that takes a raw node's alpha data (from Scrapper object)
-        where each element has the value of 0x00 or 0xFF, and transform each
-        into a bit field of the type [$Grow-State] defined below.
+        Each Grow's element is used as a 8-bit int, which is referred as
+        [$Grow-State]. These are managed with bitswise operations to keep
+        them in a small size. An opaque pixel is represented with an
+        element with an Opaque bit on.
 
-        This bit field is used to model the way of how an opaque pixel
-        can grow.
-
-        Bits meaning of a [$Grow-State] bit field:
-            bit 7:  Can grow to West    [W]                     }
-            bit 6:  Can grow to North   [N]                     }   "Environment Values"
-            bit 5:  Can grow to South   [S]                     }     or Direction data.
-            bit 4:  Can grow to East    [E]                     }
+        The bits of an element [$Grow-State] are:
+            bit 7:  Can grow to West    [W]         | "Environment
+            bit 6:  Can grow to North   [N]         | Values" or
+            bit 5:  Can grow to South   [S]         | "Neighborhood
+            bit 4:  Can grow to East    [E]         | Data".
             bit 3:  --- ---- -- -----   [ ]
-            bit 2:  Search Request      [$]
-            bit 1:  --- ---- -- -----   [ ]
-            bit 0:  Is Opaque           [O]
-        Or in horizontal representation
-            ==>     76543210    bits
-                    WNSE $ O    value
-        Use unlift_data to get a sequence that can be used in the external world.
+            bit 2:  Search Request      [$]             | Basic
+            bit 1:  --- ---- -- -----   [ ]             | Search
+            bit 0:  Is Opaque           [O]             | Criteria.
 
-        This objects defines three relevant structures:
-            __modified      :: [ VARINT ] => holds the modified elements after a __run_automata__ step.
-            __preserved     :: [ VARINT ] => holds the modified elements after a __run_automata__ step.
-            __searchView    :: [ VARINT ] => holds the elements which will be in the next search.
+        An horizontal representation may be:
+            bit   >     76543210
+            field >     WNSE $ O
+
+        Use unlift_data to get a clean bytearray that can be used outside
+        these objects.
+
+        Relevant opaque structures:
+            __modified      :: [ SHORT INT ] => holds the modified pixels after a __run_automata__ step.
+            __preserved     :: [ SHORT INT ] => holds the preserved pixels after a __run_automata__ step.
+            __searchView    :: [ SHORT INT ] => holds the indexes which will be used a __run_automata__ step.
 
         * Preserved elements are these considered as transparent after a __run_automata__ step.
         * Modified elements are these considered as opaques after a __run_automata__ step.
@@ -61,7 +65,7 @@ class Grow( object ):
             ARGUMENTS
                 data(bytearray):                alpha data.
                 width(int):                     width of the canvas.
-                size(int):                      size of the alpha data.
+                size(int):                      size or raw length of the alpha data.
                 amount_of_items_on_search(int): # of elements that will be cached in the search.
                                                 If it's none, then The amount will take a value automatically.
 
@@ -86,12 +90,16 @@ class Grow( object ):
 
     @classmethod
     def singleton( cls , amount_of_items_on_search = None ):
-        """ Returns a minimal Grow object. """
+        """ RETURNS
+                Trivial Grow object.
+        """
         return cls( bytearray() , 0 , 0 , amount_of_items_on_search )
 
     @classmethod
     def __get_required_bytes_for__( cls , size ):
-        """ Retunrs How many bytes are required to represent the size :: Int """
+        """ RETURNS
+                Number of bytes used by a search index.
+        """
         limit = 1 << 8
         for k in TYPES:
             if size < limit: return k
@@ -105,7 +113,7 @@ class Grow( object ):
                 width(int):                             width of the canvas.
                 size(int):                              size of the alpha data.
                 force_amount_of_items_on_search(int):   # of elements that will be cached in the search.
-                                                        If it's none, then The amount will take a value automatically.
+                                                        (Useful when the previous data is as big as the current one).
             Smart constructor/Setter of the object. """
 
         # Builds new data:
@@ -147,9 +155,9 @@ class Grow( object ):
 
     def __lift_to_search_context__( self ):
         """
-            Add elements to modified context, and then updates into a fake step
-            to lift the [$Grow-State] data into grow context.
-            """
+            Convert an stored raw data into a [$Grow-State] sequence. The Grow
+            object can be used after call this method.
+        """
         # Search is not defined yet. We only have "modified elements" for now.
         states    = self.data
         modified  = self.__modified
@@ -188,10 +196,8 @@ class Grow( object ):
 
     def __context_update__( self ):
         """
-            Takes the elements of __modified , __preserved and __searchView, and lift each
-            of them into the [$Grow-State] context after a __run_automata__ step.
-
-            Updates the data correctly after a grow request.
+            Updates the [$Grow-State] Neighborhood data and its Basic Search
+            Criteria.
         """
         # Takes a search, and see which elements are opaques. If they're opaques, then
         # It will annotate those that can be searched. (While those wich we want to add aren't in the search yet)
@@ -261,7 +267,7 @@ class Grow( object ):
             # Remove the previous Direction data:
             state &= NOTDIR
 
-            # and update neighbor/environment info:
+            # and update neighborhood/environment info:
             if pos > first_row and states[pos - rows] & OPAQUE:
                 state |= NORTH  # Has a North Opaque
             if pos < last_row and states[pos + rows] & OPAQUE:
@@ -278,37 +284,40 @@ class Grow( object ):
         self.__count = newcount
 
     def getSearch(self):
-        """ RETURNS
+        """
+            RETURNS
                 the search array and the elements on search.
-            """
+        """
         return (self.__searchView , self.__count)
 
     def __any_neighbor_policy__( self , environment ):
         """
             ARGUMENTS
-                environment($Grow-State):   variable that represents the enviroment of the pixel.
+                environment($Grow-State):   represents the
+                                            enviroment/neighborhood of the pixel.
             RETURNS
                 int used as bool.
             returns true if the environment has at least one neighbor.
             [W] | [N] | [S] | [E] = 1
-            """
+        """
         return environment & 0xF0
 
     def __is_corner_policy__( self , environment ):
         """
             ARGUMENTS
-                environment($Grow-State):   variable that represents the enviroment of the pixel.
+                environment($Grow-State):   represents the
+                                            enviroment/neighborhood of the pixel.
             RETURNS
                 int used as bool.
-
-            Grows only if the enviroment can be considered as       |_ , _| , _|. , .|_ , ...
-            a corner. It is Iff has only one vertical and one
+                                                                     TRUE IF:
+            Grows only if the enviroment can be considered as       |'' , ''| ,
+            a corner. It is Iff has only one vertical and one       |__ , __| , ...
             horizontal neighbor.
             WEST  = 1 << 7  = 0x80
             NORTH = 1 << 6  = 0x40
             SOUTH = 1 << 5  = 0x20
             EAST  = 1 << 4  = 0x10
-            """
+        """
         h  = 1 if environment & 0x80 else 0
         h += 1 if environment & 0x10 else 0
         if h != 1: return 0x00
@@ -319,16 +328,19 @@ class Grow( object ):
     def __not_corner_policy__( self , environment ):
         """
             ARGUMENTS
-                environment($Grow-State):   variable that represents the enviroment of the pixel.
+                environment($Grow-State):   represents the
+                                            enviroment/neighborhood of the pixel.
             RETURNS
                 int used as bool.
-            negate version of __is_corner_policy__ """
+            negate version of __is_corner_policy__
+        """
         return not self.__is_corner_policy__( environment )
 
     def __always_grow_policy__( self , _ ):
         """
             ARGUMENTS
-                environment($Grow-State):   variable that represents the enviroment of the pixel.
+                environment($Grow-State):   represents the
+                                            enviroment/neighborhood of the pixel.
             RETURNS
                 int used as bool.
             No matter what happens, always grow.
@@ -338,7 +350,8 @@ class Grow( object ):
     def __strict_horizontal_policy__( self , environment ):
         """
             ARGUMENTS
-                environment($Grow-State):   variable that represents the enviroment of the pixel.
+                environment($Grow-State):   represents the
+                                            enviroment/neighborhood of the pixel.
             RETURNS
                 int used as bool.
             Grows only if the block has any horizontal neighbor
@@ -368,11 +381,13 @@ class Grow( object ):
     def __run_automata__( self , grow_policy ):
         """
             ARGUMENTS
-                grow_policy(function :: $Grow-State -> int or bool):    Function that says when a pixel is considered opaque.
+                grow_policy( function($Grow-State)
+                            -> int): Takes an $Grow-State element and return a
+                                     value else than 0 when the pixel must be
+                                     opaque.
 
-            Apply a grow policy inside the object. It must be an function that takes
-            an [$Grow-State] and returns a Bool object (or something that python could
-            cast into bool). """
+            This modifies the internal structure of a Grow object. Updates the
+            alpha data based in the grow_policy function. """
         # Indices & data arrays:
         newcount    = 0
         count       = self.__count
@@ -439,15 +454,17 @@ class Grow( object ):
 
     def grow_with_custom_policy( self , grow_policy ):
         """ ARGUMENTS
-                grow_policy( $Grow-State -> int or bool ):    Function that takes a $Grow-State and returns a bool object.
+                grow_policy( $Grow-State -> int or bool ): Uses a function to
+                                                           decide when a pixel
+                                                           must be opaque.
             A pixel is opaque if grow_policy say it. """
         self.__run_automata__( grow_policy )
 
     def unlift_data( self ):
         """ RETURNS
                 bytearray
-            Returns a new data without the [$Grow-State] bit field context. The returned data can be used
-            in the RealWorld. """
+            Returns a new bytearray without the [$Grow-State] bit field context.
+            The returned data can be used outside this object. """
         return bytearray( 0xFF if p & 0x01 else 0x00 for p in self.data )
 
     def difference_with( self , external ):
@@ -456,8 +473,10 @@ class Grow( object ):
                 external(bytearray): external to apply difference with it.
             RETURNS
                 bytearray
-            Returns a new data without the [$Grow-State] bit field context, and apply to each pixel the difference
-            with external bytearray.
+            SEE ALSO
+                unlift_data
+            Similar to unlift_data, but applies difference operation while
+            between the internal and external alpha data.
         """
         # Unlift the Grow context and apply difference:
         d = self.data
@@ -469,8 +488,10 @@ class Grow( object ):
                 external(bytearray): external to apply xor with it.
             RETURNS
                 bytearray
-            Returns a new data without the [$Grow-State] bit field context, then apply XOR operation with a give 'external'
-            data.
+            SEE ALSO
+                unlift_data
+            Similar to unlift_data, but applies xor before return the new
+            bytearray object.
             """
         # Unlift the Grow context and apply XOR
         d = self.data

@@ -1,10 +1,62 @@
+# Module:      core.Arguments.py | [ Language Python ]
+# Created by: ( Gaps | sGaps | ArtGaps )
+# ----------------------------------------------------
+"""
+    Defines several objects to parse Real World (krita) data.
+
+    [:] Defined in this module
+    --------------------------
+    KisColor    :: class
+        Parse Krita's color data.
+
+    KisData    :: class
+        Parse a raw dict object. An valid KisData object can be passed
+        safely into a Borderizer Object to get a new border layer.
+
+    METHODS     :: dict
+        Holds all grow methods currently available and their names.
+
+    COLOR_TYPES :: set
+        Holds the supported color types by a Borderizer object.
+
+    KEYS        :: dict
+        Holds the required data to run a Borderizer object.
+            "q-recipedsc":  Quick Method descriptor. List with the form [(str,int)]
+                            which will be converted to a grow recipe when 'is-quick'
+                            is enabled.
+            "c-recipedsc":  Custom Method descriptor. Similar to 'q-recipedsc'.
+                            used when 'is-quick' isn't enabled.
+            "is-quick":     Boolean value. Enabled or disabled when user check or
+                            uncheck the Quick Border option.
+            "colordsc":     Color descriptor. Iterable with the form [str, [int]]
+                            The first element must be in COLOR_TYPES.
+                                example: ["FG" , _]     node's Foreground used.
+                                         ["BG" , _]     node's Background used.
+                                         ["CS" , comp]  Custom Managed Color Used.
+                                where comp are color components (normalized)
+            "trdesc":       Transparency descriptor. Iterable like: [boolean,float]
+                                [ use_transparency_as_opque , threshold ]
+            "node":         Krita's source node.
+            "kis" :         Krita's instance.
+            "doc":          Krita's document.
+            "animation":    Inclusive Animation range. Iterable with the form [start,end]
+                               where start, end are Ints
+            "name":         New border's name.
+
+    DEPTHS          :: dict
+        Holds relevant information about the color Depth, like cast string and
+        max values.
+
+    [*] Author
+     |- Gaps : sGaps : ArtGaps
+"""
+# Debug module
+from sys            import stderr
 try:
     from krita      import Selection , Krita , ManagedColor
 except:
-    print( "[Arguments] Krita Not available" )
+    print( "[Arguments] Krita Not available" , file = stderr )
 
-# Debug module
-from sys            import stderr
 # Critical built-in modules
 from struct         import pack , unpack
 from collections    import deque
@@ -42,14 +94,14 @@ DEPTHS = { "U8"  : ("B" , 2**8  - 1 ) ,
            "F16" : ("e" , 1.0       ) ,
            "F32" : ("f" , 1.0       ) }
 
-#class KisDepth( object ):
 class KisColor( object ):
     """
         Manages the krita depth outside Qt's realm
     """
-    #def __init__( self , dname ):
     def __init__( self , managed_color ):
-        """ dname(str): depth name """
+        """ ARGUMENTS:
+                dname(str): depth name
+        """
         mcolor = managed_color
         dname  = mcolor.colorDepth()
         dstats = DEPTHS.get( dname , None )
@@ -76,16 +128,23 @@ class KisColor( object ):
         return self.valid
 
     def componentSize( self ):
+        """ RETURNS
+                int. the number of bytes used to each color component. """
         return self.cast_sz
 
     def getMin( self ):
+        """ RETURNS
+             int. The minimum value of the color component. """
         return 0
     def getMax( self ):
         return self.max_val
 
     def componentCast( self , opaqueValue , managed_components ):
-        """
-            managed_components([float]): where each element is normalized between 0 and 1
+        """ ARGUMENTS
+                managed_components([float]): where each element is
+                                             normalized between 0 and 1
+            RETURNS
+                A bytes-like object. A color raw component.
         """
         color      = bytearray()
         components = managed_components
@@ -98,9 +157,13 @@ class KisColor( object ):
         return color + opaqueBytes
 
     def castMax( self ):
+        """ RETURNS
+                A bytes-like object. The maximum raw color component. """
         return pack(self.cast_str , self.cast_fn(self.max_val))
 
     def castMin( self ):
+        """ RETURNS
+                A bytes-like object. The minimum raw color component. """
         return pack(self.cast_str , 0)
 
 class KisData( object ):
@@ -116,14 +179,25 @@ class KisData( object ):
 
     @staticmethod
     def pairToMethod( rawMethodDesc ):
+        """ ARGUMENTS
+                rawMethodDesc((str,int)): Basic recipe descriptor.
+            RETURNS
+                (Grow.method,int). An smart recipe descriptor. """
         method = METHODS.get( rawMethodDesc[0] , None )
         if method: return ( method , rawMethodDesc[1] )
         raise AttributeError( f"{method} is not a valid method name." )
 
     def addResult( self , result ):
+        """ ARGUMENTS
+                result(object): element to save.
+            Holds a reference of an external result that can be used to avoid
+            Qt's garbage collector wild decisions. """
         self.result = result
 
     def show( self , file = stderr ):
+        """ ARGUMENTS
+                file: Where the current information will be displayed.
+            Debug method that prints information about the current KisData. """
         report = lambda *msg: print( "[Kis Data]: " , *msg , file = file )
         if not self.valid:
             report( "Invalid Object" )
@@ -161,7 +235,11 @@ class KisData( object ):
         report( f"Client:           {self.client}" )
 
     def updateAttributes( self , data ):
-        """ data(dict):"""
+        """ ARGUMENTS
+                data(dict): Raw Krita's data.
+            EXCEPTIONS
+                AttributeError. If data has wrong values.
+            Parse krita's data to make it safe to use."""
         dataset = set( data.keys() )
         if KEYS.difference( dataset ):
             raise AttributeError( f"provided keys: {dataset} don't match with the required keys {KEYS}" )

@@ -18,7 +18,7 @@
         Holds relevant information about the module, the path
         and the name of the plugin inside Krita.
 
-    [*] Created By
+    [*] Author
      |- Gaps : sGaps : ArtGaps
 """
 
@@ -53,5 +53,3 @@ class PixelExtension( Extension ):
         """ perform the required actions to run the script in krita. """
         self.ext   = GUI( parent = None , title = METADATA["TITLE"] )
         self.ext.run()
-
-

@@ -6,7 +6,7 @@
     loadData    :: function
     writeData   :: function
 
-    [*] Created By 
+    [*] Author
      |- Gaps : sGaps : ArtGaps
 """
 
@@ -37,4 +37,3 @@ def writeData( data = {} , filename = DEFAULT_FILENAME , debug = False ):
     except Exception as err:
         if debug: print( f"[Pixel Border Extension]: Unable to save the current data into {path} ; err = {err.args}" , file = sys.stderr )
         return False
-

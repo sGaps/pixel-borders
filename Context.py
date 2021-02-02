@@ -21,7 +21,7 @@
     CONTEXT     :: str
         Says when the context is INSIDE_KRITA or OUTSIDE_KRITA.
 
-    [*] Created By 
+    [*] Author
      |- Gaps : sGaps : ArtGaps
 """
 from sys   import stderr

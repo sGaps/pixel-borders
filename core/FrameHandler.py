@@ -8,14 +8,16 @@
     [:] Defined in this module
     --------------------------
     FrameHandler        :: class
-        Manages the IO - operations. It's used when a node has keyframes in a Krita.Animation.
+        Manages I/O operations. It's used when a node has keyframes
+        in a Krita.Animation.
 
     DEFAULT_OUTPUT_DIR :: str
-        default output dir for export operation made by a FrameHandler instance.
+        name of the default directory which is used by a FrameHandler object
+        to export frames from an Krita's animation.
 
-    [*] Created By
+    [*] Author
      |- Gaps : sGaps : ArtGaps
-    """
+"""
 from   collections import deque
 from   sys         import stderr
 try:
@@ -34,13 +36,14 @@ class FrameHandler( object ):
     """
     def __init__( self , doc , krita_instance , subfolder = DEFAULT_OUTPUT_DIR , xRes = None , yRes = None , info = None , debug = False ):
         """
-            doc(krita.Document):            Current Document
-            krita_instance(krita.Krita):    Current Krita instance
-            subfolder(str):                 Subfolder used to import and export krita-frames
-            xRes(float):                    x Resolution
-            yRes(float):                    y Resolution
-            info(krita.InfoObject):         Information used to export frames. (export configuration)
-            debug(bool):                    enables/disables print operations in the stderr buffer.
+            ARGUMENTS
+                doc(krita.Document):            Current Document.
+                krita_instance(krita.Krita):    Current Krita instance.
+                subfolder(str):                 Subfolder used to import and export krita-frames.
+                xRes(float):                    x Resolution.
+                yRes(float):                    y Resolution.
+                info(krita.InfoObject):         Information used to export frames. (export configuration).
+                debug(bool):                    enables/disables print operations in the stderr buffer.
         """
         self.kis    = krita_instance
         self.doc    = doc
@@ -67,8 +70,7 @@ class FrameHandler( object ):
     def __default_info__():
         """
             RETURNS
-                krita.InfoObject
-            Returns a singleton InfoObject. """
+                krita.InfoObject. A trivial InfoObject. """
         info = krita.InfoObject()
         info.setProperties({
             "alpha"                 : True  ,   # Always must be true
@@ -101,8 +103,8 @@ class FrameHandler( object ):
             ARGUMENTS
                 node(krita.Node):   Current node
             RETURNS
-                bool
-            Returns true if there's an animated node in the tree node-hierarchy described by 'node'.
+                bool. True if there's an animated node in the tree
+                node-hierarchy defined by 'node'.
             """
         queue = deque([node])
         while queue:

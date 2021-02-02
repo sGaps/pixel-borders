@@ -6,19 +6,18 @@
     data of a krita's node. It accepts a transparent
     value with threshold.
 
-    This transparent & threshold value types are the
-    same of a node.colorDepth() instance
-
-    It means, they can be floats or ints.
+    The transparent and threshold are the same ARGUMENTS
+    used in the node.colorDepth() function.
 
     [:] Defined in this module
     --------------------------
     Scrapper    :: class
         class used for extract the alpha channel from a krita node.
 
-    DEPTHS      :: dict Holds relevant information about the depths supported by Krita.
+    DEPTHS      :: dict
+        Holds relevant information about color depths supported by Krita.
 
-    [*] Created By
+    [*] Author
      |- Gaps : sGaps : ArtGaps
     """
 
@@ -135,7 +134,7 @@ class Scrapper( object ):
             tsize  = 2
             reader = memoryview( pxldata ).cast( 'B' )
             # NOTE: this reads the values as Float16 using the built-in struct.unpack interface,
-            #       because this has some troubles when tries to read them using the memoryview.cast( 'e' )
+            #       because this had some troubles when tries to read them using the memoryview.cast( 'e' )
             return bytearray( wtransparent if low <= unpack( pattern , reader[i:i+tsize] )[0] <= high else
                               wopaque      for i in range(offset,length,step) )
         else:

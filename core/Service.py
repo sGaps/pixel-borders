@@ -1,3 +1,20 @@
+# Module:      core.Service.py | [ Language Python ]
+# Created by: ( Gaps | sGaps | ArtGaps )
+# --------------------------------------------------
+"""
+    Offers Thread Syncronization strategies.
+
+    [:] Defined in this module
+    --------------------------
+        Service :: class
+            Manages services to clients. and give them results.
+        Client  :: class
+            Request services to the Service objects. retrieve results from them.
+
+        Client and Service must be in different threads to work.
+    [*] Author
+     |- Gaps : sGaps : ArtGaps
+"""
 from PyQt5.QtCore       import QObject , pyqtSignal , pyqtSlot , QMutex , QSemaphore
 from queue              import SimpleQueue
 
@@ -19,12 +36,18 @@ class Service( QObject ):
         self.serviceRequest.connect( self.answerRequest ) # (service) <<= (client)
 
     def setService( self , service = lambda: None , *arg_list ):
+        """ ARGUMENTS
+                service(function(*args)): function applied in Service.
+                *arg_list:                arguments passed to the service
+                                          function.
+            Updates the default service and argument list. """
         self.service  = service
         self.arg_list = arg_list
 
     # Producer:
     @pyqtSlot()
     def answerRequest( self ):
+        """ Offer a service to a client and give it the result. """
         # Produce/Apply ----------------------------
         product = self.service( *self.arg_list )
         # ------------------------------------------
@@ -32,9 +55,6 @@ class Service( QObject ):
         # Add to 'Buffer' --------------------------
         self.buffer.put( product , block = True )
         # ------------------------------------------
-
-    def getResult( self ):
-        return self.result
 
 
 class Client( QObject ):
@@ -47,14 +67,18 @@ class Client( QObject ):
         self.result        = None
 
     def sendRequest( self ):
+        """ Send a new service request to a Service Object. """
         self.service.serviceRequest.emit() # (client) =>> (service)
         # Wait For Done -------------------------------------------
         return self.service.buffer.get( block = True )
 
-    def getResult( self ):
-        return self.result
-
     def serviceRequest( self , func , *arg_list ):
+        """ ARGUMENTS
+                service(function(*args)): function applied in Service.
+                *arg_list:                arguments passed to the service
+                                          function.
+            Send a new service function to the Service object and waits until
+            it finishes. Retrieve and return the new result from it. """
         self.service.setService( func , *arg_list ) # Current Thread (Sync)
         return self.sendRequest()                          # (Force Sync)
 

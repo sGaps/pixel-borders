@@ -7,40 +7,16 @@
     [:] Defined in this module
     --------------------------
     Borderizer      :: class
-        Object used to add borders to a source krita layer/node. This layer can be a
-        paint layer or group layer.
+        Object used to add borders to a Krita's layer|node, which can be
+        Group paintlayers or Group Layers too.
 
-        Also this layer can be animated, so an animated border will be created.
-        NOTE: The method requires read/write permissions to perform an animation operation.
+        This works on animated and static layers, and an animated border
+        will be created after use it. But this requires read/write permissions
+        in the current Krita's Document folder to enable the animation features.
 
-    INDEX_METHODS   :: [str]
-        List of available grow methods.
+        This requires a valid KisData object to work.
 
-    METHODS         :: dict
-        Maps each available method name => Grow.grow_method( ... )
-
-    KEYS            :: set
-        Holds each required keys to run a Borderizer object.
-            "methoddsc" -> Method descriptor It's a method recipe. maps [ [str,int] ] type.
-                            example: [ ["any-neighbor",1] , ["corners",2] , ["strict-horizontal",4] ]
-            "colordsc"  -> Color descriptor. Says what color must be used.
-                            ["FG" , _]:             Foreground
-                            ["BG" , _]:             Background
-                            ["CS" , components]:    Custom
-                                    where components :: [int]
-            "trdesc"    -> Transparency descriptor. This means wich values will be considered as transparent
-                            [ transparency_value , threshold ]
-            "node"      -> Krita source node.
-            "kis"       -> Krita instance.
-            "doc"       -> Krita document.
-            "animation" -> Animation range. It holds a list with which means a inclusive range. [start,finish]
-                           When this is equal to None, then there's no animation.
-                            example: [ 1 , 10 ] => start at frame 1, and animate until frame 10
-            "name"      -> The name that will be used for the new border layer.
-    DEPTHS          :: dict
-        Holds relevant information about the color Depth, like cast type and max limits.
-
-    [*] Created By
+    [*] Author
      |- Gaps : sGaps : ArtGaps
 """
 try:
@@ -331,8 +307,8 @@ class Borderizer( QObject ):
                     return
 
                 # Update the current time and wait in synchronous mode:
-                # NOTE: the user is able to cancel the process whith this scheme,
-                #       but this has a little overhead (after some optimizations)
+                # NOTE: the user is able to cancel the process with this scheme,
+                #       but this has a little overhead (even after some optimizations)
                 doc.setCurrentTime( t )
                 client.serviceRequest( doc.refreshProjection )
                 doc.waitForDone()
