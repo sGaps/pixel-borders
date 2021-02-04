@@ -65,10 +65,10 @@ class GUI( QObject ):
         typep.type_changed.connect( animp.setOverride )
 
         # Connections between Pages and Menu:
-        namep.cancel.released.connect  ( menu.reject          )
-        namep.info.released.connect    ( menu.displayInfo     )
-        waitp.info.released.connect    ( menu.displayInfo     )
-        namep.previous.released.connect( self.usePreviousData )
+        namep.cancel.clicked.connect  ( menu.reject          )
+        namep.info.clicked.connect    ( menu.displayInfo     )
+        waitp.info.clicked.connect    ( menu.displayInfo     )
+        namep.previous.clicked.connect( self.usePreviousData )
 
         menu.addPage( namep   , "name"   )
         menu.addPage( typep   , "type"   )
@@ -85,7 +85,7 @@ class GUI( QObject ):
         menu.isOnSinkPage.connect( self.sendBorderRequest )
         menu.isOnSinkPage.connect( waitp.raiseCancel     )
         # Setup thread connections here:
-        waitp.accept.released.connect( self.menu.accept )
+        waitp.accept.clicked.connect( self.menu.accept )
 
     @pyqtSlot()
     def saveConfig( self ):
@@ -146,7 +146,7 @@ class GUI( QObject ):
             print( f"[Pixel Borders Extension] Invalid arguments: {e.args}" , file = stderr )
             waitp.usrMSG.setText( "Cannot run without a Krita's document.Try running \n" +
                                   "Krita in a terminal for get more information." )
-            waitp.cancel.released.connect( menu.reject )
+            waitp.cancel.clicked.connect( menu.reject )
             waitp.subTitle.setText( "Unable to connect with Krita" )
             return
 
@@ -175,7 +175,7 @@ class GUI( QObject ):
         border.workDone.connect( waitp.raiseAccept       )
 
         # Cancel:
-        waitp.cancel.released.connect ( self.sendStopRequest ) # Execute the shared code in the main thread
+        waitp.cancel.clicked.connect  ( self.sendStopRequest ) # Execute the shared code in the main thread
         menu.rejected.connect         ( self.sendStopRequest ) # as above /
         border.rollbackRequest.connect( border.rollback      )
         border.rollbackDone.connect   ( self.onRollback      )

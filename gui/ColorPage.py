@@ -15,19 +15,9 @@ class ColorPage( AlternativePage ):
                           subTitle = "Step 3: Take color from" )
         self.color  = "FG"
 
+        # Middle (Both Buttons)
         self.fg     = buttonWithIcon( "Foreground" , True , ColorPage.FG , icon_size = (92,92) )
         self.bg     = buttonWithIcon( "Background" , True , ColorPage.BG , icon_size = (92,92) )
-        #font = QFont()
-        #font.setBold  ( True )
-        #font.setItalic( True )
-
-        # Middle (Both Buttons)
-        #self.fg = QPushButton( "Foreground" )
-        #self.fg.setFont      ( font )
-        #self.fg.setCheckable ( True )
-        #self.bg = QPushButton( "Background" )
-        #self.bg.setFont      ( font )
-        #self.bg.setCheckable ( True )
 
         # Layout Setup:
         self.bottom = QWidget()

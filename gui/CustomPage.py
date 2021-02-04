@@ -26,9 +26,9 @@ class CustomPage( MenuPage ):
         self.layout.addLayout( self.bottom   )
 
         # Connections:
-        self.add.released.connect( self.addMethodIntoRecipe )
-        self.clr.released.connect( self.clearRecipe         )
-        self.rem.released.connect( self.removeFromRecipe    )
+        self.add.clicked.connect( self.addMethodIntoRecipe )
+        self.clr.clicked.connect( self.clearRecipe         )
+        self.rem.clicked.connect( self.removeFromRecipe    )
 
     @pyqtSlot()
     def clearRecipe( self ):

@@ -15,36 +15,18 @@ class TypePage( MenuPage ):
                           nextP    = nextP  ,
                           parent   = parent ,
                           subTitle = "Step 2: Which method would you like?" )
+        # Toggle
         self.is_quick = True
-
-        #font = QFont()
-        #font.setBold  ( True )
-        #font.setItalic( True )
 
         # Middle (Both Buttons)
         self.quick  = buttonWithIcon( "Quick"   , True , TypePage.QUICK  , icon_size = (92,92) )
         self.custom = buttonWithIcon( "Custom " , True , TypePage.CUSTOM , icon_size = (92,92) )
-        #self.quick  = QToolButton()
-        #self.quick.setText( "Quick" )
-        #self.quick.setFont       ( font )
-        #self.quick.setCheckable  ( True )
-        #self.quick.setIcon( QIcon(TypePage.QUICK) )
-        #self.quick.setToolButtonStyle( Qt.ToolButtonStyle.ToolButtonTextUnderIcon )
-        #self.quick.setSizePolicy( QSizePolicy.Preferred , QSizePolicy.Preferred )
-
-        #self.custom = QToolButton()
-        #self.custom.setText( "Custom" )
-        #self.custom.setFont      ( font )
-        #self.custom.setCheckable ( True )
-        #self.custom.setIcon( QIcon(TypePage.CUSTOM) )
-        #self.custom.setToolButtonStyle( Qt.ToolButtonStyle.ToolButtonTextUnderIcon )
-        #self.custom.setSizePolicy( QSizePolicy.Preferred , QSizePolicy.Preferred )
 
         self.bottom = QWidget()
         self.bottom.setSizePolicy( QSizePolicy.Expanding , QSizePolicy.Expanding ) 
         self.sublyt = QVBoxLayout( self.bottom )
-        self.sublyt.addWidget( self.quick  )
         self.sublyt.addWidget( self.custom )
+        self.sublyt.addWidget( self.quick  )
 
         # Layout Setup:
         self.layout.addWidget( self.bottom )

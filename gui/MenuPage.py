@@ -18,11 +18,12 @@ def buttonWithIcon( text = "option"     , checkable = False , icon_path = "" ,
     button = QToolButton()
     button.setText( text )
     button.setCheckable( checkable )
-    button.setIcon( QIcon(icon_path ) )
     button.setToolButtonStyle( icon_pos )
     button.setSizePolicy( QSizePolicy.Preferred , QSizePolicy.Preferred )
     if font:      button.setFont( font )
-    if icon_size: button.setIconSize( QSize(*icon_size) )
+    if icon_path:
+        button.setIcon( QIcon(icon_path) )
+        if icon_size: button.setIconSize( QSize(*icon_size) )
     return button
 
 def subTitleLabel( text , font = DEFAULT_FONT ):

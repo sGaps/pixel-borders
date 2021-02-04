@@ -138,8 +138,8 @@ class Menu( QDialog ):
     @pyqtSlot()
     def setupDefaultConnections( self ):
         """ Connect the Menu's buttons with its defaults actions. """
-        self.next.released.connect( self.loadNextPage )
-        self.back.released.connect( self.loadBackPage )
+        self.next.clicked.connect( self.loadNextPage )
+        self.back.clicked.connect( self.loadBackPage )
         self.pageBag.currentChanged.connect( self.catchPageChangeEvent )
 
     def collectDataFromPages( self ):

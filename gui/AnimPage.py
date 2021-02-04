@@ -2,7 +2,7 @@ from PyQt5.QtCore       import pyqtSlot , pyqtSignal
 from PyQt5.QtWidgets    import ( QWidget , QCheckBox , QSpinBox ,
                                  QLabel , QFormLayout )
 
-from .MenuPage          import MenuPage
+from .MenuPage          import MenuPage , buttonWithIcon
 from .MethodDisplay     import MethodWidget
 
 from .krita_connection.Lookup import KRITA_AVAILABLE , dprint
@@ -20,7 +20,8 @@ class AnimPage( MenuPage ):
         self.override = True
         self.defValue = []
 
-        self.tryAnim = QCheckBox()
+        self.animate = True
+        self.tryAnim = buttonWithIcon( "Try Animate" , True )
         self.tryAnim.setChecked( True )
 
         self.start   = QSpinBox()
@@ -31,19 +32,16 @@ class AnimPage( MenuPage ):
         self.finish.setMinimum( 0 )
         self.finish.setValue( self.finish.maximum() )
 
-        self.tname   = QLabel( "Try Animate" )
         self.sname   = QLabel( "Start Time" )
         self.fname   = QLabel( "Finish Time" )
 
-
         self.fwidg = QWidget()
         self.ftime = QFormLayout( self.fwidg )
-        self.ftime.setWidget( 0 , QFormLayout.LabelRole , self.tname   )
-        self.ftime.setWidget( 1 , QFormLayout.LabelRole , self.sname   )
-        self.ftime.setWidget( 2 , QFormLayout.LabelRole , self.fname   )
-        self.ftime.setWidget( 0 , QFormLayout.FieldRole , self.tryAnim )
-        self.ftime.setWidget( 1 , QFormLayout.FieldRole , self.start   )
-        self.ftime.setWidget( 2 , QFormLayout.FieldRole , self.finish  )
+        self.ftime.setWidget( 0 , QFormLayout.LabelRole , self.sname   )
+        self.ftime.setWidget( 1 , QFormLayout.LabelRole , self.fname   )
+        self.ftime.setWidget( 0 , QFormLayout.FieldRole , self.start   )
+        self.ftime.setWidget( 1 , QFormLayout.FieldRole , self.finish  )
+        self.ftime.setWidget( 2 , QFormLayout.FieldRole , self.tryAnim )
 
         self.layout.addWidget( self.fwidg )
 
@@ -51,6 +49,10 @@ class AnimPage( MenuPage ):
         self.start.valueChanged.connect ( self.finish.setMinimum )
         self.finish.valueChanged.connect( self.start.setMaximum  )
         self.tryAnim.toggled.connect    ( self.setTimeEnabled    )
+
+    @pyqtSlot()
+    def toggle_tryAnimate( self ):
+        self.animate = not self.animate
 
     @pyqtSlot( bool )
     def setTimeEnabled( self , boolean_value ):
@@ -88,4 +90,4 @@ class AnimPage( MenuPage ):
         else:
             return { "animation" : [ self.start.value()  ,      # Start
                                      self.finish.value() ]    , # Finish
-                     "try-animate" : self.tryAnim.isChecked() }
+                     "try-animate" : self.animate        }

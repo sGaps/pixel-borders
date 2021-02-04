@@ -12,7 +12,7 @@ class ButtonWithUrl( QPushButton ):
         self.url = QUrl( url , QUrl.TolerantMode )
         if url:
             self.setToolTip( url )
-            self.released.connect( self.openUrl )
+            self.clicked.connect( self.openUrl )
 
 
     @pyqtSlot()
@@ -57,5 +57,5 @@ class About( QDialog ):
         self.layout.addWidget( self.okay , 1 , Qt.AlignBottom | Qt.AlignRight )
 
         # connections
-        self.okay.released.connect( self.accept )
+        self.okay.clicked.connect( self.accept )
         self.setTabOrder( self.okay , self.wabout )
