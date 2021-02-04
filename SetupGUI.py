@@ -143,10 +143,11 @@ class GUI( QObject ):
         try:
             self.arguments = KisData( cdata )
         except AttributeError as e:
-            print( f"[Pixel Borders Extension] Invalid arguments: {e.args}" )
+            print( f"[Pixel Borders Extension] Invalid arguments: {e.args}" , file = stderr )
             waitp.usrMSG.setText( "Cannot run without a Krita's document.Try running \n" +
                                   "Krita in a terminal for get more information." )
             waitp.cancel.released.connect( menu.reject )
+            waitp.subTitle.setText( "Unable to connect with Krita" )
             return
 
         if DEBUG:
@@ -193,15 +194,16 @@ class GUI( QObject ):
 
     def onFinish( self ):
         self.done = True
-        print( "Border Done" )
+        print( "Border Done" , file = stderr )
         self.saveConfig()
 
     def onRollback( self ):
-        print( "Work Canceled" )
+        self.menu.page( "wait" ).subTitle.setText( "Canceled!" )
+        print( "Work Canceled" , file = stderr )
 
     @pyqtSlot( str )
     def reportMessage( self , msg ):
-        print( f"[Borderizer]: {msg}" )
+        print( f"[Borderizer]: {msg}" , file = stderr )
 
     @pyqtSlot()
     def run( self ):

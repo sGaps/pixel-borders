@@ -1,16 +1,19 @@
-from .MenuPage          import MenuPage
+from os                 import path
+from .MenuPage          import MenuPage , buttonWithIcon
 from PyQt5.QtCore       import Qt
 from PyQt5.QtWidgets    import ( QLabel , QPushButton , QFrame , QSizePolicy ,
                                  QFormLayout , QHBoxLayout , QLineEdit , QWidget )
 
-
 class NamePage( MenuPage ):
+    CDIR  = path.dirname( path.abspath(__file__) )
+    REPEAT = f"{CDIR}/images/repeat.svg"
+    ABOUT  = f"{CDIR}/images/about.svg"
+    CANCEL = f"{CDIR}/images/cancel.svg"
     def __init__( self , backP = None , nextP = None , parent = None ):
         super().__init__( backP    = backP  ,
                           nextP    = nextP  ,
                           parent   = parent ,
                           subTitle = "Step 1: Choose a Name" )
-
         # Middle (Label)
         self.nameWidg  = QWidget()
         self.nameForm  = QFormLayout( self.nameWidg )
@@ -25,9 +28,9 @@ class NamePage( MenuPage ):
         self.hline.setFrameShape ( QFrame.HLine  )
         self.hline.setFrameShadow( QFrame.Sunken )
 
-        self.previous  = QPushButton( "Use Previous Recipe" )
-        self.info      = QPushButton( "About"  )
-        self.cancel    = QPushButton( "Cancel" )
+        self.previous  = buttonWithIcon( "Use Previous Recipe" , False , NamePage.REPEAT , icon_size = (32,32) )
+        self.info      = buttonWithIcon( "About"               , False , NamePage.ABOUT  , icon_size = (32,32) )
+        self.cancel    = buttonWithIcon( "Cancel"              , False , NamePage.CANCEL , icon_size = (32,32) )
 
         self.wbottom   = QWidget()
         self.lbottom   = QHBoxLayout( self.wbottom )

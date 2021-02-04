@@ -18,7 +18,7 @@ class DirButton( QToolButton ):
     CDIR = path.dirname( path.abspath(__file__) )
     NEXT = f"{CDIR}/images/arrow-next.svg"
     BACK = f"{CDIR}/images/arrow-back.svg"
-    def __init__( self , text = "" , arrow_type = Qt.LeftArrow , parent = None  ):
+    def __init__( self , text = "" , arrow_type = Qt.LeftArrow , tooltip = "" , parent = None  ):
         super().__init__( parent )
         # Size related:
         szPolicy = QSizePolicy( QSizePolicy.Preferred , QSizePolicy.Preferred )
@@ -42,6 +42,9 @@ class DirButton( QToolButton ):
         height = abs( isize.height() - wsize.height() )
         self.wmargins = wsize.width() - width
         self.hmargins = wsize.height() - height
+
+        # Tooltip:
+        if tooltip: self.setToolTip( tooltip )
 
     def updateIconSize( self ):
         size = self.size()
@@ -77,10 +80,10 @@ class Menu( QDialog ):
         self.layout.setRowMinimumHeight  ( 0 , 200 )
 
         # Left (Next Button) ----->
-        self.next   = DirButton( ">" , Qt.RightArrow )
+        self.next   = DirButton( ">" , Qt.RightArrow , "Go to the next step" )
 
         # Right (Back Button) <----
-        self.back   = DirButton( "<" , Qt.LeftArrow  )
+        self.back   = DirButton( "<" , Qt.LeftArrow  , "Go to the previous step" )
 
         # Center (Page Body) --||--
         self.pageBag = QStackedWidget()

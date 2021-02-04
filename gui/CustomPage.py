@@ -4,13 +4,12 @@ from PyQt5.QtWidgets    import QHBoxLayout , QPushButton
 from .MenuPage          import MenuPage
 from .MethodDisplay     import MethodWidget
 
-# TODO: 'table' must show its scroll bar everytime. It's difficult use it without that thing.
 class CustomPage( MenuPage ):
     def __init__( self , backP = None , nextP = None , parent = None ):
         super().__init__( backP    = backP  ,
                           nextP    = nextP  ,
                           parent   = parent ,
-                          subTitle = "Step 4: Border Type" )
+                          subTitle = "Step 4: Border Recipe" )
 
         self.table  = MethodWidget()
         self.bottom = QHBoxLayout()

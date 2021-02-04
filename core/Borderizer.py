@@ -424,5 +424,5 @@ class Borderizer( QObject ):
 
         # Non-thread event:
         self.workDone.emit()
-        self.report.emit( "Done" )
+        self.report.emit( f"The new layer ({name}) is done!" )
         return

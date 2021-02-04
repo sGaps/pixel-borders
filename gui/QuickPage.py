@@ -8,7 +8,7 @@ class QuickPage( MenuPage ):
         super().__init__( backP    = backP  ,
                           nextP    = nextP  ,
                           parent   = parent ,
-                          subTitle = "Step 4: Border Type" )
+                          subTitle = "Step 4: Border Recipe" )
         self.table  = MethodWidget()
         # Layout Setup:
         self.layout.addWidget( self.table )

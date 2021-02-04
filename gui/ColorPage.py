@@ -1,9 +1,13 @@
-from .MenuPage          import AlternativePage
+from os                 import path
+from .MenuPage          import AlternativePage , buttonWithIcon
 from PyQt5.QtCore       import pyqtSlot , pyqtSignal
-from PyQt5.QtWidgets    import QPushButton
+from PyQt5.QtWidgets    import QPushButton , QWidget , QSizePolicy , QVBoxLayout
 from PyQt5.QtGui        import QFont
 
 class ColorPage( AlternativePage ):
+    CDIR = path.dirname( path.abspath(__file__) )
+    FG   = f"{CDIR}/images/fg.svg"
+    BG   = f"{CDIR}/images/bg.svg"
     def __init__( self , backP = None , nextP = None , altP = None , parent = None ):
         super().__init__( backP    = backP  ,
                           nextP    = nextP  ,
@@ -11,21 +15,28 @@ class ColorPage( AlternativePage ):
                           subTitle = "Step 3: Take color from" )
         self.color  = "FG"
 
-        font = QFont()
-        font.setBold  ( True )
-        font.setItalic( True )
+        self.fg     = buttonWithIcon( "Foreground" , True , ColorPage.FG , icon_size = (92,92) )
+        self.bg     = buttonWithIcon( "Background" , True , ColorPage.BG , icon_size = (92,92) )
+        #font = QFont()
+        #font.setBold  ( True )
+        #font.setItalic( True )
 
         # Middle (Both Buttons)
-        self.fg = QPushButton( "Foreground" )
-        self.fg.setFont      ( font )
-        self.fg.setCheckable ( True )
-        self.bg = QPushButton( "Background" )
-        self.bg.setFont      ( font )
-        self.bg.setCheckable ( True )
+        #self.fg = QPushButton( "Foreground" )
+        #self.fg.setFont      ( font )
+        #self.fg.setCheckable ( True )
+        #self.bg = QPushButton( "Background" )
+        #self.bg.setFont      ( font )
+        #self.bg.setCheckable ( True )
 
         # Layout Setup:
-        self.layout.addWidget( self.fg       )
-        self.layout.addWidget( self.bg       )
+        self.bottom = QWidget()
+        self.bottom.setSizePolicy( QSizePolicy.Expanding , QSizePolicy.Expanding ) 
+        self.sublyt = QVBoxLayout( self.bottom )
+        self.sublyt.addWidget( self.fg )
+        self.sublyt.addWidget( self.bg )
+
+        self.layout.addWidget( self.bottom )
 
         # Connections:
         self.fg.released.connect( self.press_fg )

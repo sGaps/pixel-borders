@@ -25,7 +25,7 @@
 
 
 from PyQt5.QtCore    import QAbstractTableModel , QModelIndex , Qt , QVariant
-from PyQt5.QtWidgets import ( QTableView , QAbstractItemView , QStyledItemDelegate , QHeaderView , QSizePolicy ,
+from PyQt5.QtWidgets import ( QTreeView , QAbstractItemView , QStyledItemDelegate , QHeaderView , QSizePolicy ,
                               QSpinBox , QComboBox )
 from PyQt5.QtCore    import pyqtSlot , pyqtSignal , QTimer
 
@@ -218,7 +218,7 @@ class MethodModel( QAbstractTableModel ):
         else:
             return False
 
-class MethodWidget( QTableView ):
+class MethodWidget( QTreeView ):
     """
         Holds info about the actual data.
         SIGNALS
@@ -236,7 +236,7 @@ class MethodWidget( QTableView ):
         model = MethodModel()
         self.setModel( model )
         self.setItemDelegate( MethodDelegate() )
-        self.horizontalHeader().setSectionResizeMode( QHeaderView.Stretch )
+        self.setWordWrap( True )
 
         model.rowMethodChanged.connect( self.__first_method_update_request__ )
 
@@ -245,10 +245,15 @@ class MethodWidget( QTableView ):
 
         # Works better:
         self.setSizePolicy( QSizePolicy.Minimum , QSizePolicy.Preferred )
+        self.setUniformRowHeights( True )
 
     @pyqtSlot( int , int )
     def __cell_being_edited_update_request__( self , row , col ):
         self.cellBeingEdited.emit( row , col )
+
+    def paintEvent( self , event ):
+        self.setColumnWidth( 0 , self.size().width() // 2 )
+        return super().paintEvent( event )
 
     def mousePressEvent( self , event ):
         index = self.indexAt( event.pos() )

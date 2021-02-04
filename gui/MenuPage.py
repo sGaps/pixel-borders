@@ -1,6 +1,6 @@
-from PyQt5.QtCore     import Qt , pyqtSignal , pyqtSlot
-from PyQt5.QtWidgets  import QWidget , QLabel , QVBoxLayout
-from PyQt5.QtGui      import QFont
+from PyQt5.QtCore     import Qt , pyqtSignal , pyqtSlot , QSize
+from PyQt5.QtWidgets  import QWidget , QLabel , QToolButton , QVBoxLayout , QSizePolicy
+from PyQt5.QtGui      import QFont , QIcon
 
 DEFAULT_PAGE_SIZE = (400 , 300)
 
@@ -9,6 +9,21 @@ DEFAULT_FONT.setFamily( u"Cantarell" )
 DEFAULT_FONT.setBold  ( True )
 DEFAULT_FONT.setItalic( True )
 DEFAULT_FONT.setWeight(  75  )
+
+TextUnderIcon  = Qt.ToolButtonStyle.ToolButtonTextUnderIcon
+TextBesideIcon = Qt.ToolButtonStyle.ToolButtonTextBesideIcon
+
+def buttonWithIcon( text = "option"     , checkable = False , icon_path = "" ,
+                    icon_pos  = TextBesideIcon , icon_size = (48,48) , font = DEFAULT_FONT ):
+    button = QToolButton()
+    button.setText( text )
+    button.setCheckable( checkable )
+    button.setIcon( QIcon(icon_path ) )
+    button.setToolButtonStyle( icon_pos )
+    button.setSizePolicy( QSizePolicy.Preferred , QSizePolicy.Preferred )
+    if font:      button.setFont( font )
+    if icon_size: button.setIconSize( QSize(*icon_size) )
+    return button
 
 def subTitleLabel( text , font = DEFAULT_FONT ):
     label = QLabel( text )
