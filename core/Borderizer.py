@@ -318,7 +318,6 @@ class Borderizer( QObject ):
 
                 # [C] Clean Previous influence
                 if colordata:
-                    #Borderizer.fillWith( target , Borderizer.makePxDataWithColor( nocolor , length ) , bounds )
                     # Pythonic way (with * operator). clean the previous pixel data.
                     Borderizer.fillWith( target , nocolor * length , bounds )
 
@@ -359,7 +358,6 @@ class Borderizer( QObject ):
                 index       += 1
 
             # Exit:
-            self.frameNumber.emit( index )
             # | ROLLBACK >-----------------------
             importResult = client.serviceRequest( frameH.importFrames , start , frameH.get_exported_files() )
             self.report.emit( "Frames imported" )   # Here passed someting weird. Program freezes and got killed.

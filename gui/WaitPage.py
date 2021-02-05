@@ -12,8 +12,6 @@ class WaitPage( SinkPage ):
     def __init__( self , parent = None ):
         super().__init__( parent , "Step 5: Wait for the border" )
 
-        #self.cancel   = QPushButton( "Cancel" )
-        #self.info     = QPushButton( "About"  )
         self.cancel    = buttonWithIcon( "Cancel" , False , WaitPage.CANCEL, icon_size = (32,32) )
         self.info      = buttonWithIcon( "About"  , False , WaitPage.ABOUT , icon_size = (32,32) )
         self.progress = QProgressBar()
@@ -23,7 +21,6 @@ class WaitPage( SinkPage ):
         font.setItalic( True )
 
         self.usrMSG   = QLabel()
-        #self.accept   = QPushButton( "Ok" )
         self.accept    = buttonWithIcon( "Ok" , False , WaitPage.OK , icon_size = (32,32) )
         self.bottom   = QStackedWidget()
         self.accept.setFont( font )

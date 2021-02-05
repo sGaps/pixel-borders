@@ -326,6 +326,7 @@ class KisData( object ):
             else:
                 self.start , self.finish = 0 , 1
         else:
+            self.start , self.finish = 0 , 1
             self.timeline = None
 
         # UPDATE: Service and Client built for manage concurrent requests.

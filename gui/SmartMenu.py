@@ -10,9 +10,9 @@ from .About           import About
 from .MenuPage        import MenuPage
 
 # Krita-dependent Code:
-from .krita_connection.Lookup import KRITA_AVAILABLE , dprint
-if KRITA_AVAILABLE:
-    from krita import Krita
+#from .KisLookup import KRITA_AVAILABLE , dprint
+#if KRITA_AVAILABLE:
+#    from krita import Krita
 
 class DirButton( QToolButton ):
     CDIR = path.dirname( path.abspath(__file__) )

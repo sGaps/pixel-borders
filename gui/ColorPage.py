@@ -49,10 +49,5 @@ class ColorPage( MenuPage ):
         # Logical
         self.color = "BG"
 
-    #@pyqtSlot( bool )
-    #def serve_negated_alternative_request( self , to_alternative ):
-    #    if (not to_alternative) != self.isAlt:
-    #        self.useAlternative()
-
     def getData( self ):
         return { "colordsc" : (self.color,None) }

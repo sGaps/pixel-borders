@@ -58,3 +58,4 @@ class About( QDialog ):
         # connections
         self.okay.clicked.connect( self.accept )
         self.setTabOrder( self.okay , self.wabout )
+

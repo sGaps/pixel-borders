@@ -1,4 +1,4 @@
-# Module:      gui.krita_connection.Lookup.py | [ Language Python ]
+# Module:      gui.KisLookup.py | [ Language Python ]
 # Created by: ( Gaps | sGaps | ArtGaps )
 # -----------------------------------------------------------------
 """
@@ -22,6 +22,8 @@ try:
     import krita
     KRITA_AVAILABLE = True
 except:
+    kis             = None
+    krita           = None
     KRITA_AVAILABLE = False
     dprint( f"[KRITA - LOOKUP] not available." )
 else:

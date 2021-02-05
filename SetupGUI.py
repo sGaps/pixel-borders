@@ -129,8 +129,12 @@ class GUI( QObject ):
         menu.back.setEnabled( False )
         menu.next.setEnabled( False )
 
-        self.data = self.data if self.data else menu.collectDataFromPages()
-        cdata     = self.data.copy()
+        pdata = menu.collectDataFromPages()
+        cdata = {}
+        for key , value in pdata.items():
+            cdata[key] = self.data.get( key , None ) or value
+
+        self.data = cdata.copy()
         if KRITA_AVAILABLE:
             # krita-dependent code here:
             kis  = Krita.instance()
@@ -139,7 +143,6 @@ class GUI( QObject ):
             cdata["kis"]  = kis
             cdata["doc"]  = doc
             cdata["node"] = node
-
 
         waitp = menu.page( "wait" )
         try:
@@ -205,6 +208,9 @@ class GUI( QObject ):
         w.frame.hide()
         self.done = True
         print( "Border Done" , file = stderr )
+        # Default: Animate all timeline
+        del self.data['debug']
+        del self.data['animation']
         self.saveConfig()
 
     def onRollback( self ):

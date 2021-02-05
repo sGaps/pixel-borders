@@ -5,9 +5,7 @@ from PyQt5.QtWidgets    import ( QWidget , QCheckBox , QSpinBox ,
 from .MenuPage          import MenuPage , buttonWithIcon
 from .MethodDisplay     import MethodWidget
 
-from .krita_connection.Lookup import KRITA_AVAILABLE , dprint
-if KRITA_AVAILABLE:
-    from krita import Krita
+from .KisLookup import KRITA_AVAILABLE , kis , dprint
 
 # Pre: { KRITA_AVAILABLE = True }
 class AnimPage( MenuPage ):
@@ -50,12 +48,9 @@ class AnimPage( MenuPage ):
         self.finish.valueChanged.connect( self.start.setMaximum  )
         self.tryAnim.toggled.connect    ( self.setTimeEnabled    )
 
-    @pyqtSlot()
-    def toggle_tryAnimate( self ):
-        self.animate = not self.animate
-
     @pyqtSlot( bool )
     def setTimeEnabled( self , boolean_value ):
+        self.animate = not self.animate
         self.start.setEnabled( boolean_value )
         self.finish.setEnabled( boolean_value )
 
@@ -66,7 +61,7 @@ class AnimPage( MenuPage ):
     def connect_with_krita( self ):
         if KRITA_AVAILABLE:
             # Take the current Document:
-            doc = Krita.instance().activeDocument()
+            doc = kis.activeDocument()
             if not doc:
                 dprint( "[Pixel Anim.Page]: There isn't any document." )
                 self.defValue = [ self.start.minimum()  ,
@@ -91,3 +86,4 @@ class AnimPage( MenuPage ):
             return { "animation" : [ self.start.value()  ,      # Start
                                      self.finish.value() ]    , # Finish
                      "try-animate" : self.animate        }
+
