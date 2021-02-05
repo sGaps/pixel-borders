@@ -359,6 +359,7 @@ class Borderizer( QObject ):
 
             # Exit:
             # | ROLLBACK >-----------------------
+            self.report.emit( "Importing frames..." )   # Here passed someting weird. Program freezes and got killed.
             importResult = client.serviceRequest( frameH.importFrames , start , frameH.get_exported_files() )
             self.report.emit( "Frames imported" )   # Here passed someting weird. Program freezes and got killed.
             border = doc.topLevelNodes()[Borderizer.ANIMATION_IMPORT_DEFAULT_INDEX]

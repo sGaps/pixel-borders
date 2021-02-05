@@ -1,4 +1,9 @@
-# Gaps / sGaps / ArtGaps | Language Python
+# Module:      __main__.py | [ Language Python ]
+# Created by: ( Gaps | sGaps | ArtGaps )
+# ----------------------------------------------
+"""
+    Loaded when this is loaded as a plugin or package.
+"""
 from sys import stderr
 try:
     from krita import Krita
