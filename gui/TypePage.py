@@ -1,10 +1,10 @@
 from os                 import path
-from .MenuPage          import MenuPage , buttonWithIcon , TextBesideIcon
+from .MenuPage          import AlternativePage , buttonWithIcon , TextBesideIcon
 from PyQt5.QtCore       import pyqtSlot , pyqtSignal , Qt
 from PyQt5.QtWidgets    import QPushButton , QToolButton , QWidget , QVBoxLayout , QSizePolicy
 from PyQt5.QtGui        import QFont , QIcon
 
-class TypePage( MenuPage ):
+class TypePage( AlternativePage ):
     CDIR         = path.dirname( path.abspath(__file__) )
     CUSTOM       = f"{CDIR}/images/custom.svg"
     QUICK        = f"{CDIR}/images/quick.svg"
@@ -14,7 +14,7 @@ class TypePage( MenuPage ):
         super().__init__( backP    = backP  ,
                           nextP    = nextP  ,
                           parent   = parent ,
-                          subTitle = "Step 2: Which method would you like?" )
+                          subTitle = "Step 3: Which method would you like?" )
         # Toggle
         self.is_quick = True
 
@@ -53,6 +53,11 @@ class TypePage( MenuPage ):
         # Logical
         self.is_quick = False
         self.type_changed.emit( self.is_quick )
+
+    @pyqtSlot( bool )
+    def serve_negated_alternative_request( self , to_alternative ):
+        if (not to_alternative) != self.isAlt:
+            self.useAlternative()
 
     def getData( self ):
         return { "is-quick" : self.is_quick }

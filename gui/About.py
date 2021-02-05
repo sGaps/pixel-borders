@@ -14,7 +14,6 @@ class ButtonWithUrl( QPushButton ):
             self.setToolTip( url )
             self.clicked.connect( self.openUrl )
 
-
     @pyqtSlot()
     def openUrl( self ):
         QDesktopServices.openUrl( self.url )

@@ -21,6 +21,7 @@
 
     KEYS        :: dict
         Holds the required data to run a Borderizer object.
+            "debug":        Boolean value. Enables standard profiler prints on stderr.
             "q-recipedsc":  Quick Method descriptor. List with the form [(str,int)]
                             which will be converted to a grow recipe when 'is-quick'
                             is enabled.
@@ -75,7 +76,8 @@ METHODS = { "force"             : Grow.force_grow             ,
 
 COLOR_TYPES = { "FG" , "BG" , "CS" }
 # Keys used in the data structure passed by the GUI
-KEYS = {  "q-recipedsc" , # Quick Recipe Descriptor.
+KEYS = {  "debug"       , # Enable profiler?
+          "q-recipedsc" , # Quick Recipe Descriptor.
           "c-recipedsc" , # Custom Recipe Descriptor.
           "is-quick"    , # If true, Use q-recipedsc instead of c-recipedsc.
           "colordsc"    , # Color Descriptor.
@@ -245,7 +247,8 @@ class KisData( object ):
             raise AttributeError( f"provided keys: {dataset} don't match with the required keys {KEYS}" )
 
         # [ ] Trivial:
-        self.name = data["name"]
+        self.name  = data["name"]
+        self.debug = data["debug"]
 
         # [.] Primitive:
         self.node = data.get( "node" , None )

@@ -44,12 +44,13 @@ class Borderizer( QObject ):
     rollbackRequest = pyqtSignal()
     workDone        = pyqtSignal()
     rollbackDone    = pyqtSignal()
+    frameNumber     = pyqtSignal( int )
+    stepName        = pyqtSignal( str )
 
     ANIMATION_IMPORT_DEFAULT_INDEX = -1
     def __init__( self , arguments = KisData()       ,
                          obj_name  = "Border-Thread" ,
                          cleanUpAtFinish = False     ,
-                         profiler  = True            ,
                          parent    = None            ):
         """
             ARGUMENTS
@@ -65,14 +66,13 @@ class Borderizer( QObject ):
         self.critical        = QMutex()
         self.keepRunning     = True
 
-        self.profiler = profiler
-
         # Actions to perform if something goes wrong:
         self.rollbackList  = []
         self.targetRemoved = False
 
     def setArguments( self , arguments ):
         self.arguments = arguments
+        self.debug     = arguments.debug
 
     @pyqtSlot()
     def stopRequest( self ):
@@ -128,20 +128,20 @@ class Borderizer( QObject ):
             Updates the node pixelData using a bytearray and a QRect """
         target.setPixelData( pxdata , bounds.x() , bounds.y() , bounds.width() , bounds.height() )
 
-    # DEPRECATED
-    @staticmethod
-    def makePxDataWithColor( colorbytes , repeat_times ):
-        """
-            ARGUMENTS
-                colorbytes(bytearray):  color to repeat
-                repeat_times(int):      how many times that color repeats
-            RETURNS
-                bytearray
-        """
-        return colorbytes * repeat_times
-
     @staticmethod
     def makePxData( nocolor , opBytes , minimalAlpha , length , nchans , chsize ):
+        """
+            ARGUMENTS
+                nocolor(bytearray):         raw-data of an empty pixel
+                                            (where: len nocolor = len opBytes * nchans).
+                opBytes(bytearray):         opaque value as bytearray.
+                minimalAlpha(bytearray):    Data extracted from a Grow object.
+                length(int):                number of entries in minimalAlpha.
+                nchans(int):                number of channels of the current color.
+                chsize(int):                size in bytes per channel.
+            RETURNS
+                bytearray. New pixel data for a target node.
+        """
         # matchValue is the 'opaque' value of an minimalAlpha object.
         matchValue = 0xFF
         contents = nocolor * length             # ex.:  [ Pixel1(ch1 , ch2 , ch3 , ch4) , Pixel2(...) , ... ]
@@ -181,8 +181,10 @@ class Borderizer( QObject ):
             ARGUMENTS
                 node(krita.Node):                       source node.
                 document_bounds(PyQt5.QtCore.QRect):    Bounds of the document.
-                thickness(int):                         how many pixels will be added to each side of the document_bounds
-            Returns a QRect that represents the bounds of the target layer. """
+                thickness(int):                         how many pixels will be added to every
+                                                        side of the document_bounds
+            RETURNS
+                QRect, which represents the bounds of the target layer. """
         nBounds = node.bounds()
 
         pBounds = QRect( nBounds.x()      - thickness   ,
@@ -193,7 +195,7 @@ class Borderizer( QObject ):
 
     @pyqtSlot()
     def run( self ):
-        if self.profiler:
+        if self.debug:
             cProfile.runctx( "self.runBorderizer()" , globals() , locals() )
         else:
             self.runBorderizer()
@@ -205,10 +207,10 @@ class Borderizer( QObject ):
                 ** implicit **
                 self.arguments(KisData):
             RETURNS
-                bool
+                bool. 
+            SEE ALSO:
+                .Arguments.KEYS
             Make borders to the given krita's node, using the keys defined in the global variable KEYS.
-
-            See also: KEYS
         """
         a = self.arguments
 
@@ -265,7 +267,6 @@ class Borderizer( QObject ):
         start    = a.start
         finish   = a.finish
 
-
         currentStep = 1
         if timeline:
             self.report.emit( "Setup animation data..." )
@@ -300,7 +301,9 @@ class Borderizer( QObject ):
                 # < ROLLBACK |-----------------------
 
             self.report.emit( "Exporting frames" )
+            self.stepName.emit( "Frame:" )
             colordata = None
+            index     = 0
             for t in timeline:
                 # Polling ------------------------
                 if not self.keepRunningNormally():
@@ -351,8 +354,12 @@ class Borderizer( QObject ):
                 # [*] PROGRESS BAR:
                 self.progress.emit( currentStep )
                 currentStep += 1
+                # [+] SUB PROGRESS BAR:
+                self.frameNumber.emit( index )
+                index       += 1
 
             # Exit:
+            self.frameNumber.emit( index )
             # | ROLLBACK >-----------------------
             importResult = client.serviceRequest( frameH.importFrames , start , frameH.get_exported_files() )
             self.report.emit( "Frames imported" )   # Here passed someting weird. Program freezes and got killed.
@@ -423,6 +430,7 @@ class Borderizer( QObject ):
         doc.setBatchmode( batchD )
 
         # Non-thread event:
+        self.stepName.emit( "Complete:" )
         self.workDone.emit()
-        self.report.emit( f"The new layer ({name}) is done!" )
+        self.report.emit( f"Done!" )
         return

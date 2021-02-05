@@ -1,10 +1,10 @@
 from os                 import path
-from .MenuPage          import AlternativePage , buttonWithIcon
+from .MenuPage          import MenuPage , buttonWithIcon
 from PyQt5.QtCore       import pyqtSlot , pyqtSignal
 from PyQt5.QtWidgets    import QPushButton , QWidget , QSizePolicy , QVBoxLayout
 from PyQt5.QtGui        import QFont
 
-class ColorPage( AlternativePage ):
+class ColorPage( MenuPage ):
     CDIR = path.dirname( path.abspath(__file__) )
     FG   = f"{CDIR}/images/fg.svg"
     BG   = f"{CDIR}/images/bg.svg"
@@ -12,7 +12,7 @@ class ColorPage( AlternativePage ):
         super().__init__( backP    = backP  ,
                           nextP    = nextP  ,
                           parent   = parent ,
-                          subTitle = "Step 3: Take color from" )
+                          subTitle = "Step 2: Take color from" )
         self.color  = "FG"
 
         # Middle (Both Buttons)
@@ -49,10 +49,10 @@ class ColorPage( AlternativePage ):
         # Logical
         self.color = "BG"
 
-    @pyqtSlot( bool )
-    def serve_negated_alternative_request( self , to_alternative ):
-        if (not to_alternative) != self.isAlt:
-            self.useAlternative()
+    #@pyqtSlot( bool )
+    #def serve_negated_alternative_request( self , to_alternative ):
+    #    if (not to_alternative) != self.isAlt:
+    #        self.useAlternative()
 
     def getData( self ):
         return { "colordsc" : (self.color,None) }

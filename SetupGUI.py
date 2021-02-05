@@ -40,18 +40,18 @@ class GUI( QObject ):
         menu.setWindowTitle( title )
 
         namep   = NamePage  ()
-        typep   = TypePage  ( namep   )
-        colorp  = ColorPage ( typep   )
-        quickp  = QuickPage ( colorp  )
-        customp = CustomPage( colorp  )
+        colorp  = ColorPage ( namep   )
+        typep   = TypePage  ( colorp  )
+        quickp  = QuickPage ( typep   )
+        customp = CustomPage( typep   )
         tdscp   = TdscPage  ( customp )
         animp   = AnimPage  ( tdscp   )
         waitp   = WaitPage  ()
 
         # Next Connections:
-        namep.next   = typep        # (1 -> 2)
-        typep.next   = colorp       # (2 -> 3)
-        colorp.next , colorp.altn = quickp , customp    # (3 -> 4.a | 4.b)
+        namep.next   = colorp       # (1 -> 2)
+        colorp.next  = typep        # (2 -> 3)
+        typep.next , typep.altn = quickp , customp    # (3 -> 4.a | 4.b)
         quickp.next  = waitp        # (4.a -> 5)
         customp.next = tdscp        # (4.b -> 4+.b)
         tdscp.next   = animp        # (4+.b -> 4++.b)
@@ -61,7 +61,7 @@ class GUI( QObject ):
         animp.connect_with_krita()
 
         # Connections between Pages:
-        typep.type_changed.connect( colorp.serve_negated_alternative_request )
+        typep.type_changed.connect( typep.serve_negated_alternative_request )
         typep.type_changed.connect( animp.setOverride )
 
         # Connections between Pages and Menu:
@@ -95,8 +95,10 @@ class GUI( QObject ):
     @pyqtSlot()
     def usePreviousData( self ):
         self.data = loadData( debug = DEBUG )
-        # TODO: load only if there's previous data (!={}), else notify to user that can't use previous data.
-        self.menu.loadPage( "wait" )
+        if self.data:
+            self.menu.loadPage( "wait" )
+        else:
+            self.menu.page( "name" ).previous.setText( "No data to load" )
 
     @pyqtSlot()
     def sendStopRequest( self ):
@@ -147,10 +149,11 @@ class GUI( QObject ):
             waitp.usrMSG.setText( "Cannot run without a Krita's document.Try running \n" +
                                   "Krita in a terminal for get more information." )
             waitp.cancel.clicked.connect( menu.reject )
+            waitp.cancel.setText( "Close" )
             waitp.subTitle.setText( "Unable to connect with Krita" )
             return
 
-        if DEBUG:
+        if self.arguments.debug:
             self.arguments.show()
 
         # Visual:
@@ -173,6 +176,9 @@ class GUI( QObject ):
         # Visual:
         border.progress.connect( waitp.progress.setValue )
         border.workDone.connect( waitp.raiseAccept       )
+        # Visual (sub progress)
+        border.stepName.connect   ( waitp.fstep.setText     )
+        border.frameNumber.connect( waitp.updateFrameNumber )
 
         # Cancel:
         waitp.cancel.clicked.connect  ( self.sendStopRequest ) # Execute the shared code in the main thread
@@ -193,12 +199,19 @@ class GUI( QObject ):
         thread.start()
 
     def onFinish( self ):
+        w = self.menu.page( "wait" )
+        w.subTitle.setText( "Work Done!" )
+        w.fstep.hide()
+        w.frame.hide()
         self.done = True
         print( "Border Done" , file = stderr )
         self.saveConfig()
 
     def onRollback( self ):
-        self.menu.page( "wait" ).subTitle.setText( "Canceled!" )
+        w = self.menu.page( "wait" )
+        w.fstep.hide()
+        w.frame.hide()
+        w.subTitle.setText( "Canceled!" )
         print( "Work Canceled" , file = stderr )
 
     @pyqtSlot( str )
