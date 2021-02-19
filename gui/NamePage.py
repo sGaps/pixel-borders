@@ -24,7 +24,7 @@ class NamePage( MenuPage ):
 
         # Debug mode:
         self.debug  = False
-        self.dbgbut = buttonWithIcon( "Debug" , True )
+        self.dbgbut = buttonWithIcon( "Debug: Off" , True )
         self.dbgbut.setChecked( False )
         self.nameForm.setWidget( 1 , QFormLayout.FieldRole , self.dbgbut )
 
@@ -55,6 +55,8 @@ class NamePage( MenuPage ):
     @pyqtSlot()
     def toggle_debug( self ):
         self.debug = not self.debug
+        if self.debug: self.dbgbut.setText( "Debug: On ")
+        else:          self.dbgbut.setText( "Debug: Off ")
 
     def getData( self ):
         return { "debug" : self.debug ,

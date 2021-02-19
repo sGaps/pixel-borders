@@ -4,5 +4,5 @@ ServiceTypes=Krita/PythonPlugin
 X-KDE-Library=pixel-borders
 X-Python-2-Compatible=false
 X-Krita-Manual=Manual.html
-Name=Pixel Borders
+Name=
 Comment=Make your pixelart characters look great with pixel coloured borders

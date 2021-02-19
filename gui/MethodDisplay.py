@@ -31,7 +31,6 @@ from PyQt5.QtCore    import pyqtSlot , pyqtSignal , QTimer
 
 INDEX_METHODS = ["force","any-neighbor","corners","not-corners","strict-horizontal","strict-vertical"]
 
-# TODO: Close popup after a single click
 class PComboBox( QComboBox ):
     """
         Spinbox that defines a displayPopup action.
