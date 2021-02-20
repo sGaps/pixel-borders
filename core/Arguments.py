@@ -243,8 +243,10 @@ class KisData( object ):
                 AttributeError. If data has wrong values.
             Parse krita's data to make it safe to use."""
         dataset = set( data.keys() )
-        if KEYS.difference( dataset ):
-            raise AttributeError( f"provided keys: {dataset} don't match with the required keys {KEYS}" )
+        diff = KEYS.difference( dataset )
+        if diff:
+            raise AttributeError( f"The keys: {diff} weren't provided. " +
+                                  f"Unable to run with: {dataset}. Required keys: {KEYS}" )
 
         # [ ] Trivial:
         self.name  = data["name"]

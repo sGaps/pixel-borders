@@ -18,23 +18,23 @@
     [*] Author
      |- Gaps : sGaps : ArtGaps
 """
-from   collections import deque
-from   sys         import stderr
+from collections    import deque
+from sys            import stderr
+from tempfile       import mkdtemp
+import os
 try:
     import krita
 except:
     print( "[Frame Handler]: Krita not available" )
 
-import os
-
-import time
-
-DEFAULT_OUTPUT_DIR = ".output"
+#DEFAULT_OUTPUT_DIR = ".output"
+DEFAULT_PREFIX = "pxlb_"
 class FrameHandler( object ):
     """
         Utility object to export and import frames/images from and to krita.
     """
-    def __init__( self , doc , krita_instance , subfolder = DEFAULT_OUTPUT_DIR , xRes = None , yRes = None , info = None , debug = False ):
+    #def __init__( self , doc , krita_instance , out_directory = "" , xRes = None , yRes = None , info = None , debug = False ):
+    def __init__( self , doc , krita_instance , xRes = None , yRes = None , info = None , debug = False ):
         """
             ARGUMENTS
                 doc(krita.Document):            Current Document.
@@ -48,9 +48,7 @@ class FrameHandler( object ):
         self.kis    = krita_instance
         self.doc    = doc
         self.bounds = doc.bounds()
-        self.sub    = subfolder.strip()
-        self.docdirpath    = f"{ os.path.dirname(doc.fileName()) }"
-        self.exportdirpath = f"{ self.docdirpath }/{ subfolder }"
+        self.exportdirpath = None
         self.exported      = []
         self.exportReady   = False
         if not debug:
@@ -278,26 +276,13 @@ class FrameHandler( object ):
             RETURNS
                 bool
         """
-        while not self.exportReady:
-            try:
-                os.makedirs( self.exportdirpath )
-            except FileNotFoundError:
-                self.debug( f"[FrameHandler]: couldn't create: {self.exportdirpath} trying again " )
-                self.exportdirpath = os.path.dirname( self.doc.fileName() ) + "/" + DEFAULT_OUTPUT_DIR
-                self.debug( f"                with a new name {self.exportdirpath}." )
-                self.exportReady = False
-            except FileExistsError:
-                self.exportReady = True
-            except PermissionError:
-                self.debug( f"[FrameHandler]: Write Permissions Denied. Couldn't create {self.exportdirpath}"  )
-                self.debug( f"                maybe you have not saved the document before apply this plugin." )
-                self.exportReady = False
-                break
-            else:
-                self.exportReady = True
+        self.exportdirpath = mkdtemp( prefix = DEFAULT_PREFIX )
+        self.exportReady   = len( self.exportdirpath ) > 0
+        if not self.exportReady:
+            self.debug( f"[FrameHandler]: Unable to make temporal directory" )
         return self.exportReady
 
-    def removeExportedFiles( self , removeSubFolder = False ):
+    def removeExportedFiles( self ):
         """
             ARGUMENTS
                 removeSubFolder(bool): Used to know when is totally required remove the subfolder.
@@ -309,11 +294,12 @@ class FrameHandler( object ):
         try:
             for f in self.exported:
                 os.remove( f )
-            if removeSubFolder:
-                try:
-                    os.rmdir( self.exportdirpath )
-                except:
-                    self.debug( f"[FrameHandler] Unable to remove the export directory [ {self.exportdirpath} ]." )
+            try:
+                os.rmdir( self.exportdirpath )
+            except:
+                self.debug( f"[FrameHandler] Unable to remove the export directory [ {self.exportdirpath} ]." )
+                return False
+
             return True
         except:
             self.debug( f"[FrameHandler] Unable to remove exported files" )

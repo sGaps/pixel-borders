@@ -129,10 +129,13 @@ class GUI( QObject ):
         menu.back.setEnabled( False )
         menu.next.setEnabled( False )
 
-        pdata = menu.collectDataFromPages()
-        cdata = {}
-        for key , value in pdata.items():
-            cdata[key] = self.data.get( key , None ) or value
+        # BUG: Doesn't load the previous border recipe
+        cdata = self.data                       # Current Data
+        pdata = menu.collectDataFromPages()     # Pages Data
+
+        diff  = set( pdata.keys() ).difference( set(cdata.keys()) )
+        for key in diff:
+            cdata[key] = pdata[key]
 
         self.data = cdata.copy()
         if KRITA_AVAILABLE:
@@ -165,7 +168,7 @@ class GUI( QObject ):
 
         # Worker Thread:
         self.thread     = QThread()
-        self.borderizer = Borderizer( self.arguments )
+        self.borderizer = Borderizer( self.arguments , cleanUpAtFinish = True )
         border          = self.borderizer
         thread          = self.thread
 
@@ -211,6 +214,7 @@ class GUI( QObject ):
         # Default: Animate all timeline
         del self.data['debug']
         del self.data['animation']
+        del self.data['name']
         self.saveConfig()
 
     def onRollback( self ):

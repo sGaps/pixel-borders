@@ -207,7 +207,7 @@ class Borderizer( QObject ):
                 ** implicit **
                 self.arguments(KisData):
             RETURNS
-                bool. 
+                bool.
             SEE ALSO:
                 .Arguments.KEYS
             Make borders to the given krita's node, using the keys defined in the global variable KEYS.
@@ -297,7 +297,7 @@ class Borderizer( QObject ):
                 return
             else:
                 self.submitRollbackStep( lambda: doc.setCurrentTime(original_time) )
-                self.submitRollbackStep( lambda: frameH.removeExportedFiles(removeSubFolder = True) )
+                self.submitRollbackStep( lambda: frameH.removeExportedFiles() )
                 # < ROLLBACK |-----------------------
 
             self.report.emit( "Exporting frames" )
@@ -380,7 +380,7 @@ class Borderizer( QObject ):
             self.targetRemoved = True
 
             if self.cleanUpAtFinish:
-                frameH.removeExportedFiles( removeSubFolder = True )
+                frameH.removeExportedFiles()
             # DONE:
             doc.setCurrentTime( original_time )
         else:

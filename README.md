@@ -1,5 +1,3 @@
-<link href="style.css" rel="stylesheet"></link>
-
 # Pixel Borders <img width=35 height=35 src="https://simpleicons.org/icons/python.svg"/> <img width=35 height=35 src="https://simpleicons.org/icons/krita.svg"/> <img width=35 height=35 src="https://simpleicons.org/icons/qt.svg"/> #
 
 A plugin for your pixel-art. This helps you to make borders to your
@@ -105,6 +103,7 @@ folder.
 2. Open Krita and click on `tools > scripts > Import Python Plugin`.
 
 **After download**, the directory hierarchy should look like this:
+
 ![PluginInstalled]
 
 ## Enable the Plugin! :zap: ###
