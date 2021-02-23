@@ -53,14 +53,14 @@
 """
 # Debug module
 from sys            import stderr
+from struct         import pack , unpack
+from collections    import deque
+
 try:
-    from krita      import Selection , Krita , ManagedColor
+    from krita      import Krita , ManagedColor
 except:
     print( "[Arguments] Krita Not available" , file = stderr )
 
-# Critical built-in modules
-from struct         import pack , unpack
-from collections    import deque
 # Critical custom modules
 from .AlphaGrow     import Grow
 from .AlphaScrapper import Scrapper
@@ -275,7 +275,7 @@ class KisData( object ):
         else:
             mcolor = ManagedColor( self.node.colorModel() , self.node.colorDepth() , self.node.colorProfile() )
             mcolor.setComponents( components )
-        # This explicit conversion is totally required because Krita's View objects sometimes don't
+        # This explicit conversion is totally required because Krita's View objects don't
         # update the color space of user's color (foreground and background colors)
         mcolor.setColorSpace( self.node.colorModel() , self.node.colorDepth() , self.node.colorProfile() )
 

@@ -19,25 +19,36 @@
     [*] Author
      |- Gaps : sGaps : ArtGaps
 """
+from sys                import stderr
+from struct             import pack , unpack
+import cProfile
+
 try:
-    from krita          import Selection , Krita , ManagedColor
+    from krita          import Krita
 except:
-    print( "[Borderizer] Krita Not available" )
+    print( "[Borderizer] Krita Not available" , file = stderr )
+
 from PyQt5.QtCore       import QRect , QObject , pyqtSlot , pyqtSignal
 from PyQt5.QtCore       import QMutex
-from struct             import pack , unpack
-from sys                import stderr
 
 from .AlphaGrow         import Grow
 from .Arguments         import KisData
 from .AlphaScrapper     import Scrapper
 from .FrameHandler      import FrameHandler
-import cProfile
 
 class Borderizer( QObject ):
     """
         Object used to make borders to regular, group or animated nodes.
         This will search into the sub node hiearchy to make the borders correctly.
+
+        SIGNALS
+            progress(int)       notify the current step number
+            stepName(str)       notify the current step Name
+            report(str)         send a description about what Borderizer is doing
+            workDone()          notify when all operations were done correctly.
+            rollbackDone()      notify when all rollback operations were done correctly.
+            rollbackRequest()   used only by Borderizers.
+            frameNumber()       notify which frame is making currently.
     """
     progress        = pyqtSignal( int )
     report          = pyqtSignal( str )
@@ -54,8 +65,9 @@ class Borderizer( QObject ):
                          parent    = None            ):
         """
             ARGUMENTS
-                info(krita.InfoObject): Specify some special arguments to export files.
-                cleanUpAtFinish(bool):  Indicates if is totally required to remove all exported files.
+                arguments(KisData):     Parsed Arguments from krita.
+                obj_name(str):          Name of the current object.
+                cleanUpAtFinish(bool):  if True, deletes the tmp/pxl_* directory created by Borderizer.
         """
         super().__init__( parent )
         self.setArguments( arguments )
@@ -71,11 +83,19 @@ class Borderizer( QObject ):
         self.targetRemoved = False
 
     def setArguments( self , arguments ):
+        """
+            ARGUMENTS
+                arguments(KisData):     Parsed Arguments from krita.
+            Updates the current arguments of the Borderizer object.
+        """
         self.arguments = arguments
         self.debug     = arguments.debug
 
     @pyqtSlot()
     def stopRequest( self ):
+        """
+            Says to Borderizer when it has to stop.
+        """
         self.report.emit( "Trying to stop" )
         # Force to Stop. No matters what!
         self.enterCriticalRegion()
@@ -84,26 +104,37 @@ class Borderizer( QObject ):
 
     @pyqtSlot()
     def enterCriticalRegion( self ):
+        """ wrapper over QMutex.lock() """
         self.critical.lock()
 
     @pyqtSlot()
     def exitCriticalRegion( self ):
+        """ wrapper over QMutex.unlock() """
         self.critical.unlock()
 
     @pyqtSlot()
     def rollback( self ):
+        """ Undo all operations done by the Borderizer. """
         steps = self.getRollbackSteps()
         steps.reverse()
         [ step() for step in steps ]
         self.rollbackDone.emit()
 
     def getRollbackSteps( self ):
+        """ Get all operations to undo by the Borderizer. """
         return self.rollbackList
 
     def submitRollbackStep( self , rollback_step ):
+        """ ARGUMENTS
+                rollback_step(function()): operation to perform
+            Add the rollback_step into the rollbackList.
+        """
         self.getRollbackSteps().append( rollback_step )
 
     def keepRunningNormally( self ):
+        """
+            Verify if the Borderizer is able to run.
+        """
         # | CRITICAL >-----------------------
         self.enterCriticalRegion()
         keepItUp = self.keepRunning
@@ -195,6 +226,10 @@ class Borderizer( QObject ):
 
     @pyqtSlot()
     def run( self ):
+        """
+            Safe-Wrapper of Borderizer.runBorderizer function.
+            Enable/Disable the python's profiler when it's required.
+        """
         if self.debug:
             cProfile.runctx( "self.runBorderizer()" , globals() , locals() )
         else:
@@ -305,6 +340,7 @@ class Borderizer( QObject ):
             colordata = None
             index     = 0
             for t in timeline:
+                # BUG: QObject::killTimer exception occurs here too
                 # Polling ------------------------
                 if not self.keepRunningNormally():
                     return
@@ -360,6 +396,7 @@ class Borderizer( QObject ):
             # Exit:
             # | ROLLBACK >-----------------------
             self.report.emit( "Importing frames..." )   # Here passed someting weird. Program freezes and got killed.
+            # BUG: Sometimes QObject::killTimer will raise an exception after import an animation. I must see what it's happening and fix it before launch the release 1.0.0
             importResult = client.serviceRequest( frameH.importFrames , start , frameH.get_exported_files() )
             self.report.emit( "Frames imported" )   # Here passed someting weird. Program freezes and got killed.
             border = doc.topLevelNodes()[Borderizer.ANIMATION_IMPORT_DEFAULT_INDEX]
@@ -368,8 +405,11 @@ class Borderizer( QObject ):
             parent.addChildNode( border , source )
             border.setName( name )
             border.setColorSpace( kiscolor.colorModel , kiscolor.colorDepth , kiscolor.colorProfile )
-            border.enableAnimation()
+            # MOVE TO CURRENT KRITA's THREAD:
+            prev_thread = border.thread()
+            border.moveToThread( source.thread() )
 
+            # TODO: Do I have to put `lambda: border.deleteLater()` after this?
             self.submitRollbackStep( lambda: border.remove() )
             # < ROLLBACK |-----------------------
 
@@ -433,3 +473,4 @@ class Borderizer( QObject ):
         self.workDone.emit()
         self.report.emit( f"Done!" )
         return
+
