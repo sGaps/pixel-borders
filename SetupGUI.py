@@ -175,6 +175,7 @@ class GUI( QObject ):
         # Concurrency:
         border.moveToThread( thread )
         thread.started.connect( border.run )
+        thread.setObjectName( "Borderizer-Thread" )
 
         # Setup Connections:
         border.report.connect( waitp.usrMSG.setText )

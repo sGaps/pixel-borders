@@ -16,7 +16,6 @@ now, it's finally available here.
 4. Configure the new border.
 5. Wait for done.
 
-> **NOTE**: Animation features only works on saved documents.
 
 #### <img width=35 height=35 src="./gui/images/quick.svg"> Quick Mode ####
 Useful when you want a simple border. Choose the method you want and they will
@@ -35,29 +34,38 @@ click.
 #### <img width=35 height=35 src="./gui/images/ok.svg"> Border Methods #####
 
 * _**any-neighbor**_: The pixel becomes opaque when there's at least one opaque pixel next to it.
-<img style='display:block; margin-left:auto; margin-right:auto;' src="./tutorial/any-neighbor.png">
+
+* _**any-neighbor**_: The pixel becomes opaque when there's at least one opaque pixel next to it.
 
 * _**force**_: same as `any-neighbor` but faster.
-<img style='display:block; margin-left:auto; margin-right:auto;' src="./tutorial/force.png">
 
 * _**corners**_: The pixel becomes opaque if it's qualified as a corner. It is when it has 1 vertical and 1 horizontal opaque neighbor.
-<img style='display:block; margin-left:auto; margin-right:auto;' src="./tutorial/corners.png">
 
 * _**not-corners**_: Complement of `corners` method.
 qualified as a corner. It is when it has 1 vertical and 1 horizontal opaque neighbor.
-<img style='display:block; margin-left:auto; margin-right:auto;' src="./tutorial/not-corners.png">
+
 * _**strict-horizontal**_: The pixel becomes opaque if it has only horizontal opaque neighbors.
 qualified as a corner. It is when it has 1 vertical and 1 horizontal opaque neighbor.
-<img style='display:block; margin-left:auto; margin-right:auto;' src="./tutorial/strict-horizontal.png">
 
 * _**strict-vertical**_: The pixel becomes opaque if it has only vertical opaque neighbors.
-<img style='display:block; margin-left:auto; margin-right:auto;' src="./tutorial/strict-vertical.png">
+
+|       Method          |         Result        |
+| --------------------- | --------------------- |
+| `None`                | ![None]               |
+| `any-neighbor`        | ![Any-Neighbor]       |
+| `corners`             | ![Corners]            |
+| `not-corners`         | ![Not-Corners]        |
+| `strict-horizontall`  | ![Strict-Horizontal]  |
+| `strict-vertical`     | ![Strict-Vertical]    |
+
+
 
 ## Plugin structure ##
 This was made with **PyQt5**, the **Krita's python API** and **built-in**
 **python modules**.
 
 `Pixel Borders` has two main sub-packages:
+
 * `core`: Its hearth. Manages and perform all required process to make the
 borders from a `source layer`.
 * `gui`: The interactive interface to fill out the required and pass it to
@@ -131,9 +139,17 @@ folder.
 ---
 _sGaps(Here) | ArtGaps | Gaps(Pixiv)_
 
-[//]:         ------------(References)-------------
+[//]:         #------------(References)-------------
 [Pixiv]:      <https://pixiv.me/artgaps>
 [Newgrounds]: <https://artgaps.newgrounds.com/>
 [Github]:     <https://github.com/sGaps>
 [DeviantArt]: <https://www.deviantart.com/artgaps>
 [PluginInstalled]: <./tutorial/plugin-installed.png>
+[//]:         #------------(Borders)-------------
+[Any-Neighbor]: <./tutorial/any-neighbor.png>
+[Corners]: <./tutorial/corners.png>
+[Not-Corners]: <./tutorial/not-corners.png>
+[Strict-Horizontal]: <./tutorial/strict-horizontal.png>
+[Strict-Vertical]: <./tutorial/strict-vertical.png>
+[None]: <./tutorial/none.png>
+
