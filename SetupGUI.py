@@ -233,15 +233,20 @@ class GUI( QObject ):
     def run( self ):
         self.menu.show()
 
-def test( _ ):
-    gui  = GUI( "Pixel Borders - Test" )
-    gui.run()
-
 def main():
-    platform = QApplication([])
+    platform = QApplication.instance()
+    if not platform:
+        platform = QApplication([])
+        run      = platform.exec_
+    else:
+        run      = lambda: None
+
     gui  = GUI( "Pixel Borders - Test" )
     gui.run()
-    platform.exec_()
+    run()
+
+def test( _ = () ):
+    main()
 
 if __name__ == "__main__":
     main()

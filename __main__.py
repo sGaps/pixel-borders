@@ -15,5 +15,5 @@
     >>> $ kritarunner -s pixel_borders.__main__
     (kritarunner -s script-name -f function-name)
 """
-from .SetupGUI import main
+from .SetupGUI import main , test
 main()

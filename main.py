@@ -23,7 +23,7 @@
 """
 
 from .Context  import CONTEXT , Extension
-from .SetupGUI import GUI
+from .SetupGUI import GUI , main , test
 
 METADATA = { "SYS_ID"    : "pykrita_pixel_border" ,
              "NAM_ID"    : "Pixel Borders"        ,

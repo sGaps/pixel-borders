@@ -9,7 +9,7 @@ try:
     from krita import Krita
     from .main import PixelExtension
 except ImportError as error:
-    from .main import PixelExtension
+    from .main import PixelExtension , main , test
     for e in error.args:
         print( "[Pixel Border] Warning:" , e , file = stderr )
 else:

@@ -49,6 +49,14 @@ class Borderizer( QObject ):
             rollbackDone()      notify when all rollback operations were done correctly.
             rollbackRequest()   used only by Borderizers.
             frameNumber()       notify which frame is making currently.
+
+        SLOTS
+            stopRequest()
+            enterCriticalRegion()
+            exitCriticalRegion()
+            rollback()
+            run()
+            runBorderizer()
     """
     progress        = pyqtSignal( int )
     report          = pyqtSignal( str )
