@@ -26,7 +26,6 @@ class KisStatus( object ):
 
     def stopRequest( self ):
         self.mutex.acquire()
-        print( "Someone invoked this" )
         self.fromGUI = KisStatus.STOP
         self.mutex.release()
 

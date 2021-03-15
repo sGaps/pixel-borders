@@ -39,16 +39,11 @@ class Writer( object ):
         self.status        = status
 
         self.raw           = inQueue
-        #self.done          = outQueue
 
-        # Sync.:
-        #self.flushNow     = flushNow
-        #self.flushDone    = flushDone 
         # Messages and more:
         self.report       = report
         self.error        = error
         self.stepDone     = stepDone
-        #self.progress     = progress
 
     @staticmethod
     def makePxData( nocolor , opBytes , minimalAlpha , length , nchans , chsize ):
@@ -113,7 +108,6 @@ class Writer( object ):
         # I/O Reports ------------
         report     = self.report
         error      = self.error
-        #progress   = self.progress
         stepDone   = self.stepDone
 
         # Shared Data ----------------
@@ -125,15 +119,12 @@ class Writer( object ):
 
         nchans     = self.args.nchans
         chsize     = self.args.chsize
-        #frameH     = self.args.frameHandler
         animator   = self.args.animHandler
         # ----------------------------
 
         # Cache:
         makePxData = Writer.makePxData
         fillWith   = Writer.fillWith
-
-        #index      = 0
 
         # Barriers -------------------
         writeDone   = self.writeDone
@@ -143,7 +134,6 @@ class Writer( object ):
         id_writer   = self.id_writer
         workstatus  = self.workstatus
 
-        # TODO: Fix exit condition!!
         while True:
             # Extract ------------------------------------
             try:
@@ -196,12 +186,11 @@ class Writer( object ):
                     status.internalStopRequest( f"[core.Writer]: Error while trying to export the frame {time} of <{target.name()}>\n"          +
                                                  "             : Maybe this layer doesn't have permissions to write in the target directory.\n" +
                                                  "             : Or there's an error with the worker threads sync."                             )
-
             # Clean the layer:
             fillWith( target , trPixel * length , bounds )
-
             # [*] PROGRESS BAR:
             stepDone()
+
             wakeup_index = flushDone.wait()
         # All Done
 

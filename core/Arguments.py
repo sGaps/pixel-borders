@@ -327,8 +327,6 @@ class KisData( object ):
         # [/] Timeline:
         if data["try-animate"]:
             primTimeline  = data["animation"]
-            # TODO: Clean
-            #self.timeline            = self.frameHandler.get_animation_range( self.node , *primTimeline ) # [start, finish]
             self.timeline = AnimationHandler.extract_animation_range_of( self.node , *primTimeline ) # [start, finish]
             if self.timeline:
                 self.start , self.finish = self.timeline.start , self.timeline.stop - 1

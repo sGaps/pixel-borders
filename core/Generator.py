@@ -1,8 +1,8 @@
 from .Arguments import KisData
 from .KisStatus import KisStatus , ALPHA
+from .AlphaGrow import Grow
 from queue      import SimpleQueue
 
-from .AlphaGrow import Grow
 
 class Generator( object ):
     """ Make borders to each layer """ 
@@ -55,7 +55,6 @@ class Generator( object ):
         error    = self.error
         stepDone = self.stepDone
 
-        # TODO: Delete Grow object in KisArguments
         runRecipe  = Generator.runRecipe
         grow       = Grow.singleton()
 

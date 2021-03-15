@@ -164,8 +164,9 @@ class AnimationHandler( object ):
         return self.exportReady
 
     def clean_up_all( self ):
+        frame_names = [ f"{self.exportdir}/{frame}" for frame in self.exported ]
         try:
-            for f in self.exported:
+            for f in frame_names:
                 os.remove( f )
             try:
                 os.rmdir( self.exportdir )
@@ -232,6 +233,6 @@ class AnimationHandler( object ):
         searchpath  = self.exportdir
         frame_names = file_basenames.copy()
         frame_names.sort()
-        frame_names = [ f"{searchpath}/{file}" for file in frame_names ]
+        frame_names = [ f"{searchpath}/{frame}" for frame in frame_names ]
         return AnimationHandler.import_frames( self.doc , startframe , frame_names )
 

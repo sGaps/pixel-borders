@@ -14,7 +14,8 @@ class WaitPage( SinkPage ):
 
         self.cancel    = buttonWithIcon( "Cancel" , False , WaitPage.CANCEL, icon_size = (32,32) )
         self.info      = buttonWithIcon( "About"  , False , WaitPage.ABOUT , icon_size = (32,32) )
-        self.progress = QProgressBar()
+        self.progress  = QProgressBar()
+        self.fnum      = 0
 
         font          = QFont()
         font.setBold  ( True )
@@ -58,5 +59,15 @@ class WaitPage( SinkPage ):
 
     @pyqtSlot( int )
     def updateFrameNumber( self , n ):
+        self.fnum = n
         self.frame.setText( f"{n}" )
+
+    @pyqtSlot()
+    def eraseFrameNumber( self ):
+        self.frame.setText( f"" )
+
+    @pyqtSlot()
+    def incrementFrameNumber( self ):
+        self.fnum += 1
+        self.frame.setText( f"{self.fnum}" )
 

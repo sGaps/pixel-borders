@@ -1,25 +1,31 @@
+# Plugin's Realm:
 from .Reader    import Reader
 from .Generator import Generator
 from .Writer    import Writer
 from .KisStatus import KisStatus
 from .Arguments import KisData
 from .Service   import Client
+# Python's Realm:
 from threading  import Thread , Barrier
 from queue      import SimpleQueue
 
+# Debugging/Profiling:
 import cProfile
 
+# A beautiful non-Qt object.
 class Border( object ):
     ANIMATION_IMPORT_DEFAULT_INDEX = -1
     def __init__( self , kis_arguments  = KisData()          ,
                          status         = KisStatus()        ,
                          setSteps       = (lambda start, end: None),
-                         resetSteps     = (lambda: None),
+                         resetSteps     = (lambda: None)     ,
                          report         = (lambda msg: None) ,
                          error          = (lambda msg: None) ,
-                         stepName       = (lambda msg: None) ,# connect with: waitp.fstep.setText
-                         frameNumber    = (lambda num: None) ,# connect with: waitp.updateFrameNumber
-                         stepDone       = (lambda:     None) ,# 'Atomic' Increment
+                         stepName       = (lambda msg: None) ,      # must use: waitp.fstep.setText
+                         frameNumber    = (lambda num: None) ,      # must use: waitp.updateFrameNumber or something like that
+                         frameIncrement = (lambda:     None) ,      # must use: waitp.incrementFrameNumber
+                         frameErase     = (lambda:     None) ,      # must use: waitp.reset
+                         stepDone       = (lambda:     None) ,      # 'Atomic' Increment
                          workDone       = (lambda:     None) ,
                          rollbackDone   = (lambda:     None) ):
         """
@@ -31,12 +37,16 @@ class Border( object ):
 
         self.setSteps   = setSteps
         self.resetSteps = resetSteps
-        self.report   = report
-        self.error    = error
-        self.stepName = stepName
+        # I/O Report:
+        self.report      = report
+        self.error       = error
+        self.stepName    = stepName
         self.frameNumber = frameNumber
+        self.frameIncrement = frameIncrement
+        self.frameErase     = frameErase
         self.stepDone    = stepDone
 
+        # Finalization/Termination/Clean-up:
         self.workDone     = workDone
         self.rollbackDone = rollbackDone
         self.rollbackList = []
@@ -90,6 +100,10 @@ class Border( object ):
         else:
             self.run_now()
 
+    def progressUpdate( self ):
+        self.frameIncrement()
+        self.stepDone()
+
     def run_now( self , nWorkers = 4 ):
         """Apply all steps to add borders for your paint/group-layer. """
         # Counted by: value<reason>.
@@ -107,6 +121,8 @@ class Border( object ):
         rollbackDone = self.rollbackDone
         stepName     = self.stepName
         frameNumber  = self.frameNumber
+        progress     = self.progressUpdate
+        frameErase   = self.frameErase
 
         setSteps   = self.setSteps
         resetSteps = self.resetSteps
@@ -154,13 +170,16 @@ class Border( object ):
         #                       KRITA COMMUNICATION,
         #                       SERIAL
         report( "Fetching alpha data" )
+        stepName( "Raw Frames:" )
+        frameNumber( 0 )
         raw_alphas = SimpleQueue()
         reader = Reader( args,
                          raw_alphas,
                          status,
                          report,
                          status.internalStopRequest,
-                         stepDone )
+                         #stepDone )
+                         progress )
         reader.run()
 
         # Step 2: Apply the grow recipe to each alpha data:
@@ -168,6 +187,7 @@ class Border( object ):
         #                       PARALLEL
         report( "Building Generators" )
         stepName( "Alpha Frames:" )
+        frameNumber( 0 )
         grow_alphas = SimpleQueue()
         generators  = [ Generator( args,
                                raw_alphas,
@@ -175,7 +195,8 @@ class Border( object ):
                                status,
                                report,
                                status.internalStopRequest,
-                               stepDone ) for _ in range(nWorkers) ]
+                               #stepDone ) for _ in range(nWorkers) ]
+                               progress ) for _ in range(nWorkers) ]
         tgenerators = [ Thread( target = generators[i].run , name = f"generator-{i}" )
                         for i in range(nWorkers)        ]
         for tg in tgenerators:
@@ -213,6 +234,7 @@ class Border( object ):
             client.serviceRequest(args.parent.addChildNode, targets[i], args.node)
         report( "Exporting Borders" )
         stepName( "Frames:" )
+        frameNumber( 0 )
         workstatus = [True] * nWorkers # Says to writers if they have to keep working
         writers  = [ Writer( args,
                             i,
@@ -224,10 +246,9 @@ class Border( object ):
                             grow_alphas,
                             status,
                             report,
-                            #error,
                             status.internalStopRequest,
-                            #progress )
-                            stepDone )
+                            # stepDone )
+                            progress )
                     for i in range(nWorkers) ]
         twriters = [ Thread( target = writers[i].run , name = f"writer-{i}" )
                     for i in range(nWorkers)                                 ]
@@ -254,6 +275,8 @@ class Border( object ):
         # Step 4: Import frames if required, else rename the target.
         # -------   <*>TAGS:    ROLLBACK (on imported frames),
         #                       SERIAL
+        stepName( "" )
+        frameErase()
         if args.timeline:
             report( "Importing Borders" )
             if not client.serviceRequest( animator.import_by_basename , args.start , animator.get_exported_file_basenames() ):
@@ -261,11 +284,6 @@ class Border( object ):
                 status.internalStopRequest( "[core.Borderizer]: UNABLE TO IMPORT ANIMATION FRAMES." )
             else:
                 report( "Borders Imported" )
-
-            # <| ROLLBACK <------------------------
-            if self.hasToExit( status ): return
-            # <| ROLLBACK <------------------------
-
             border = args.doc.topLevelNodes()[Border.ANIMATION_IMPORT_DEFAULT_INDEX]
             border.remove()
             args.parent.addChildNode( border , args.node )
@@ -295,7 +313,7 @@ class Border( object ):
         animator.clean_up_all()
         stepDone() # Delete Temporal Directory
         # ALL DONE:
-        stepName( "Complete:" )
+        stepName( "Complete" )
         report  ( "Done!" )
         doc.setBatchmode( batchD )
 

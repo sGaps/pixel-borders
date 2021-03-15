@@ -104,8 +104,8 @@ class Reader( object ):
                 return
 
             client.serviceRequest( doc.setCurrentTime , t )
-            client.serviceRequest( doc.waitForDone       )
-            client.serviceRequest( doc.refreshProjection )
+            client.serviceRequest( doc.refreshProjection  )
+            client.serviceRequest( doc.waitForDone        )
 
             # Clean previous data
             bounds = getBounds( source , dbounds , thickness )
