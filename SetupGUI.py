@@ -8,6 +8,7 @@ try:
 except:
     KRITA_AVAILABLE = False
 
+# Graphical Interface:
 from .gui.SmartMenu     import Menu
 from .gui.MenuPage      import MenuPage
 from .gui.NamePage      import NamePage
@@ -18,18 +19,17 @@ from .gui.CustomPage    import CustomPage
 from .gui.WaitPage      import WaitPage
 from .gui.TdscPage      import TdscPage
 from .gui.AnimPage      import AnimPage
+
+# Core and Built-In Modules:
 from .core.Arguments    import KisData
 from .core.Service      import Service , Client
 from .DataLoader        import loadData , writeData
-
-
 # New modules:
 from .core.Border       import Border
 from .core.Reader       import Reader
 from .core.Generator    import Generator
 from .core.KisStatus    import KisStatus
 from .core.Writer       import Writer
-
 from threading import Thread
 
 
