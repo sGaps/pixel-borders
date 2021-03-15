@@ -17,6 +17,14 @@
 """
 from PyQt5.QtCore       import QObject , pyqtSignal , pyqtSlot , QMutex , QSemaphore
 from queue              import SimpleQueue
+from collections        import deque, namedtuple
+
+class REQUEST(
+    namedtuple(
+        typename    = 'REQUEST',
+        field_names = ['who','function','args']
+              )
+           ): pass
 
 class Service( QObject ):
     """ Must be connected to a Client """
@@ -25,52 +33,36 @@ class Service( QObject ):
     serviceRequest = pyqtSignal()
     def __init__( self , parent = None ):
         super().__init__( parent )
-
-        # Server side:
-        self.buffer = SimpleQueue()
-
-        self.service  = lambda: None
-        self.arg_list = []
-
+        # Server side: Request 
+        self.queries = SimpleQueue() # of REQUEST
         # Qt side:
         self.serviceRequest.connect( self.answerRequest ) # (service) <<= (client)
 
-    def setService( self , service = lambda: None , *arg_list ):
-        """ ARGUMENTS
-                service(function(*args)): function applied in Service.
-                *arg_list:                arguments passed to the service
-                                          function.
-            Updates the default service and argument list. """
-        self.service  = service
-        self.arg_list = arg_list
+    def request( self , who , function , *args  ):
+        self.queries.put( REQUEST(who,function,args) )
+        self.serviceRequest.emit()
 
-    # Producer:
     @pyqtSlot()
     def answerRequest( self ):
         """ Offer a service to a client and give it the result. """
         # Produce/Apply ----------------------------
-        product = self.service( *self.arg_list )
+        who , function , args = self.queries.get()
+        product = function( *args )
         # ------------------------------------------
 
-        # Add to 'Buffer' --------------------------
-        self.buffer.put( product , block = True )
+        # Add to Client's "Mailbox" ----------------
+        who.putResponse( product )
         # ------------------------------------------
-
 
 class Client( QObject ):
     """ Must be connected to a Service """
     def __init__( self , serv = Service() , parent = None ):
         super().__init__( parent )
-        self.service       = serv
+        self.service  = serv
+        self.response = SimpleQueue()
 
-        # Client side:
-        self.result        = None
-
-    def sendRequest( self ):
-        """ Send a new service request to a Service Object. """
-        self.service.serviceRequest.emit() # (client) =>> (service)
-        # Wait For Done -------------------------------------------
-        return self.service.buffer.get( block = True )
+    def putResponse( self , product ):
+        self.response.put( product )
 
     def serviceRequest( self , func , *arg_list ):
         """ ARGUMENTS
@@ -79,8 +71,9 @@ class Client( QObject ):
                                           function.
             Send a new service function to the Service object and waits until
             it finishes. Retrieve and return the new result from it. """
-        self.service.setService( func , *arg_list ) # Current Thread (Sync)
-        return self.sendRequest()                          # (Force Sync)
+        self.service.request( self , func , *arg_list )
+        # Wait For Done -------------------------------------------
+        return self.response.get( block = True )
 
 if __name__ == "__main__":
     from PyQt5.QtCore       import QThread

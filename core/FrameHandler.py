@@ -1,6 +1,7 @@
 # Module:      core.FrameHandler.py | [ Language Python ]
 # Created by: ( Gaps | sGaps | ArtGaps )
 # -----------------------------------------------------
+# TODO: DELETE THIS, IT'S DEPRECATED
 """
     Defines a FrameHandler object to manage few special operations like
     import animations and export krita nodes as files.
@@ -29,12 +30,14 @@ except:
 
 #DEFAULT_OUTPUT_DIR = ".output"
 DEFAULT_PREFIX = "pxlb_"
+def error( msg ):
+    print( msg , file = stderr )
+
 class FrameHandler( object ):
     """
         Utility object to export and import frames/images from and to krita.
     """
-    #def __init__( self , doc , krita_instance , out_directory = "" , xRes = None , yRes = None , info = None , debug = False ):
-    def __init__( self , doc , krita_instance , xRes = None , yRes = None , info = None , debug = False ):
+    def __init__( self , doc , krita_instance , exportdirpath = "" , xRes = None , yRes = None , info = None , debug = False ):
         """
             ARGUMENTS
                 doc(krita.Document):            Current Document.
@@ -48,9 +51,10 @@ class FrameHandler( object ):
         self.kis    = krita_instance
         self.doc    = doc
         self.bounds = doc.bounds()
-        self.exportdirpath = None
+        self.exportdirpath = exportdirpath
         self.exported      = []
-        self.exportReady   = False
+        self.exportReady   = len(exportdirpath) > 0
+        self.debug = (lambda msg : print( msg , file = stderr )) if debug else (lambda msg: None)
         if not debug:
             self.debug = lambda msg : ()
         else:
@@ -80,6 +84,7 @@ class FrameHandler( object ):
             "transparencyFillcolor" : [255,255,255]
                     })
         return info
+
     def setInfo( self , info ):
         """
             ARGUMENTS
@@ -266,6 +271,8 @@ class FrameHandler( object ):
             Returns a list of all exported keyframes/files.
             each element is a full path to a file.
         """
+        if not self.exportReady:
+            error( "[Frame Handler]: WARNING! There isn't any export directory. Call build_directory() first!" )
         return self.exported
 
     def build_directory( self ):

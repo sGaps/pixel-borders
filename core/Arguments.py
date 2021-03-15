@@ -33,7 +33,7 @@
                             The first element must be in COLOR_TYPES.
                                 example: ["FG" , _]     node's Foreground used.
                                          ["BG" , _]     node's Background used.
-                                         ["CS" , comp]  Custom Managed Color Used.
+                                         ["CS" , comp]  Custom Managed Color Used. <<It could be used to debugging purposes>>
                                 where comp are color components (normalized)
             "trdesc":       Transparency descriptor. Iterable like: [boolean,float]
                                 [ use_transparency_as_opque , threshold ]
@@ -64,7 +64,8 @@ except:
 # Critical custom modules
 from .AlphaGrow     import Grow
 from .AlphaScrapper import Scrapper
-from .FrameHandler  import FrameHandler
+from .FrameHandler  import FrameHandler # TODO: Delete later ?
+from .AnimationHandler import AnimationHandler
 from .Service       import Service , Client
 
 METHODS = { "force"             : Grow.force_grow             ,
@@ -168,6 +169,7 @@ class KisColor( object ):
                 A bytes-like object. The minimum raw color component. """
         return pack(self.cast_str , 0)
 
+# TODO: Add a new attribute to set the number of workers in each step.
 class KisData( object ):
     """ Parse an raw dict object for the borderizer.
         NOTE: This exists for avoid weird issues with Qt memory management
@@ -229,21 +231,20 @@ class KisData( object ):
         report( f"Current Node:     {self.node  }" )
         report( f"Parent Node:      {self.parent}" )
         report( f"Scrapper:         {self.scrapper}" )
-        report( f"Frame Handler:    {self.frameHandler}" )
         report( f"Start Time:       {self.start}" )
         report( f"Finish Time:      {self.finish}" )
         report( f"Timeline Range:   {self.timeline}" )
         report( f"Service:          {self.service}" )
-        report( f"Client:           {self.client}" )
 
-    def updateAttributes( self , data ):
+    def updateAttributes( self , data , test_color = None ):
         """ ARGUMENTS
                 data(dict): Raw Krita's data.
+                test_color(krita.ManagedColor): overrides window/view's current colors [optional, only for debugging]
             EXCEPTIONS
                 AttributeError. If data has wrong values.
             Parse krita's data to make it safe to use."""
         dataset = set( data.keys() )
-        diff = KEYS.difference( dataset )
+        diff    = KEYS.difference( dataset )
         if diff:
             raise AttributeError( f"The keys: {diff} weren't provided. " +
                                   f"Unable to run with: {dataset}. Required keys: {KEYS}" )
@@ -264,13 +265,17 @@ class KisData( object ):
         self.win  = self.kis.activeWindow()
         self.view = self.win.activeView() if self.win else None
         if not ( self.win and self.view ):
-            raise AttributeError( f"Couldn't run with incomplete information: " +
-                                  f"window = {self.win}, view = {self.view}" )
+            error = AttributeError( f"Couldn't run with incomplete information: " +
+                                    f"window = {self.win}, view = {self.view}" )
+        else:
+            error = None
 
         colorType , components = data["colordsc"]
         if colorType == "FG":
+            if error: raise error
             mcolor = self.view.foregroundColor()
         elif colorType == "BG":
+            if error: raise error
             mcolor = self.view.backgroundColor()
         else:
             mcolor = ManagedColor( self.node.colorModel() , self.node.colorDepth() , self.node.colorProfile() )
@@ -317,12 +322,14 @@ class KisData( object ):
 
         # [&] Abstract Objects:
         self.scrapper     = Scrapper()
-        self.frameHandler = FrameHandler( self.doc , self.kis , debug = False )
+        self.animHandler = AnimationHandler( self.doc , debug = False )
 
         # [/] Timeline:
         if data["try-animate"]:
-            primTimeline = data["animation"]
-            self.timeline            = self.frameHandler.get_animation_range( self.node , *primTimeline ) # [start, finish]
+            primTimeline  = data["animation"]
+            # TODO: Clean
+            #self.timeline            = self.frameHandler.get_animation_range( self.node , *primTimeline ) # [start, finish]
+            self.timeline = AnimationHandler.extract_animation_range_of( self.node , *primTimeline ) # [start, finish]
             if self.timeline:
                 self.start , self.finish = self.timeline.start , self.timeline.stop - 1
             else:
@@ -333,7 +340,6 @@ class KisData( object ):
 
         # UPDATE: Service and Client built for manage concurrent requests.
         self.service = Service()
-        self.client  = Client( self.service )
 
         # [OK] All done:
         self.valid = True

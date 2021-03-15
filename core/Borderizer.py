@@ -1,6 +1,7 @@
 # Module:      core.Borderizer.py | [ Language Python ]
 # Created by: ( Gaps | sGaps | ArtGaps )
 # -----------------------------------------------------
+# TODO: DELETE THIS, IT'S DEPRECATED
 """
     Defines a Borderizer object to add pixel borders to a krita node.
 
@@ -35,6 +36,7 @@ from .AlphaGrow         import Grow
 from .Arguments         import KisData
 from .AlphaScrapper     import Scrapper
 from .FrameHandler      import FrameHandler
+from .Service           import Client
 
 class Borderizer( QObject ):
     """
@@ -258,18 +260,21 @@ class Borderizer( QObject ):
         a = self.arguments
 
         if not self.keepRunningNormally():
-            self.rollbackRequest.emit()
+            self.rollbackRequest.emit() # TODO: Remove this!
             return
 
         if not a:
             self.report.emit( "Not valid arguments" )
-            self.rollbackRequest.emit()
+            self.rollbackRequest.emit() # TODO: Remove this!
             return
 
         # Part Zero:
         name    = a.name
         service = a.service #
-        client  = a.client  # Used to make synchronous calls to krita from a different thread
+        # Used to make synchronous calls to krita from a different thread
+        # (it's faster than Blocking Queued connections)
+        client  = Client( service )
+        ###client  = a.client
 
         # Part One:
         kis    = a.kis
@@ -333,8 +338,8 @@ class Borderizer( QObject ):
             # Makes a new directory for the animation frames when it's possible.
             if not frameH.build_directory():
                 self.report.emit( "Cannot create a directory for the animation frames.\n"  +
-                                 "try save the file before apply this plugin or verify\n" +
-                                 "if krita has permissions over the current directory."   )
+                                  "try save the file before apply this plugin or verify\n" +
+                                  "if krita has permissions over the current directory."   )
                 self.rollbackRequest.emit()
                 # < ROLLBACK |-----------------------
                 return
@@ -391,6 +396,7 @@ class Borderizer( QObject ):
 
                 if not frameH.exportFrame( f"frame{t:0{anim_length}}.png" , target ):
                     self.report.emit( f"Error while trying to export the frame {t}" )
+                    self.stopRequest()
                     self.rollbackRequest.emit()
                     return
 
@@ -438,7 +444,10 @@ class Borderizer( QObject ):
             # Part Six:
             # Target must live outside (in krita). So, this layer cannot be created
             # in the current thread, else it will raise killTimer exceptions. (krita.Node <- QObject)
+
+            print( f"Borderizer's Thread: {self.thread()}, before client request." )
             target = client.serviceRequest( doc.createNode , ".target" , "paintlayer" )
+            print( f"Borderizer's Thread: {self.thread()}, after client request." )
             target.setColorSpace( kiscolor.colorModel , kiscolor.colorDepth , kiscolor.colorProfile )
             parent.addChildNode( target , source )
             self.submitRollbackStep( lambda: target.remove() )
