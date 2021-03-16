@@ -102,7 +102,7 @@ class Writer( object ):
 
         if not target:
             error( "[core.Writer]: Null target" )
-            status.internalStopRequest( "[core.Writer]: Nothing to do." )
+            status.internalStopRequest( "[core.Writer]: Can't work without any layer." )
             return
 
         # I/O Reports ------------
@@ -186,11 +186,12 @@ class Writer( object ):
                     status.internalStopRequest( f"[core.Writer]: Error while trying to export the frame {time} of <{target.name()}>\n"          +
                                                  "             : Maybe this layer doesn't have permissions to write in the target directory.\n" +
                                                  "             : Or there's an error with the worker threads sync."                             )
+                # [*] PROGRESS BAR:
+                stepDone()
             # Clean the layer:
             fillWith( target , trPixel * length , bounds )
-            # [*] PROGRESS BAR:
-            stepDone()
 
+            # Wait for the next iteration
             wakeup_index = flushDone.wait()
         # All Done
 

@@ -54,6 +54,9 @@ class Border( object ):
 
         self.justStop = False
 
+    def cleanRollbackList( self ):
+        del self.rollbackList
+        self.rollbackList = []
 
     def getStatus( self ):
         return self.status
@@ -103,6 +106,7 @@ class Border( object ):
     def progressUpdate( self ):
         self.frameIncrement()
         self.stepDone()
+ 
 
     def run_now( self , nWorkers = 4 ):
         """Apply all steps to add borders for your paint/group-layer. """
@@ -143,8 +147,8 @@ class Border( object ):
         # Calculate how many steps this has to do ----
         # NOTE: #F is the number of frames into node's animation.
         # nsteps = #F<Reader> + #F<Grow> + #F<Write> + 1<import> + 1<delete> + 1<move layer>
-        nsteps  = ITER_STEPS * len(args.timeline) if args.timeline else ITER_STEPS # A single frame
-        nsteps += BASIC_STEPS
+        nframes = len(args.timeline) if args.timeline else 1
+        nsteps  = ITER_STEPS * nframes + BASIC_STEPS - 1 # We do not count step 0.
 
         resetSteps()
         setSteps( 0 , nsteps )
@@ -159,11 +163,9 @@ class Border( object ):
         self.submitRollbackStep( lambda: client.serviceRequest( doc.setCurrentTime , original_time ) )
         # |> ROLLBACK >-----------------------------------------------------
 
-            
-        onlyWriteNode = False
         if not args.timeline:
+            # It isn't necessary use several threads in this case.
             nWorkers      = 1
-            onlyWriteNode = True
 
         # Step 1: Fetch the alpha channel data of each frame.
         # -------   <*>TAGS:    ROLLBACK (current time),
@@ -178,7 +180,6 @@ class Border( object ):
                          status,
                          report,
                          status.internalStopRequest,
-                         #stepDone )
                          progress )
         reader.run()
 
@@ -195,7 +196,6 @@ class Border( object ):
                                status,
                                report,
                                status.internalStopRequest,
-                               #stepDone ) for _ in range(nWorkers) ]
                                progress ) for _ in range(nWorkers) ]
         tgenerators = [ Thread( target = generators[i].run , name = f"generator-{i}" )
                         for i in range(nWorkers)        ]
@@ -247,7 +247,6 @@ class Border( object ):
                             status,
                             report,
                             status.internalStopRequest,
-                            # stepDone )
                             progress )
                     for i in range(nWorkers) ]
         twriters = [ Thread( target = writers[i].run , name = f"writer-{i}" )
@@ -277,41 +276,37 @@ class Border( object ):
         #                       SERIAL
         stepName( "" )
         frameErase()
-        if args.timeline:
-            report( "Importing Borders" )
-            if not client.serviceRequest( animator.import_by_basename , args.start , animator.get_exported_file_basenames() ):
-                report( "Cannot import animation frames" )
-                status.internalStopRequest( "[core.Borderizer]: UNABLE TO IMPORT ANIMATION FRAMES." )
-            else:
-                report( "Borders Imported" )
-            border = args.doc.topLevelNodes()[Border.ANIMATION_IMPORT_DEFAULT_INDEX]
-            border.remove()
-            args.parent.addChildNode( border , args.node )
-
-            # |> ROLLBACK >-----------------------------------------------------
-            self.submitRollbackStep( lambda: client.serviceRequest(border.deleteLater) )
-            self.submitRollbackStep( lambda: client.serviceRequest(border.remove)      )
-            # |> ROLLBACK >-----------------------------------------------------
-
-            for t in targets:
-                t.remove()
-                t.deleteLater()
-            self.targetsDeleted = True
-            stepDone() # Remove temporal targets.
+        report( "Importing Borders" )
+        if not client.serviceRequest( animator.import_by_basename , args.start , animator.get_exported_file_basenames() ):
+            report( "Cannot import animation frames" )
+            status.internalStopRequest( "[core.Borderizer]: UNABLE TO IMPORT ANIMATION FRAMES." )
         else:
-            report( "Adjusting Borders" )
-            border = targets[0]
-            stepDone() # Rename temporal targets.
-        stepDone() # Import/Selection Done
+            report( "Borders Imported" )
+        border = args.doc.topLevelNodes()[Border.ANIMATION_IMPORT_DEFAULT_INDEX]
+        border.remove()
+        args.parent.addChildNode( border , args.node )
+        stepDone() # (1) Import/Selection Done
+
+        # |> ROLLBACK >-----------------------------------------------------
+        self.submitRollbackStep( lambda: client.serviceRequest(border.deleteLater) )
+        self.submitRollbackStep( lambda: client.serviceRequest(border.remove)      )
+        # |> ROLLBACK >-----------------------------------------------------
+
+        report( f"Removing Targets ({nWorkers} of them)" )
+        for t in targets:
+            t.remove()
+            t.deleteLater()
+        self.targetsDeleted = True
+        stepDone() # (2) Remove temporal targets.
         border.setName( args.name )
-        stepDone() # Move/Rename Border Layer Done
+        stepDone() # (3) Move/Rename Border Layer Done.
 
         # <| ROLLBACK <------------------------
         if self.hasToExit( status ): return
         # <| ROLLBACK <------------------------
 
         animator.clean_up_all()
-        stepDone() # Delete Temporal Directory
+        stepDone() # (4) Delete Temporal Directory.
         # ALL DONE:
         stepName( "Complete" )
         report  ( "Done!" )
@@ -322,6 +317,7 @@ class Border( object ):
         client.serviceRequest( doc.waitForDone )
 
         kis.setBatchmode( batchK )
+        self.cleanRollbackList()
         workDone()
         return
 
