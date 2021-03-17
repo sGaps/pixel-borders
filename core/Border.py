@@ -277,6 +277,11 @@ class Border( object ):
         stepName( "" )
         frameErase()
         report( "Importing Borders" )
+        # NOTE: There's a weird message which is shown by krita. ($N is a number)
+        #           >>> krita.general: DEBUG: releasing of the pooled memory has been cancelled: there are still $N tiles in memory
+        #       Maybe it's a bug on Krita's import routine or something similar.
+        #       It also happens when I import and animations and export image on
+        #       Krita (even When I don't use this plugin).
         if not client.serviceRequest( animator.import_by_basename , args.start , animator.get_exported_file_basenames() ):
             report( "Cannot import animation frames" )
             status.internalStopRequest( "[core.Borderizer]: UNABLE TO IMPORT ANIMATION FRAMES." )
@@ -294,8 +299,8 @@ class Border( object ):
 
         report( f"Removing Targets ({nWorkers} of them)" )
         for t in targets:
-            t.remove()
-            t.deleteLater()
+            client.serviceRequest(t.remove)
+            client.serviceRequest(t.deleteLater)
         self.targetsDeleted = True
         stepDone() # (2) Remove temporal targets.
         border.setName( args.name )

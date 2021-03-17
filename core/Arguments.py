@@ -229,6 +229,7 @@ class KisData( object ):
         report( f"nchans:           {self.nchans}" )
         report( f"Current Node:     {self.node  }" )
         report( f"Parent Node:      {self.parent}" )
+        report( f"Take Bounds From: {self.constraint}" )
         report( f"Scrapper:         {self.scrapper}" )
         report( f"Start Time:       {self.start}" )
         report( f"Finish Time:      {self.finish}" )
@@ -335,8 +336,24 @@ class KisData( object ):
             self.start , self.finish = 0 , 1
             self.timeline = None
 
-        # UPDATE: Service and Client built for manage concurrent requests.
+        # [S] Service and Client has been built to serialze concurrent requests.
         self.service = Service()
+
+        # NOTE: Filter masks aren't supported because these doesn't have useful bounds for this plugin.
+        # UPDATE: Bounds cannot be retrieved directly from the source node or
+        #         they will ignore the efects of transformation/filter masks!
+        # --------------------------------------------------------------------
+        # :-: Krita's Layer
+        #   :-: transform mask top            <<<<  This has the most recent bound information of the Krita's Layer
+        #   :-: transform mask middle               so, we must use them in the "Reading" Step.
+        #   :-: transform mask bottom
+        TOP             = -1
+        transform_masks = [ mask for mask
+                            in self.node.childNodes()
+                            if mask.visible() and mask.type() == "transformmask" ]
+        self.constraint = self.node
+        if transform_masks:
+            self.constraint = transform_masks[TOP] # Take it from the top.
 
         # [OK] All done:
         self.valid = True

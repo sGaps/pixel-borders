@@ -146,10 +146,10 @@ _sGaps(Here) | ArtGaps | Gaps(Pixiv)_
 [DeviantArt]: <https://www.deviantart.com/artgaps>
 [PluginInstalled]: <./tutorial/plugin-installed.png>
 [//]:         #------------(Borders)-------------
-[Any-Neighbor]: <./tutorial/any-neighbor.png>
-[Corners]: <./tutorial/corners.png>
-[Not-Corners]: <./tutorial/not-corners.png>
+[Any-Neighbor]:      <./tutorial/any-neighbor.png>
+[Corners]:           <./tutorial/corners.png>
+[Not-Corners]:       <./tutorial/not-corners.png>
 [Strict-Horizontal]: <./tutorial/strict-horizontal.png>
-[Strict-Vertical]: <./tutorial/strict-vertical.png>
-[None]: <./tutorial/none.png>
+[Strict-Vertical]:   <./tutorial/strict-vertical.png>
+[None]:              <./tutorial/none.png>
 

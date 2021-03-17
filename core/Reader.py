@@ -73,6 +73,7 @@ class Reader( object ):
         thickness    = self.args.thickness      # Int
         scrap        = self.args.scrapper       # AlphaScrapper.Scrapper
         dbounds      = doc.bounds()             # QRect
+        constraint   = self.args.constraint     # Take bounds from this node.
 
         server     = self.args.service
         client     = Client( server )
@@ -108,7 +109,8 @@ class Reader( object ):
             client.serviceRequest( doc.waitForDone        )
 
             # Clean previous data
-            bounds = getBounds( source , dbounds , thickness )
+            #bounds = getBounds( source , dbounds , thickness )
+            bounds = getBounds( constraint , dbounds , thickness )
             alpha  = scrap.extractAlpha( source , bounds , transparency , threshold )
 
             # Submit changes ------------------------
