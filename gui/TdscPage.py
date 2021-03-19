@@ -2,7 +2,7 @@ from PyQt5.QtCore       import Qt , pyqtSlot , pyqtSignal
 from PyQt5.QtWidgets    import ( QSpinBox , QCheckBox , QLabel ,
                                  QWidget , QFormLayout )
 
-from .MenuPage          import MenuPage , buttonWithIcon
+from .MenuPage          import MenuPage , ColorIconButton
 from .AnimPage          import AnimPage
 
 class TdscPage( MenuPage ):
@@ -12,7 +12,7 @@ class TdscPage( MenuPage ):
                           parent   = parent ,
                           subTitle = "Step 4+: Specify the transparency attributes" )
         self.inverted = False
-        self.invert   = buttonWithIcon( "Use Opaque as Transparency" , True )
+        self.invert   = ColorIconButton( "Use Opaque as Transparency" , True )
         self.invert.setChecked( False )
 
         self.percent  = QSpinBox()

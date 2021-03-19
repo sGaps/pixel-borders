@@ -9,6 +9,21 @@ current view or make a custom border using the avanced features of this plugin.
 `Pixel Borders` has been developed among several months in my free time and
 now, it's finally available here.
 
+## Contents Table ##
+1. [How to use it](#how-to-use-it-art)
+    * [Quick Mode](#-quick-mode)
+    * [Custom Mode](#-custom-mode)
+    * [Previous Mode](#-custom-mode)
+    * [Methods/Recipes](#-border-methods)
+2. [Plugin structure](#plugin-structure)
+    * [Tested in](#tested-in-computer)
+3. [Get The Plugin](#get-the-plugin-arrow_down_small)
+    * [Using Git](#using-git)
+    * [Zip File](#zip-file)
+    * [Zip File](#zip-file--kritas-plugin-importer)
+4. [Enable the plugin](#enable-the-plugin-zap)
+5. [TODO list](#to-do-wrench)
+
 ## How to use it :art: ##
 1. Open your `Krita` project.
 2. Go to `tools > scripts > Pixel Borders` in the menu.
@@ -91,7 +106,7 @@ the core.
 > \* Intel i3 380M (2.53 Ghz)
 
 ## Get The Plugin! :arrow_down_small: ##
-### Git ###
+### Using Git ###
 1. Go to `Krita's resource folder`, then go to `pykrita/`
 2. git clone this repository using
 ```

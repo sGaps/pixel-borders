@@ -2,7 +2,7 @@ from PyQt5.QtCore       import pyqtSlot , pyqtSignal
 from PyQt5.QtWidgets    import ( QWidget , QCheckBox , QSpinBox ,
                                  QLabel , QFormLayout )
 
-from .MenuPage          import MenuPage , buttonWithIcon
+from .MenuPage          import MenuPage , ColorIconButton
 from .MethodDisplay     import MethodWidget
 
 from .KisLookup import KRITA_AVAILABLE , kis , dprint
@@ -19,7 +19,7 @@ class AnimPage( MenuPage ):
         self.defValue = []
 
         self.animate = True
-        self.tryAnim = buttonWithIcon( "Try Animate" , True )
+        self.tryAnim = ColorIconButton( "Try Animate" , True )
         self.tryAnim.setChecked( True )
 
         self.start   = QSpinBox()

@@ -1,6 +1,6 @@
-from PyQt5.QtCore     import Qt , pyqtSignal , pyqtSlot , QSize
+from PyQt5.QtCore     import Qt , QEvent , pyqtSignal , pyqtSlot , QSize
 from PyQt5.QtWidgets  import QWidget , QLabel , QToolButton , QVBoxLayout , QSizePolicy
-from PyQt5.QtGui      import QFont , QIcon
+from PyQt5.QtGui      import QFont , QIcon , QPalette
 
 DEFAULT_PAGE_SIZE = (400 , 300)
 
@@ -13,18 +13,60 @@ DEFAULT_FONT.setWeight(  75  )
 TextUnderIcon  = Qt.ToolButtonStyle.ToolButtonTextUnderIcon
 TextBesideIcon = Qt.ToolButtonStyle.ToolButtonTextBesideIcon
 
-def buttonWithIcon( text = "option"     , checkable = False , icon_path = "" ,
-                    icon_pos  = TextBesideIcon , icon_size = (48,48) , font = DEFAULT_FONT ):
-    button = QToolButton()
-    button.setText( text )
-    button.setCheckable( checkable )
-    button.setToolButtonStyle( icon_pos )
-    button.setSizePolicy( QSizePolicy.Preferred , QSizePolicy.Preferred )
-    if font:      button.setFont( font )
-    if icon_path:
-        button.setIcon( QIcon(icon_path) )
-        if icon_size: button.setIconSize( QSize(*icon_size) )
-    return button
+class ColorIconButton( QToolButton ):
+    """ Custom Class to have icons with light/dark themes. """
+    def __init__( self , text = "" ,
+                         checkable = True,
+                         icon_light = "" ,
+                         icon_dark = "" ,
+                         icon_pos = TextBesideIcon,
+                         icon_size = (48,48) , # Can be null
+                         font = None ,
+                         sizePolicy = None,
+                         parent = None ):
+        super().__init__(parent)
+        self.setText(text)
+        self.setCheckable( checkable )
+        self.setToolButtonStyle( icon_pos )
+
+        szPolicy = sizePolicy or QSizePolicy( QSizePolicy.Preferred , QSizePolicy.Preferred ) 
+        self.setSizePolicy( szPolicy )
+
+        if font:
+            button.setFont( font )
+        self.icon_light = QIcon(icon_light or "" )
+        self.icon_dark  = QIcon(icon_dark  or "" )
+        if icon_size:
+            self.icon_size  = QSize(*icon_size)
+            self.setIconSize( self.icon_size )
+        # Force initial update:
+        self.changeEvent( QEvent(QEvent.PaletteChange) )
+
+    def backgroundColor( self ):
+        return self.palette().color( QPalette.Background )
+
+    def textColor( self ):
+        return self.palette().color( QPalette.Text )
+
+    def changeEvent( self , event ):
+        palette = None
+        etype   = event.type()
+        if etype == QEvent.ApplicationPaletteChange:
+            palette = QApplication.instance().palette()
+        elif etype == QEvent.PaletteChange:
+            palette = self.palette()
+
+        if palette:
+            if ColorIconButton.tooLight( palette ):
+                self.setIcon( self.icon_light )
+            else:
+                self.setIcon( self.icon_dark )
+        super().changeEvent( event )
+
+    @staticmethod
+    def tooLight( palette ):
+        bg = palette.color( QPalette.Background )
+        return bg.lightness() > 110 # [0..100] is too dark. [120..255] is too light.
 
 def subTitleLabel( text , font = DEFAULT_FONT ):
     label = QLabel( text )

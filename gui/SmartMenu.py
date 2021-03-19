@@ -7,49 +7,46 @@ from os               import path
 from sys              import stderr
 from threading        import Thread
 from .About           import About
-from .MenuPage        import MenuPage
+from .MenuPage        import MenuPage , ColorIconButton
 
-# Krita-dependent Code:
-#from .KisLookup import KRITA_AVAILABLE , dprint
-#if KRITA_AVAILABLE:
-#    from krita import Krita
-
-class DirButton( QToolButton ):
+class DirButton( ColorIconButton ):
     CDIR = path.dirname( path.abspath(__file__) )
     NEXT = f"{CDIR}/images/arrow-next.svg"
     BACK = f"{CDIR}/images/arrow-back.svg"
+
+    WNEXT = f"{CDIR}/images/w_arrow-next.svg"
+    WBACK = f"{CDIR}/images/w_arrow-back.svg"
+    NEXTS = (NEXT,WNEXT)
+    BACKS = (BACK,WBACK)
+
     def __init__( self , text = "" , arrow_type = Qt.LeftArrow , tooltip = "" , parent = None  ):
-        super().__init__( parent )
         # Size related:
         szPolicy = QSizePolicy( QSizePolicy.Preferred , QSizePolicy.Preferred )
         szPolicy.setHorizontalStretch( 0 )
         szPolicy.setVerticalStretch  ( 0 )
+        # Icon Related (1):
+        icon_pack = DirButton.BACKS if arrow_type == Qt.LeftArrow else DirButton.NEXTS
 
-        # Icon related:
-        self.setIcon( QIcon(DirButton.BACK if arrow_type == Qt.LeftArrow else DirButton.NEXT) )
-        self.icon().pixmap( self.size() ).fill( Qt.transparent )
+        super().__init__( text = text ,
+                          checkable  = False ,
+                          icon_light = icon_pack[0],
+                          icon_dark  = icon_pack[1],
+                          icon_pos   = Qt.ToolButtonIconOnly,
+                          sizePolicy = szPolicy,
+                          parent     = parent )
 
-        self.setSizePolicy( szPolicy )
-        self.setCheckable( False )
-        self.setAutoRaise( True  )
-        self.setText( text )
-        self.setToolButtonStyle( Qt.ToolButtonIconOnly )
-
-        # Margins!
-        isize  = self.iconSize()
-        wsize  = self.size()
-        width  = abs( isize.width() - wsize.width()   )
-        height = abs( isize.height() - wsize.height() )
-        self.wmargins = wsize.width() - width
-        self.hmargins = wsize.height() - height
+        # Icon related (2):
+        self.icon_light.pixmap( self.size() ).fill( Qt.transparent )
+        self.icon_dark.pixmap ( self.size() ).fill( Qt.transparent )
+        self.setAutoRaise( True )
 
         # Tooltip:
         if tooltip: self.setToolTip( tooltip )
 
     def updateIconSize( self ):
-        size = self.size()
-        self.setIconSize(QSize( abs(size.width()  - self.wmargins) / 2 ,
-                                abs(size.height() - self.hmargins) / 2 ))
+        size    = self.size()
+        newsize = QSize( size.width() / 2 , size.height() / 4 )
+        self.setIconSize(newsize)
 
     def resizeEvent( self , event ):
         self.updateIconSize()

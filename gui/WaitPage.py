@@ -1,5 +1,5 @@
 from os                 import path
-from .MenuPage          import SinkPage , subTitleLabel , buttonWithIcon
+from .MenuPage          import SinkPage , subTitleLabel , ColorIconButton
 from PyQt5.QtCore       import Qt , pyqtSlot , pyqtSignal
 from PyQt5.QtWidgets    import QPushButton , QProgressBar , QLabel , QWidget , QStackedWidget , QVBoxLayout , QHBoxLayout
 from PyQt5.QtGui        import QFont
@@ -9,11 +9,16 @@ class WaitPage( SinkPage ):
     ABOUT  = f"{CDIR}/images/about.svg"
     CANCEL = f"{CDIR}/images/cancel.svg"
     OK     = f"{CDIR}/images/ok.svg"
+
+
+    WABOUT  = f"{CDIR}/images/w_about.svg"
+    WCANCEL = f"{CDIR}/images/w_cancel.svg"
+    WOK     = f"{CDIR}/images/w_ok.svg"
     def __init__( self , parent = None ):
         super().__init__( parent , "Step 5: Wait for the border" )
 
-        self.cancel    = buttonWithIcon( "Cancel" , False , WaitPage.CANCEL, icon_size = (32,32) )
-        self.info      = buttonWithIcon( "About"  , False , WaitPage.ABOUT , icon_size = (32,32) )
+        self.cancel    = ColorIconButton( "Cancel" , False , WaitPage.CANCEL , WaitPage.WCANCEL , icon_size = (32,32) )
+        self.info      = ColorIconButton( "About"  , False , WaitPage.ABOUT  , WaitPage.WABOUT  , icon_size = (32,32) )
         self.progress  = QProgressBar()
         self.fnum      = 0
 
@@ -22,7 +27,7 @@ class WaitPage( SinkPage ):
         font.setItalic( True )
 
         self.usrMSG   = QLabel()
-        self.accept    = buttonWithIcon( "Ok" , False , WaitPage.OK , icon_size = (32,32) )
+        self.accept    = ColorIconButton( "Ok" , False , WaitPage.OK , icon_size = (32,32) )
         self.bottom   = QStackedWidget()
         self.accept.setFont( font )
 

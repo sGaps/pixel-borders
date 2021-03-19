@@ -1,14 +1,18 @@
 from os                 import path
-from .MenuPage          import MenuPage , buttonWithIcon
+from .MenuPage          import MenuPage , ColorIconButton
 from PyQt5.QtCore       import Qt , pyqtSlot , pyqtSignal
 from PyQt5.QtWidgets    import ( QLabel , QPushButton , QFrame , QSizePolicy ,
                                  QFormLayout , QHBoxLayout , QLineEdit , QWidget )
 
 class NamePage( MenuPage ):
-    CDIR  = path.dirname( path.abspath(__file__) )
+    CDIR   = path.dirname( path.abspath(__file__) )
     REPEAT = f"{CDIR}/images/repeat.svg"
     ABOUT  = f"{CDIR}/images/about.svg"
     CANCEL = f"{CDIR}/images/cancel.svg"
+
+    WREPEAT = f"{CDIR}/images/w_repeat.svg"
+    WABOUT  = f"{CDIR}/images/w_about.svg"
+    WCANCEL = f"{CDIR}/images/w_cancel.svg"
     def __init__( self , backP = None , nextP = None , parent = None ):
         super().__init__( backP    = backP  ,
                           nextP    = nextP  ,
@@ -24,7 +28,7 @@ class NamePage( MenuPage ):
 
         # Debug mode:
         self.debug  = False
-        self.dbgbut = buttonWithIcon( "Debug: Off" , True )
+        self.dbgbut = ColorIconButton( "Debug: Off" , True )
         self.dbgbut.setChecked( False )
         self.nameForm.setWidget( 1 , QFormLayout.FieldRole , self.dbgbut )
 
@@ -33,9 +37,9 @@ class NamePage( MenuPage ):
         self.hline.setFrameShape ( QFrame.HLine  )
         self.hline.setFrameShadow( QFrame.Sunken )
 
-        self.previous  = buttonWithIcon( "Use Previous Recipe" , False , NamePage.REPEAT , icon_size = (32,32) )
-        self.info      = buttonWithIcon( "About"               , False , NamePage.ABOUT  , icon_size = (32,32) )
-        self.cancel    = buttonWithIcon( "Cancel"              , False , NamePage.CANCEL , icon_size = (32,32) )
+        self.previous  = ColorIconButton( "Use Previous Recipe" , False , NamePage.REPEAT , NamePage.WREPEAT ,icon_size = (32,32) )
+        self.info      = ColorIconButton( "About"               , False , NamePage.ABOUT  , NamePage.WABOUT  ,icon_size = (32,32) )
+        self.cancel    = ColorIconButton( "Cancel"              , False , NamePage.CANCEL , NamePage.WCANCEL ,icon_size = (32,32) )
 
         self.wbottom   = QWidget()
         self.lbottom   = QHBoxLayout( self.wbottom )

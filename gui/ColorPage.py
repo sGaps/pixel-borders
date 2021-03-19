@@ -1,5 +1,5 @@
 from os                 import path
-from .MenuPage          import MenuPage , buttonWithIcon
+from .MenuPage          import MenuPage , ColorIconButton
 from PyQt5.QtCore       import pyqtSlot , pyqtSignal
 from PyQt5.QtWidgets    import QPushButton , QWidget , QSizePolicy , QVBoxLayout
 from PyQt5.QtGui        import QFont
@@ -8,6 +8,8 @@ class ColorPage( MenuPage ):
     CDIR = path.dirname( path.abspath(__file__) )
     FG   = f"{CDIR}/images/fg.svg"
     BG   = f"{CDIR}/images/bg.svg"
+    WFG  = f"{CDIR}/images/w_fg.svg"
+    WBG  = f"{CDIR}/images/w_bg.svg"
     def __init__( self , backP = None , nextP = None , altP = None , parent = None ):
         super().__init__( backP    = backP  ,
                           nextP    = nextP  ,
@@ -16,8 +18,8 @@ class ColorPage( MenuPage ):
         self.color  = "FG"
 
         # Middle (Both Buttons)
-        self.fg     = buttonWithIcon( "Foreground" , True , ColorPage.FG , icon_size = (92,92) )
-        self.bg     = buttonWithIcon( "Background" , True , ColorPage.BG , icon_size = (92,92) )
+        self.fg     = ColorIconButton( "Foreground" , True , ColorPage.FG , ColorPage.WFG , icon_size = (92,92) )
+        self.bg     = ColorIconButton( "Background" , True , ColorPage.BG , ColorPage.WBG , icon_size = (92,92) )
 
         # Layout Setup:
         self.bottom = QWidget()
