@@ -198,9 +198,14 @@ cp pixel-borders/pixel-borders.desktop pixel-borders.desktop
 
 
 **After Dowload this plugin** the folder hierarchy should look like this:
+
 ![PluginInstalled]
 
+
 [Go Top](#pixel-borders---)
+
+
+
 
 ## Enable it on Krita! ##
 After [Get the Plugin](#get-the-plugin):
@@ -232,6 +237,9 @@ After [Get the Plugin](#get-the-plugin):
 
 
 [Go Top](#pixel-borders---)
+
+
+
 
 ## Social Media ##
 <a href="https://pixiv.me/artgaps"><img width=35 height=35 src="https://simpleicons.org/icons/pixiv.svg"/></a>
