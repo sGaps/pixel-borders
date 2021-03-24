@@ -1,3 +1,19 @@
+# Module:   gui.CustomPage.py | [ Language Python ]
+# Author:   Gaps | sGaps | ArtGaps
+# LICENSE:  GPLv3 (available in ./LICENSE.txt)
+# -------------------------------------------------
+"""
+    Defines the Custom page of the Smart Menu.
+
+    [:] Defined in this module
+    --------------------------
+    CustomPage :: class
+        Allows user to make its own recipe.
+
+    [*] Author
+     |- Gaps : sGaps : ArtGaps
+"""
+
 from PyQt5.QtCore       import pyqtSlot , pyqtSignal
 from PyQt5.QtWidgets    import QHBoxLayout , QPushButton
 
@@ -5,6 +21,8 @@ from .MenuPage          import MenuPage
 from .MethodDisplay     import MethodWidget
 
 class CustomPage( MenuPage ):
+    """ Allows user to make its own recipe. """
+
     def __init__( self , backP = None , nextP = None , parent = None ):
         super().__init__( backP    = backP  ,
                           nextP    = nextP  ,

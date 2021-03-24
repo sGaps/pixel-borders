@@ -1,8 +1,9 @@
 # Module:      gui.KisLookup.py | [ Language Python ]
-# Created by: ( Gaps | sGaps | ArtGaps )
-# -----------------------------------------------------------------
+# Author:   Gaps | sGaps | ArtGaps
+# LICENSE:  GPLv3 (available in ./LICENSE.txt)
+# -------------------------------------------------
 """
-    Utility module for manage and test the GUI inside and outside krita.
+    Utility module to manage and test the GUI inside and outside krita.
 
     [:] Defined in this module
     --------------------------
@@ -30,3 +31,4 @@ else:
     kis = krita.Krita.instance()
     dprint( f"[KRITA - LOOKUP] available." )
     dprint( f"[KRITA - LOOKUP]:\n\tkrita -> {kis}" )
+

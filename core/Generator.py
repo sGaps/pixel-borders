@@ -1,3 +1,21 @@
+# Module:   core.Generator.py | [ Language Python ]
+# Author:   Gaps | sGaps | ArtGaps
+# LICENSE:  GPLv3 (available in ./LICENSE.txt)
+# ----------------------------------------------
+"""
+    Defines the actual objects that make the border.
+
+    [:] Defined in this module
+    --------------------------
+    Generator:: class
+        Takes raw alpha data and transform it into a grow data.
+        + Notify the current progress of the border generation process.
+        + Notify errors or events occurred in the process.
+        + Modifies the status of the program when something goes wrong.
+
+    [*] Author
+     |- Gaps : sGaps : ArtGaps
+"""
 from .Arguments import KisData
 from .KisStatus import KisStatus , ALPHA
 from .AlphaGrow import Grow
@@ -5,7 +23,7 @@ from queue      import SimpleQueue
 
 
 class Generator( object ):
-    """ Make borders to each layer """ 
+    """ Make borders for an alpha data. """ 
     def __init__( self , kis_arguments  = KisData()          ,
                          inQueue        = SimpleQueue()      ,
                          outQueue       = SimpleQueue()      ,

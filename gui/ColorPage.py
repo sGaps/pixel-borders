@@ -1,3 +1,19 @@
+# Module:   gui.ColorPage.py | [ Language Python ]
+# Author:   Gaps | sGaps | ArtGaps
+# LICENSE:  GPLv3 (available in ./LICENSE.txt)
+# ------------------------------------------------
+"""
+    Defines the color page of the Smart Menu.
+
+    [:] Defined in this module
+    --------------------------
+    ColorPage :: class
+        Retrieve color data.
+
+    [*] Author
+     |- Gaps : sGaps : ArtGaps
+"""
+
 from os                 import path
 from .MenuPage          import MenuPage , ColorIconButton
 from PyQt5.QtCore       import pyqtSlot , pyqtSignal
@@ -5,6 +21,7 @@ from PyQt5.QtWidgets    import QPushButton , QWidget , QSizePolicy , QVBoxLayout
 from PyQt5.QtGui        import QFont
 
 class ColorPage( MenuPage ):
+    """ Retrieve current color data from Krita """
     CDIR = path.dirname( path.abspath(__file__) )
     FG   = f"{CDIR}/images/fg.svg"
     BG   = f"{CDIR}/images/bg.svg"

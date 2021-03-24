@@ -1,6 +1,7 @@
-# Module:      main.py | [ Language Python ]
-# Created by: ( Gaps | sGaps | ArtGaps )
-# ------------------------------------------
+# Module:   main.py | [ Language Python ]
+# Author:   Gaps | sGaps | ArtGaps
+# LICENSE:  GPLv3 (available in ./LICENSE.txt)
+# --------------------------------------------
 """
     Main module. It's used to load the package as
     a Krita Extension.
@@ -34,7 +35,7 @@ class PixelExtension( Extension ):
     """ Wrapper class for the GUI class. """
 
     def __init__( self , parent ):
-        # Initialize this object using the QT C++ interface
+        """ Initialize this object using the QT C++ interface """
         super().__init__( parent )
 
     def setup( self ):

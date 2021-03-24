@@ -1,3 +1,19 @@
+# Module:   gui.TdscPage.py | [ Language Python ]
+# Author:   Gaps | sGaps | ArtGaps
+# LICENSE:  GPLv3 (available in ./LICENSE.txt)
+# -----------------------------------------------
+"""
+    Defines the Transparency Descriptor page of the Smart Menu.
+
+    [:] Defined in this module
+    --------------------------
+    TdscPage :: class
+        Retrieve information about the transparency properties.
+
+    [*] Author
+     |- Gaps : sGaps : ArtGaps
+"""
+
 from PyQt5.QtCore       import Qt , pyqtSlot , pyqtSignal
 from PyQt5.QtWidgets    import ( QSpinBox , QCheckBox , QLabel ,
                                  QWidget , QFormLayout )

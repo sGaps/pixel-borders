@@ -1,3 +1,23 @@
+# Module:   core.Border.py | [ Language Python ]
+# Author:   Gaps | sGaps | ArtGaps
+# LICENSE:  GPLv3 (available in ./LICENSE.txt)
+# ----------------------------------------------
+"""
+    Defines the actual core of this plugin.
+
+    [:] Defined in this module
+    --------------------------
+    Border :: class
+        Holds relevant information to make a new border layers.
+        Create new threads to performs almost all its tasks.
+        + Notify the current progress of the border generation process.
+        + Notify errors or events occurred in the process.
+        + Performs rollback operations when something goes wrong or when
+          user cancel the process.
+
+    [*] Author
+     |- Gaps : sGaps : ArtGaps
+"""
 # Plugin's Realm:
 from .Reader    import Reader
 from .Generator import Generator
@@ -29,7 +49,11 @@ class Border( object ):
                          workDone       = (lambda:     None) ,
                          rollbackDone   = (lambda:     None) ):
         """
-            New Borderizer.
+            New Borderizer engine.
+            + Notify the current progress of the border generation process.
+            + Notify errors or events occurred in the process.
+            + Performs rollback operations when something goes wrong or when
+              user cancel the process.
         """
         super().__init__()
         self.args     = kis_arguments
@@ -55,14 +79,22 @@ class Border( object ):
         self.justStop = False
 
     def cleanRollbackList( self ):
+        """
+            RETURNS
+                current rollback list
+        """
         del self.rollbackList
         self.rollbackList = []
 
     def getStatus( self ):
+        """
+            RETURNS
+                current process status.
+        """
         return self.status
 
     def rollback( self ):
-        """ Undo all operations done by this objects and its children """
+        """ Undo all operations done by this object and its children """
         steps = self.rollbackList
         steps.reverse()
         [ step() for step in steps ]
@@ -72,9 +104,25 @@ class Border( object ):
         self.rollbackDone()
 
     def submitRollbackStep( self , rollback_step ):
+        """
+            ARGUMENTS
+                rollback_step( function() -> None ): single rollback step
+
+            Adds a rollback step to the rollback list.
+        """
         self.rollbackList.append( rollback_step )
 
     def hasToExit( self , status ):
+        """
+            ARGUMENTS
+                status(KisStatus): process status.
+            RETURNS
+                bool
+            Verify if the process has recieved a cancellation signal.
+            Apply rollback steps if the process if it has been canceled.
+
+            These signals come from the user or from the process itself (or its children)
+        """
         if self.justStop: return True
 
         if status.fromGUI == KisStatus.STOP:
@@ -91,10 +139,11 @@ class Border( object ):
         return self.justStop
 
     def targets_deleted( self ):
+        """ Verify if the target layers has been deleted. """
         return self.targetsDeleted
 
     def run( self ):
-        """ Run or profile"""
+        """ Performs all actions on normal or debug mode. """
         if not self.args:
             return
 
@@ -104,12 +153,13 @@ class Border( object ):
             self.run_now()
 
     def progressUpdate( self ):
+        """ Refresh the abstract progress status bar. """
         self.frameIncrement()
         self.stepDone()
  
 
     def run_now( self , nWorkers = 4 ):
-        """Apply all steps to add borders for your paint/group-layer. """
+        """ Apply all steps to add borders for your paint/group-layer. """
         # Counted by: value<reason>.
         BASIC_STEPS = 1 + 1 + 1 + 1 # 1<import> + 1<temporal dir. deletion> + 1<move border layer> +1<delete/rename temporal targets layers>
         ITER_STEPS  = 1 + 1 + 1     # 1<Reader> + 1<Generator> + 1<Writer>

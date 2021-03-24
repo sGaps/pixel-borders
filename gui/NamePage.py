@@ -1,3 +1,20 @@
+# Module:   gui.NamePage.py | [ Language Python ]
+# Author:   Gaps | sGaps | ArtGaps
+# LICENSE:  GPLv3 (available in ./LICENSE.txt)
+# -------------------------------------------------
+"""
+    Defines the Name page of the Smart Menu.
+
+    [:] Defined in this module
+    --------------------------
+    NamePage :: class
+        First page of the Smart Menu. Retrieve the name for the
+        new border. Allows user to enable or disable debug mode, load the
+        previous data and watch information about this plugin.
+
+    [*] Author
+     |- Gaps : sGaps : ArtGaps
+"""
 from os                 import path
 from .MenuPage          import MenuPage , ColorIconButton
 from PyQt5.QtCore       import Qt , pyqtSlot , pyqtSignal
@@ -5,6 +22,8 @@ from PyQt5.QtWidgets    import ( QLabel , QPushButton , QFrame , QSizePolicy ,
                                  QFormLayout , QHBoxLayout , QLineEdit , QWidget )
 
 class NamePage( MenuPage ):
+    """ Retrieve the name that will be used by the new border. allows user to use previous
+        data and watch information about this plugin. """
     CDIR   = path.dirname( path.abspath(__file__) )
     REPEAT = f"{CDIR}/images/repeat.svg"
     ABOUT  = f"{CDIR}/images/about.svg"

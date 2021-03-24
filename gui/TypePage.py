@@ -1,3 +1,18 @@
+# Module:   gui.TypePage.py | [ Language Python ]
+# Author:   Gaps | sGaps | ArtGaps
+# LICENSE:  GPLv3 (available in ./LICENSE.txt)
+# -----------------------------------------------
+"""
+    Defines the Type page of the Smart Menu.
+
+    [:] Defined in this module
+    --------------------------
+    TypePage :: class
+        Allows user to choose between quick or custom mode.
+
+    [*] Author
+     |- Gaps : sGaps : ArtGaps
+"""
 from os                 import path
 from .MenuPage          import AlternativePage , ColorIconButton , TextBesideIcon
 from PyQt5.QtCore       import pyqtSlot , pyqtSignal , Qt

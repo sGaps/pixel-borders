@@ -1,3 +1,21 @@
+# Module:   core.Reader.py | [ Language Python ]
+# Author:   Gaps | sGaps | ArtGaps
+# LICENSE:  GPLv3 (available in ./LICENSE.txt)
+# ---------------------------------------------
+"""
+    Defines an objects to extract the alpha data of a Krita's Node.
+
+    [:] Defined in this module
+    --------------------------
+    Reader :: class
+        Reads data from the frames of a Krita's Node.
+        + Notify the current progress of the border generation process.
+        + Notify errors or events occurred in the process.
+        + Modifies the status of the program when something goes wrong.
+
+    [*] Author
+     |- Gaps : sGaps : ArtGaps
+"""
 from .Arguments   import KisData
 from .KisStatus   import KisStatus , ALPHA
 from .Service     import Client
@@ -5,31 +23,14 @@ from queue        import SimpleQueue
 from PyQt5.QtCore import QRect
 
 class Reader( object ):
-    """ Reads frames from krita. and put them into outQueue. If outQueue is not provided, it will allocate
-        a SimpleQueue inside. """
+    """ Reads data from the frames of a Krita's Node, and put it into outQueue.
+        If outQueue is not provided, it will allocate a SimpleQueue. """
     def __init__( self , kis_arguments  = KisData()     ,
                          outQueue       = SimpleQueue() ,
                          status         = KisStatus()   ,
                          report         = (lambda msg: None) ,
                          error          = (lambda msg: None) ,
                          stepDone       = (lambda:     None) ): # 'Atomic' Increment
-        """
-            ARGUMENTS
-                kis_arguments(KisData): Holds relevant information about krita. 
-                                            .doc(krita.Document)
-                                            .node(krita.Node)
-                                            .kis(krita.Krita)
-                                            .service(core.Service.Service)
-                                            .timeline(range)
-                                            .client(core.Service.Client)
-                                        Must have service and client objects to keep fast communication with krita.
-                outQueue(queue.SimpleQueue): Where this will put its results. each element is a ALPHA(bytearray,time,bounds)
-                status(KisStatus):           Shared object that says when this method must stop.
-                report(function(str) -> IO()): Takes an string and performs an I/O Action. It will be a signal emission or something,
-                                               a function to print, debug, etc.
-                error(function(str) -> IO()):  Like report, but it's used for error messages.
-                progress(function(int) -> IO()):  Like report, but it's used to send a progress step.
-        """
         self.args   = kis_arguments
         self.queue  = outQueue
         self.status = status

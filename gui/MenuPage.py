@@ -1,3 +1,31 @@
+# Module:   gui.MenuPage.py | [ Language Python ]
+# Author:   Gaps | sGaps | ArtGaps
+# LICENSE:  GPLv3 (available in ./LICENSE.txt)
+# ------------------------------------------------
+"""
+    Defines several pages for the Smart Menu.
+
+    [:] Defined in this module
+    --------------------------
+    ColorIconButton :: class
+        Buttons with icons that works on Light and Dark themes.
+
+    subTitleLabel :: function
+        makes custom QLabels
+
+    MenuPage :: class
+        Simple Page of a menu wizard.
+
+    AlternativePage :: class
+        Page with 3 possible paths.
+
+    SinkPage :: class
+        Page without any possible paths.
+
+    [*] Author
+     |- Gaps : sGaps : ArtGaps
+"""
+
 from PyQt5.QtCore     import Qt , QEvent , pyqtSignal , pyqtSlot , QSize
 from PyQt5.QtWidgets  import QWidget , QLabel , QToolButton , QVBoxLayout , QSizePolicy
 from PyQt5.QtGui      import QFont , QIcon , QPalette
@@ -69,6 +97,7 @@ class ColorIconButton( QToolButton ):
         return bg.lightness() > 110 # [0..100] is too dark. [120..255] is too light.
 
 def subTitleLabel( text , font = DEFAULT_FONT ):
+    """ Returns a bold text that can be used as a sub title """
     label = QLabel( text )
     label.setFont( font )
     label.setAlignment( Qt.AlignCenter )
@@ -128,3 +157,4 @@ class SinkPage( MenuPage ):
                           nextP    = None     ,
                           parent   = parent   ,
                           subTitle = subTitle )
+

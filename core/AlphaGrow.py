@@ -1,12 +1,13 @@
-# Module:      core.AlphaGrow.py | [ Language Python ]
-# Created by: ( Gaps | sGaps | ArtGaps )
-# ----------------------------------------------------
+# Module:   core.AlphaGrow.py | [ Language Python ]
+# Author:   Gaps | sGaps | ArtGaps
+# LICENSE:  GPLv3 (available in ./LICENSE.txt)
+# -------------------------------------------------
 """
     [:] Defined in this module
     --------------------------
         Grow    :: class
-            Automata used to make grow the alpha data at similar way as a
-            Selection's grow works.
+            Automata used to make grow the alpha data just like
+            how krita.Selection's grow method works.
 
         TYPES   :: dict
             Holds relevant information about the size of the indexes, like
@@ -27,10 +28,10 @@ TYPES = { 1 : "B" ,
 class Grow( object ):
     """
         An Grow object is an automata. It takes the raw alpha data from a Node
-        (processed by an Scrapper) and apply grows operations like Krita's
+        (processed by an Scrapper) and apply grows operations just like Krita's
         Selection Layers.
 
-        Each Grow's element is used as a 8-bit int, which is referred as
+        Each Grow's element is used as a 8-bit field, which is referred as
         [$Grow-State]. These are managed with bitswise operations to keep
         them in a small size. An opaque pixel is represented with an
         element with an Opaque bit on.
@@ -49,13 +50,20 @@ class Grow( object ):
             bit   >     76543210
             field >     WNSE $ O
 
+        A way recipe to look up these bits is use bitwise operations with
+        these values:
+            WEST  = 1 << 7  = 0x80
+            NORTH = 1 << 6  = 0x40
+            SOUTH = 1 << 5  = 0x20
+            EAST  = 1 << 4  = 0x10
+
         Use unlift_data to get a clean bytearray that can be used outside
         these objects.
 
-        Relevant opaque structures:
-            __modified      :: [ SHORT INT ] => holds the modified pixels after a __run_automata__ step.
-            __preserved     :: [ SHORT INT ] => holds the preserved pixels after a __run_automata__ step.
-            __searchView    :: [ SHORT INT ] => holds the indexes which will be used a __run_automata__ step.
+        Relevant internal structures:
+            __modified      :: memoryview( BYTE ) => holds the modified pixels after a __run_automata__ step.
+            __preserved     :: memoryview( BYTE ) => holds the preserved pixels after a __run_automata__ step.
+            __searchView    :: memoryview( BYTE ) => holds the indexes that will be used in a __run_automata__ step.
 
         * Preserved elements are these considered as transparent after a __run_automata__ step.
         * Modified elements are these considered as opaques after a __run_automata__ step.
@@ -114,7 +122,7 @@ class Grow( object ):
                 size(int):                              size of the alpha data.
                 force_amount_of_items_on_search(int):   # of elements that will be cached in the search.
                                                         (Useful when the previous data is as big as the current one).
-            Smart constructor/Setter of the object. """
+            Smart constructor/Setter of a Grow object. """
 
         # Builds new data:
         self.data = bytearray( 0x01 if b else 0x00 for b in data )
@@ -155,8 +163,8 @@ class Grow( object ):
 
     def __lift_to_search_context__( self ):
         """
-            Convert an stored raw data into a [$Grow-State] sequence. The Grow
-            object can be used after call this method.
+            Convert the stored raw data into a [$Grow-State] sequence. The Grow
+            instance will be valid after call this method.
         """
         # Search is not defined yet. We only have "modified elements" for now.
         states    = self.data
@@ -196,11 +204,11 @@ class Grow( object ):
 
     def __context_update__( self ):
         """
-            Updates the [$Grow-State] Neighborhood data and its Basic Search
-            Criteria.
+            Updates the [$Grow-State] Neighborhood data and its Basic
+            Search Criteria.
         """
-        # Takes a search, and see which elements are opaques. If they're opaques, then
-        # It will annotate those that can be searched. (While those wich we want to add aren't in the search yet)
+        # Takes a search 'log', and see which elements are opaques. If they're opaques, then
+        # It will mark those that can be searched. (And adds those which aren't in the search yet).
 
         # Indices & data arrays:
         states      = self.data
@@ -230,12 +238,12 @@ class Grow( object ):
         OPAQUE   = 1        # [O]
         IGNORE   = SEARCHRQ | OPAQUE    # [$ + O]
 
-        # We know they're opaque, so we don't have to compare that condition again:
+        # Opaque traversal:
         for record in range(modif_count):
             pos   = modified[record]
             state = states[pos]
 
-            # Search to the transparent elements that aren't in the search yet.
+            # Search the transparent elements that aren't in the search yet.
             if pos > first_row and not states[pos - rows] & IGNORE:
                 # ADD NORTH
                 states[pos - rows]    |= SEARCHRQ
@@ -260,14 +268,15 @@ class Grow( object ):
                 preserved[presv_count] = pos + 1
                 presv_count           += 1
 
+        # Transparent traversal:
         for record in range(presv_count):
             pos   = preserved[record]
             state = states[pos]
 
-            # Remove the previous Direction data:
+            # Clean the previous Direction data:
             state &= NOTDIR
 
-            # and update neighborhood/environment info:
+            # Update neighborhood/environment data:
             if pos > first_row and states[pos - rows] & OPAQUE:
                 state |= NORTH  # Has a North Opaque
             if pos < last_row and states[pos + rows] & OPAQUE:
@@ -386,8 +395,8 @@ class Grow( object ):
                                      value else than 0 when the pixel must be
                                      opaque.
 
-            This modifies the internal structure of a Grow object. Updates the
-            alpha data based in the grow_policy function. """
+            This modifies the internal structure of a Grow instance. Updates the
+            alpha data based on the grow_policy function. """
         # Indices & data arrays:
         newcount    = 0
         count       = self.__count

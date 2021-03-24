@@ -1,17 +1,20 @@
-# Module:      core.Service.py | [ Language Python ]
-# Created by: ( Gaps | sGaps | ArtGaps )
-# --------------------------------------------------
+# Module:   core.Service.py | [ Language Python ]
+# Author:   Gaps | sGaps | ArtGaps
+# LICENSE:  GPLv3 (available in ./LICENSE.txt)
+# -----------------------------------------------
 """
     Offers Thread Syncronization strategies.
+    This Connects Python and Qt in a safer way.
 
     [:] Defined in this module
     --------------------------
         Service :: class
-            Manages services to clients. and give them results.
+            Manages requests from clients. and give them results.
         Client  :: class
-            Request services to the Service objects. retrieve results from them.
+            Request services to the Service objects. Fetch results from them.
 
-        Client and Service must be in different threads to work.
+        Client and Service must be in different threads to work correctly.
+
     [*] Author
      |- Gaps : sGaps : ArtGaps
 """
@@ -27,7 +30,7 @@ class REQUEST(
            ): pass
 
 class Service( QObject ):
-    """ Must be connected to a Client """
+    """ Runs a sequence of functions requested by clients. """
     BUFFERSIZE = 1
 
     serviceRequest = pyqtSignal()
@@ -35,16 +38,23 @@ class Service( QObject ):
         super().__init__( parent )
         # Server side: Request 
         self.queries = SimpleQueue() # of REQUEST
-        # Qt side:
+        # Qt's side:
         self.serviceRequest.connect( self.answerRequest ) # (service) <<= (client)
 
     def request( self , who , function , *args  ):
+        """
+            ARGUMENTS:
+                who( Client )
+                function( function(*args) -> any ): action to run in the Service's thread.
+                args( list ):                       argument list passed to function.
+            Recieve a request from a client.
+        """
         self.queries.put( REQUEST(who,function,args) )
         self.serviceRequest.emit()
 
     @pyqtSlot()
     def answerRequest( self ):
-        """ Offer a service to a client and give it the result. """
+        """ Offers a service to a client and give its result. """
         # Produce/Apply ----------------------------
         who , function , args = self.queries.get()
         product = function( *args )
@@ -55,13 +65,15 @@ class Service( QObject ):
         # ------------------------------------------
 
 class Client( QObject ):
-    """ Must be connected to a Service """
+    """ Object used to send request to a sercice. """
+       
     def __init__( self , serv = Service() , parent = None ):
         super().__init__( parent )
         self.service  = serv
         self.response = SimpleQueue()
 
     def putResponse( self , product ):
+        """ Updates the internal data. used by a Service instance """
         self.response.put( product )
 
     def serviceRequest( self , func , *arg_list ):

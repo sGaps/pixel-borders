@@ -1,13 +1,13 @@
 # Pixel Borders <img width=35 height=35 src="https://simpleicons.org/icons/python.svg"/> <img width=35 height=35 src="https://simpleicons.org/icons/krita.svg"/> <img width=35 height=35 src="https://simpleicons.org/icons/qt.svg"/> #
-**A plugin that helps you to make pixel-art quicker**. A plugin
-that uses `Krita's Python API`, `PyQt5` and `Python's built-in`
-modules to make borders for your pixel-art characters.
+**A plugin that helps you to make pixel-art quicker**. This uses
+uses `Krita's Python API`, `PyQt5` and `Python's built-in` modules
+to make borders for your pixel-art characters.
 
 > **`Pixel Borders` performs several operations to make this task**
 > **easier, and it works on *paint layers* and *group layers*,**
-> **even if these has key-frames on the timeline.**
+> **even if these have key-frames on the timeline.**
 
-## Contents Table ##
+## Content Table ##
 * [Introduction](#introduction)
     * [An example](#an-example)
     * [Features](#features)
@@ -30,26 +30,28 @@ modules to make borders for your pixel-art characters.
 
 ## Introduction ##
 Sometimes, when I'm drawing a pixel-art animation, I try to add borders
-to the characters in the scene to get a nice videogame style. But,
-That usually happens when there's a lot of key-frames done and spread
-among several `Layers`. And often, these are in different group layers.
+to the characters in the scene to get a nice videogame style. These 
+look very nice but They're hard to do when There's a lot of key-frames
+and layers linked to a single character.
 
-Then, I have to make these borders manually, doing the same steps which
-takes over 3 hours for a small-sized animation. That really takes a lot of
-time and It's error prone for worse.
+It takes over 3 hours to complete this effect manually on a small-sized
+animation. That's boring and error prone: I remember I had to make the
+effect from start when I forgot a single step on the frame 50 of an
+animation with 200 key frames on its timeline!
 
-This situation made me to code a simple script to do the work. But I
-wasn't sastisfied with it: _it was slow and didn't work on animated_
-_layers_, so I decided to improve the way it works and add a GUI to
-use it in a more comfortable way and... _The rest of this tale is reflected_
-_on the commits of this repository._
+That was one of many reasons why I started this project. It was a simple
+script at begining, but I wasn't satisfied with it: _it was slow and_
+_didn't work very well on animated layers_, so I keep working on it,
+fixing its flaws at first glance. Then I added a `GUI` to use it in a
+more comfortable way, also its `core` was improved and...
+_The rest of this tale is on the commits of this repository._
 
 _- I just took that idea and made it comfortable to use. -_
 
-Use this plugin to make borders with 1px widths, or make one
-smoother adding more steps into the border recipe or maybe,
-add colors to the corners of the character or even make a kind of
-fractal as a border.
+With `Pixel Borders` you can add borders of 1px width, or make
+a smoother one adding more steps into the border recipe. Maybe, you
+could Add colors to the corners of a character or even make a kind
+of fractal as a border.
 
 > `Pixel Borders` has been developed among several months in my free
 > time and now, It's finally available here!
@@ -68,7 +70,7 @@ fractal as a border.
 
 * Undo actions are supported since `Krita 4.4.x`
 
-* This defines some methods to make recipes for the new borders which can be used on the `quick mode` and `custom mode`:
+* It includes some methods to make recipes for the new borders which can be used on the `quick mode` and `custom mode`:
 
     * _**any-neighbor**_: The pixel becomes opaque when there's at least one opaque pixel next to it.
 
@@ -88,14 +90,14 @@ fractal as a border.
 | `any-neighbor`        | ![Any-Neighbor]       |
 | `corners`             | ![Corners]            |
 | `not-corners`         | ![Not-Corners]        |
-| `strict-horizontall`  | ![Strict-Horizontal]  |
+| `strict-horizontal`   | ![Strict-Horizontal]  |
 | `strict-vertical`     | ![Strict-Vertical]    |
 
 ### Improve your workflow ###
 Play with the different results that can be obtained using
 `Pixel Borders`. See how quick this will be achieved with it.
 
-Use the `Use Previous recipe` button to repeat the last recipe used.
+Click the `Use Previous recipe` button to repeat the last recipe used.
 
 ### Group Layers? ###
 Yes, it works with them. Select the Group layer, and use this plugin just like a normal filter being used on a paint layer.
@@ -121,7 +123,7 @@ by using the current `pixel_borders.core`.
 
 
 ## How to Use it ##
-In your Document of Krita:
+In Krita:
 1. Click on `tools > Scripting > Pixel Borders`.
 1. Write a name for the new Border.
 2. Choose the Foreground or the Background color currently used.
@@ -131,21 +133,21 @@ In your Document of Krita:
 6. Press _Ok_.
 
 ### Quick Way ###
-> <img width=35 height=35 src="./gui/images/quick.svg"> Quick mode has been choosen. Useful to get a simple border.
+> <img width=35 height=35 src="./gui/images/quick.svg"> Quick mode has been chosen. Useful to get a simple border.
 
 Select the [method](#features) this plugin will use, then press the number next
 to it and set the width of the new border.
 
 ### Custom Border ###
-> <img width=35 height=35 src="./gui/images/custom.svg"> Custom mode has been choosen. Make complex recipes with it.
+> <img width=35 height=35 src="./gui/images/custom.svg"> Custom mode has been chosen. Make complex recipes with it.
 
 There will be a single [method](#features), click on it to select
 another and then press the number next to it and set the width.
 
  | Buttons  | Description                                           |
  | -------- | ----------------------------------------------------- |
- | `Add`    | Press to add a new border at bottom.                  |
- | `Remove` | Press to remove method at bottom.                     |
+ | `Add`    | Press to add a new method at bottom.                  |
+ | `Remove` | Press to remove the method at bottom.                 |
  | `Clear`  | Press to delete all the methods except the first one. |
 
 
@@ -153,14 +155,13 @@ another and then press the number next to it and set the width.
 > <img width=35 height=35 src="./gui/images/repeat.svg"> Previous Border button
 has been pressed.
 
-Repeats the previous recipe, applying it on the current selected Layer.
+It repeats the previous recipe, applying it on the current selected Layer.
 If that Layer has key-frames, it will make animated borders.
 
 
 ### Useful Recipes ###
 | Name                 | How to do it                                                    |
 | -------------------- | --------------------------------------------------------------- |
-| Classic Borders      | Quick mode  + `any-neighbor:1`                                  |
 | Classic Borders      | Quick mode  + `any-neighbor:1`                                  |
 | Smooth Borders       | Custom mode + `any-neighbor:1` + `corners:1` + `any-neighbor:1` |
 | Rough borders        | Custom mode + `any-neighbor:1` + `not-corners:1`                |
@@ -178,8 +179,8 @@ If that Layer has key-frames, it will make animated borders.
 
 ### Download with Git ###
 1. Open a terminal.
-2. Go to your `pykrita/` folder-
-3. Clone this repository (I recommend use the lastest release)
+2. Go to your `pykrita/` folder.
+3. Clone this repository (I recommend to use the lastest release).
 ```bash
 git clone https://github.com/sGaps/pixel-borders.git pixel-borders/
 ```
@@ -193,11 +194,11 @@ cp pixel-borders/pixel-borders.desktop pixel-borders.desktop
 1. Go to the [release](https://github.com/sGaps/pixel-borders/releases) snippet of this repository.
 2. Download the lastest compressed file (`.tar.gz`, or `.zip`)
 3. Extract the folder inside the `zip`_(named pixel-borders\*)_ to your `pykrita/` folder.
-4. Rename the new folder as `pixel-borders`
+4. Rename the new folder as `pixel-borders`.
 5. Copy the file `pixel-border.desktop` from `pykrita/pixel-borders/` to `pykrita/`.
 
 
-**After Dowload this plugin** the folder hierarchy should look like this:
+**After following the previous steps**, the folder hierarchy should look like this:
 
 ![PluginInstalled]
 

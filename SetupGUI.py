@@ -1,3 +1,39 @@
+# Module:   SetupGUI.py | [ Language Python ]
+# Author:   Gaps | sGaps | ArtGaps
+# LICENSE:  GPLv3 (available in ./LICENSE.txt)
+# --------------------------------------------
+"""
+    Main GUI module. This loads the Menu and connect
+    its with the required actions. This is actually
+    the file used to connect the pixel_borders.gui
+    and pixel_borders.core
+
+    [:] Defined in this module
+    --------------------------
+
+    KRITA_AVAILABLE :: bool
+        Used to verify if this plugin is being used
+        outside krita or not.
+
+    DEBUG :: bool
+        Enable extra debug messages when is true.
+
+    error_report :: func(str) -> IO ()
+        prints an error message in stderr.
+
+    GUI :: QObject
+        connect the Menu and the Pixel Border's core.
+
+    main :: func() -> IO ()
+        used to run the Plugin outside krita.
+
+    test :: func( any ) -> IO ()
+        used to run the Plugin on kritarunner.
+
+    [*] Author
+     |- Gaps : sGaps : ArtGaps
+"""
+
 from PyQt5.QtWidgets import QApplication , QVBoxLayout , QLabel
 from PyQt5.QtCore    import QThread , QObject , pyqtSignal , pyqtSlot
 from sys             import stderr
@@ -35,9 +71,12 @@ from threading import Thread
 
 DEBUG = True
 def error_report( msg ):
+    """prints an error message in stderr."""
     print( msg , file = stderr )
 
 class GUI( QObject ):
+    """ Object used to connect the GUI with the CORE. It holds the actions,
+        slots and signals which allow user talk with the CORE. """
 
     reportRequest    = pyqtSignal( str )
     errorRequest     = pyqtSignal( str )

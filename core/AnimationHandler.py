@@ -1,3 +1,28 @@
+# Module:   core.AnimationHandler.py | [ Language Python ]
+# Author:   Gaps | sGaps | ArtGaps
+# LICENSE:  GPLv3 (available in ./LICENSE.txt)
+# -------------------------------------------------------
+"""
+    Defines some classes to handle Krita's files and animations.
+
+    [:] Defined in this module
+    --------------------------
+    RESOLUTION :: namedtuple( Int , Int )
+        class used to represent the resolution of an image.
+
+    ANIMATED_NODES :: namedtuple( [krita.Node] , range )
+        class used to represent the relevant animation nodes data.
+
+    error :: func( str ) -> IO ()
+        prints error messages on stderr
+
+    AnimationHandler :: class
+        It's used to verify if a node has key-frames and to export and
+        import files on Krita.
+
+    [*] Author
+     |- Gaps : sGaps : ArtGaps
+"""
 from collections import deque, namedtuple
 from sys         import stderr
 from tempfile    import mkdtemp
@@ -50,9 +75,15 @@ class AnimationHandler( object ):
         self.info       = infoObj    or AnimationHandler.basicInfoObject()
 
     def get_export_dir( self ):
+        """
+            RETURNS
+                the current export directory """
         return self.exportdir
 
     def get_exported_file_basenames( self ):
+        """
+            RETURNS
+                the current files exported by this object """
         return self.exported
 
     @staticmethod
@@ -141,20 +172,35 @@ class AnimationHandler( object ):
 
     @staticmethod
     def extract_animation_of( node, start , finish ):
+        """
+            RETURNS
+                the animation data retrieved from node
+        """
         length = finish - start + 1
         return AnimationHandler.extract_animation_range_of_subtree( node , start , length )
 
     @staticmethod
     def extract_animation_range_of( node , start , finish ):
+        """
+            RETURNS
+                the animation range retrieved from node
+        """
         data = AnimationHandler.extract_animation_of( node , start , finish )
         return data.anim_range
 
     @staticmethod
     def extract_animated_nodes_of( node , start , finish ):
+        """
+            RETURNS
+                the animated nodes retrieved from node
+        """
         data = AnimationHandler.extract_animation_of( node , start , finish )
         return data.nodes
 
     def build_directory( self ):
+        """
+            Create the export directory in the system's temporal directory.
+        """
         if self.exportReady: return True
 
         self.exportdir   = mkdtemp( prefix = DEFAULT_PREFIX )
@@ -164,6 +210,9 @@ class AnimationHandler( object ):
         return self.exportReady
 
     def clean_up_all( self ):
+        """
+            Deletes the internal directory from the system's temporal directory.
+        """
         frame_names = [ f"{self.exportdir}/{frame}" for frame in self.exported ]
         try:
             for f in frame_names:
@@ -181,6 +230,9 @@ class AnimationHandler( object ):
 
     def export( self , file_basename , node ):
         """
+            Save the current node's data in a file called file_basename. That file will
+            be in the current export directory (if exists).
+
             NOTE: You must enable batchmode for Krita.instance() and current Document before use this.
                   or it will display a popup every time this runs.
         """
@@ -205,6 +257,8 @@ class AnimationHandler( object ):
         return result
 
     def get_exported_file_basenames( self ):
+        """ RETURNS
+                the exported file base names."""
         return self.exported
 
     @staticmethod

@@ -1,3 +1,19 @@
+# Module:   core.Writer.py | [ Language Python ]
+# Author:   Gaps | sGaps | ArtGaps
+# LICENSE:  GPLv3 (available in ./LICENSE.txt)
+# -----------------------------------------------
+"""
+    Defines objects to update the current alpha data of
+    target nodes.
+
+    [:] Defined in this module
+    --------------------------
+        Writer :: class
+            updates, write and flush the current target data.
+
+    [*] Author
+     |- Gaps : sGaps : ArtGaps
+"""
 from .AnimationHandler import AnimationHandler
 from .Arguments import KisData
 from .KisStatus import KisStatus
@@ -7,6 +23,7 @@ from threading  import Barrier
 from PyQt5.QtCore import QRect
 
 class Writer( object ):
+    """ Takes a target node and updates its alpha data. Then flush it on secondary memory. """
     # TODO: Add an option for only write on memory instead of write in main and secondary memory.
     def __init__( self , kis_arguments  = KisData()          ,
                          id_writer      = 0                  ,

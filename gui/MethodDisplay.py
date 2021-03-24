@@ -1,8 +1,9 @@
 # Module:      gui.MethodDisplay.py | [ Language Python ]
-# Created by: ( Gaps | sGaps | ArtGaps )
-# -------------------------------------------------------
+# Author:   Gaps | sGaps | ArtGaps
+# LICENSE:  GPLv3 (available in ./LICENSE.txt)
+# ------------------------------------------------------
 """
-    Defines a widget used in PxGUI.
+    Defines a widget used in CustomPage and QuickPage.
 
     [:] Defined in this module
     --------------------------

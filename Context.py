@@ -1,17 +1,19 @@
-# Module:      Context.py | [ Language Python ]
-# Created by: ( Gaps | sGaps | ArtGaps )
-# ---------------------------------------------
-""" Utility module for manage and test the GUI inside and outside krita.
-    When Krita is available, CONTEXT = 'INSIDE_KRITA'. and all built-in
-    functions of krita can be used safely.
+# Module:   Context.py | [ Language Python ]
+# Author:   Gaps | sGaps | ArtGaps
+# LICENSE:  GPLv3 (available in ./LICENSE.txt)
+# --------------------------------------------
+""" Utility module used to manage and test the GUI inside and outside krita.
+
+    When Krita is available, CONTEXT = 'INSIDE_KRITA', and Krita's built-in
+    can be used safely.
 
     Otherwise, CONTEXT = 'OUTSIDE_KRITA' and you won't be able to use
-    Krita functions.
+    Krita's functions.
 
     [:] Defined in this module
     --------------------------
     RUN         :: function
-        It's an alias for the exec_ function defined for a QApplication instance.
+        It's an alias for the exec_ function defined on QApplication class.
         Use this after setup all GUI's component.
 
     Extension   :: class

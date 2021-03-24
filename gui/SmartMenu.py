@@ -1,3 +1,21 @@
+# Module:   gui.SmartMenu.py | [ Language Python ]
+# Author:   Gaps | sGaps | ArtGaps
+# LICENSE:  GPLv3 (available in ./LICENSE.txt)
+# ------------------------------------------------
+"""
+    Defines the Menu used in this plugin (3rd version)
+
+    [:] Defined in this module
+    --------------------------
+    DirButton :: class
+        Defines a button with an arrow on it.
+
+    Menu :: class
+        Allows user interact with this plugin.
+
+    [*] Author
+     |- Gaps : sGaps : ArtGaps
+"""
 from PyQt5.QtCore     import Qt , pyqtSignal , pyqtSlot , QSize
 from PyQt5.QtGui      import QIcon
 from PyQt5.QtWidgets  import ( QDialog , QToolButton , QStackedWidget ,

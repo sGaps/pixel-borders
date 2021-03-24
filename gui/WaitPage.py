@@ -1,3 +1,19 @@
+# Module:   gui.WaitPage.py | [ Language Python ]
+# Author:   Gaps | sGaps | ArtGaps
+# LICENSE:  GPLv3 (available in ./LICENSE.txt)
+# -----------------------------------------------
+"""
+    Defines the Wait page of the Smart Menu.
+
+    [:] Defined in this module
+    --------------------------
+    WaitPage :: class
+        Allows user to wait for the border completion, cancel the process
+        or get information about this plugin.
+
+    [*] Author
+     |- Gaps : sGaps : ArtGaps
+"""
 from os                 import path
 from .MenuPage          import SinkPage , subTitleLabel , ColorIconButton
 from PyQt5.QtCore       import Qt , pyqtSlot , pyqtSignal

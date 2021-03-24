@@ -1,3 +1,18 @@
+# Module:   gui.AnimPage.py | [ Language Python ]
+# Author:   Gaps | sGaps | ArtGaps
+# LICENSE:  GPLv3 (available in ./LICENSE.txt)
+# ----------------------------------------------
+"""
+    Defines the animation page of the Smart Menu.
+
+    [:] Defined in this module
+    --------------------------
+    AnimPage :: class
+        Retrieve animation data.
+
+    [*] Author
+     |- Gaps : sGaps : ArtGaps
+"""
 from PyQt5.QtCore       import pyqtSlot , pyqtSignal
 from PyQt5.QtWidgets    import ( QWidget , QCheckBox , QSpinBox ,
                                  QLabel , QFormLayout )
@@ -9,6 +24,8 @@ from .KisLookup import KRITA_AVAILABLE , kis , dprint
 
 # Pre: { KRITA_AVAILABLE = True }
 class AnimPage( MenuPage ):
+    """ Retrieve animation data from Krita. """
+        
     def __init__( self , backP = None , nextP = None , parent = None ):
         super().__init__( backP    = backP  ,
                           nextP    = nextP  ,
@@ -59,6 +76,7 @@ class AnimPage( MenuPage ):
         self.override = boolean_value
 
     def connect_with_krita( self ):
+        """ Updates the current animation data. """
         if KRITA_AVAILABLE:
             # Take the current Document:
             doc = kis.activeDocument()

@@ -1,6 +1,7 @@
 # Module:      core.Arguments.py | [ Language Python ]
-# Created by: ( Gaps | sGaps | ArtGaps )
-# ----------------------------------------------------
+# Author:   Gaps | sGaps | ArtGaps
+# LICENSE:  GPLv3 (available in ./LICENSE.txt)
+# -------------------------------------------------------
 """
     Defines several objects to parse Real World (krita) data.
 
@@ -10,14 +11,15 @@
         Parse Krita's color data.
 
     KisData    :: class
-        Parse a raw dict object. An valid KisData object can be passed
-        safely into a Borderizer Object to get a new border layer.
+        Parse a raw dict object retrieved from Krita. A valid KisData
+        object can be passed safely into a Border Object to get a new
+        border layer.
 
     METHODS     :: dict
-        Holds all grow methods currently available and their names.
+        Holds all grow methods currently available with their names.
 
     COLOR_TYPES :: set
-        Holds the supported color types by a Borderizer object.
+        Holds the supported color types by a Border object.
 
     KEYS        :: dict
         Holds the required data to run a Borderizer object.
@@ -31,9 +33,9 @@
                             uncheck the Quick Border option.
             "colordsc":     Color descriptor. Iterable with the form [str, [int]]
                             The first element must be in COLOR_TYPES.
-                                example: ["FG" , _]     node's Foreground used.
-                                         ["BG" , _]     node's Background used.
-                                         ["CS" , comp]  Custom Managed Color Used. <<It could be used to debugging purposes>>
+                                example: ["FG" , _   ] node's Foreground used.
+                                         ["BG" , _   ] node's Background used.
+                                         ["CS" , comp]  Custom Managed Color Used. <<used for debugging purposes>>
                                 where comp are color components (normalized)
             "trdesc":       Transparency descriptor. Iterable like: [boolean,float]
                                 [ use_transparency_as_opque , threshold ]
@@ -98,7 +100,7 @@ DEPTHS = { "U8"  : ("B" , 2**8  - 1 ) ,
 
 class KisColor( object ):
     """
-        Manages the krita depth outside Qt's realm
+        Manages the krita's depths in the Python's realm
     """
     def __init__( self , managed_color ):
         """ ARGUMENTS:
@@ -171,8 +173,8 @@ class KisColor( object ):
 # TODO: Add a new attribute to set the number of workers in each step.
 class KisData( object ):
     """ Parse an raw dict object for the borderizer.
-        NOTE: This exists for avoid weird issues with Qt memory management
-        This tries to put everything in the python realm! """
+        NOTE: This exists to avoid weird issues with Qt's memory management (its GC)
+              This tries to put everything in the python's realm! """
     def __init__( self , data = {} ):
         """ Implements parse logic. """
         self.valid = False
@@ -360,3 +362,4 @@ class KisData( object ):
 
     def __bool__( self ):
         return self.valid
+

@@ -1,25 +1,26 @@
-# Module:      core.AlphaScrapperSafe.py | [ Language Python ]
-# Created by: ( Gaps | sGaps | ArtGaps )
-# ------------------------------------------------------------
+# Module:   core.AlphaScrapperSafe.py | [ Language Python ]
+# Author:   Gaps | sGaps | ArtGaps
+# LICENSE:  GPLv3 (available in ./LICENSE.txt)
+# ---------------------------------------------------------
 """
-    Defines an Scrapper object to extract the alpha
-    data of a krita's node. It accepts a transparent
-    value with threshold.
+    Defines an Scrapper class to extract the alpha
+    data of a Krita's Node. It accepts a transparent
+    value with a threshold value
 
-    The transparent and threshold are the same ARGUMENTS
-    used in the node.colorDepth() function.
+    The transparent and threshold values are the same
+    **arguments** used in the node.colorDepth() function.
 
     [:] Defined in this module
     --------------------------
     Scrapper    :: class
-        class used for extract the alpha channel from a krita node.
+        class used to extract the alpha channel from a Krita's node.
 
     DEPTHS      :: dict
         Holds relevant information about color depths supported by Krita.
 
     [*] Author
      |- Gaps : sGaps : ArtGaps
-    """
+"""
 
 
 from PyQt5.QtCore  import QRect
@@ -31,7 +32,7 @@ DEPTHS = { "U8"  : "B" ,    # unsigned char
            "F32" : "f" }    # float
 
 class Scrapper( object ):
-    """ Utility class for extract the alpha channel from a krita node. """
+    """ Utility class to extract the alpha channel from a Krita's Node. """
     TRANSPARENT = 0x00
     OPAQUE      = 0xff
     def __init__( self ):
@@ -42,14 +43,14 @@ class Scrapper( object ):
         """
             ARGUMENTS
                 node (krita.Node):      The source node.
-                extra_pixels(int):      How many pixels it will be added to the bound size.
+                extra_pixels(int):      number of pixels that will be added to the bound box size.
                 transparent(number):    The value which is considered as transparent.
                 threshold(number):      The range of values that the class will consider as transparent.
             RETURNS
-                bytearray
+                ( bytearray , QRect )
 
-            returns a simplified version of the node's alpha channel (only marks if the pixel
-            is or not transparent) with a lightly modification on its dimensions given by
+            returns a simplified version of the Node's alpha channel (only marks if the pixel
+            is transparent or not) with a lightly modification on its dimensions given by
             the variable extra_pixels, and also returns the node bounds. """
         if node is None:
             return ( bytearray() , QRect() )
@@ -76,10 +77,11 @@ class Scrapper( object ):
                 bounds(PyQt5.QtCore.QRect): The bounds that will be used to extract the alpha values.
                 transparent(number):        The value which is considered as transparent.
                 threshold(number):          The range of values that the class will consider as transparent.
-            RETURNS bytearray
+            RETURNS
+                bytearray
 
-            Extract a simplified version of the node's alpha channel. This only
-            marks with 0xff when a pixel is opaque and 0x00 when it's transparent.
+            Extract a simplified version of the Node's alpha channel. This only
+            marks the opaque pixels with the 0xff value and the transparent ones with 0x00.
             """
         if node is None or bounds.width() == 0 or bounds.height() == 0:
             return bytearray()
@@ -108,7 +110,7 @@ class Scrapper( object ):
             Extract the alpha pixel data from the node, using the coordinates x and y, and
             the sizes w and h (width and height).
             """
-        # Extract the channel information:
+        # Extract the channel data:
         wopaque      = Scrapper.OPAQUE
         wtransparent = Scrapper.TRANSPARENT
 
@@ -120,20 +122,20 @@ class Scrapper( object ):
             nmChn = 1                       # 1 channel
             szChn = 1                       # 1 byte
 
-        # Retrive the projection Information:
+        # Retrive the projection Information: (THIS ALLOWS GROUP LAYERS SUPPORT)
         pxldata = bytes( node.projectionPixelData( x , y , w , h ) )
         pattern = DEPTHS[node.colorDepth()]
         low    = transparent - threshold
         high   = transparent + threshold
 
         if pattern == DEPTHS["F16"]:
-            # Special treats
+            # Special traits:
             offset = (nmChn - 1) * szChn
             step   = nmChn * szChn
             length = len(pxldata)
             tsize  = 2
             reader = memoryview( pxldata ).cast( 'B' )
-            # NOTE: this reads the values as Float16 using the built-in struct.unpack interface,
+            # NOTE: this reads the values as Float16 using the built-in interface ```struct.unpack```,
             #       because this had some troubles when tries to read them using the memoryview.cast( 'e' )
             return bytearray( wtransparent if low <= unpack( pattern , reader[i:i+tsize] )[0] <= high else
                               wopaque      for i in range(offset,length,step) )
