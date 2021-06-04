@@ -1,3 +1,4 @@
+![banner]
 # Pixel Borders <img width=35 height=35 src="https://simpleicons.org/icons/python.svg"/> <img width=35 height=35 src="https://simpleicons.org/icons/krita.svg"/> <img width=35 height=35 src="https://simpleicons.org/icons/qt.svg"/> #
 **A plugin that helps you to make pixel-art quicker**. This uses
 uses `Krita's Python API`, `PyQt5` and `Python's built-in` modules
@@ -270,3 +271,4 @@ After [Get the Plugin](#get-the-plugin):
 
 [SGuy-a]: <./tutorial/spiky-guy.gif>
 [SGuy-b]: <./tutorial/spiky-guy-borders2px.gif>
+[banner]: <./gui/images/pixelborders-banner-by-Gaps.png>
