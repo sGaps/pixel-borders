@@ -311,19 +311,23 @@ class GUI( QObject ):
         print( f"[Borderizer]: {msg}" , file = stderr )
 
     @pyqtSlot()
-    def run( self ):
+    def run( self , menu_execute = False ):
         self.menu.show()
+        if menu_execute:
+            self.menu.exec_()
 
 def main():
     platform = QApplication.instance()
     if not platform:
         platform = QApplication([])
         run      = platform.exec_
+        runExec  = False
     else:
         run      = lambda: None
+        runExec  = True 
 
     gui  = GUI( "Pixel Borders - Test" )
-    gui.run()
+    gui.run( runExec )
     run()
 
 def test( _ = () ):
