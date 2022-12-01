@@ -63,7 +63,7 @@ class DirButton( ColorIconButton ):
 
     def updateIconSize( self ):
         size    = self.size()
-        newsize = QSize( size.width() / 2 , size.height() / 4 )
+        newsize = QSize( size.width() // 2 , size.height() // 4 )
         self.setIconSize(newsize)
 
     def resizeEvent( self , event ):
